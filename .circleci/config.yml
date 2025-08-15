@@ -46,10 +46,14 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install backend dependencies
+          command: cd backend && npm ci
+      - run:
+          name: Make Jest executable
+          command: chmod +x ./backend/node_modules/.bin/jest
+      - run:
           name: Run backend tests
-          command: |
-            cd backend  
-            npm test -- --watchAll=false --ci --coverage
+          command: cd backend && npx jest --ci --coverage
 
   test_frontend:
     docker:
