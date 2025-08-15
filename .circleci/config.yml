@@ -47,7 +47,9 @@ jobs:
       - checkout
       - run:
           name: Run backend tests
-          command: cd backend && npx jest --ci --coverage
+          command: |
+            cd backend  
+            npm test -- --watchAll=false --ci --coverage
 
   test_frontend:
     docker:
@@ -56,7 +58,9 @@ jobs:
       - checkout
       - run:
           name: Run frontend tests
-          command: cd frontend && npx jest --ci --coverage
+          command: |
+            cd frontend
+            npm test -- --watchAll=false --ci --coverage
 
 workflows:
   version: 2
