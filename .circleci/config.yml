@@ -1,0 +1,71 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5
+
+jobs:
+  install_dependencies:
+    docker:
+      - image: cimg/node:20.5
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run:
+                name: Install backend dependencies
+                command: |
+                  cd backend
+                  npm ci
+            - run:
+                name: Install frontend dependencies
+                command: |
+                  cd frontend
+                  npm ci
+
+  test_backend:
+    docker:
+      - image: cimg/node:20.5
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run:
+                name: Install backend dependencies
+                command: |
+                  cd backend
+                  npm ci
+            - run:
+                name: Run backend tests
+                command: |
+                  cd backend
+                  npm test
+
+  test_frontend:
+    docker:
+      - image: cimg/node:20.5
+    steps:
+      - checkout
+      - node/with-cache:
+          steps:
+            - run:
+                name: Install frontend dependencies
+                command: |
+                  cd frontend
+                  npm ci
+            - run:
+                name: Run frontend tests
+                command: |
+                  cd frontend
+                  npm test
+
+workflows:
+  version: 2
+  test-and-build:
+    jobs:
+      - install_dependencies
+      - test_backend:
+          requires:
+            - install_dependencies
+      - test_frontend:
+          requires:
+            - install_dependencies

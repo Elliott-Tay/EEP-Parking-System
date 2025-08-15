@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // Example route
-app.get("/api/status", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({ message: "Carpark system backend is running" });
 });
 
