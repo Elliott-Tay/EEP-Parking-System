@@ -9,10 +9,12 @@ jobs:
       - image: cimg/node:20.5
     steps:
       - checkout
+
+      # Backend dependencies cache
       - restore_cache:
           keys:
-            - v1-dependencies-{{ checksum "backend/package-lock.json" }}
-            - v1-dependencies-
+            - backend-deps-{{ checksum "backend/package-lock.json" }}
+            - backend-deps-
       - run:
           name: Install backend dependencies
           command: |
@@ -21,11 +23,13 @@ jobs:
       - save_cache:
           paths:
             - backend/node_modules
-          key: v1-dependencies-{{ checksum "backend/package-lock.json" }}
+          key: backend-deps-{{ checksum "backend/package-lock.json" }}
+
+      # Frontend dependencies cache
       - restore_cache:
           keys:
-            - v1-frontend-dependencies-{{ checksum "frontend/package-lock.json" }}
-            - v1-frontend-dependencies-
+            - frontend-deps-{{ checksum "frontend/package-lock.json" }}
+            - frontend-deps-
       - run:
           name: Install frontend dependencies
           command: |
@@ -34,7 +38,7 @@ jobs:
       - save_cache:
           paths:
             - frontend/node_modules
-          key: v1-frontend-dependencies-{{ checksum "frontend/package-lock.json" }}
+          key: frontend-deps-{{ checksum "frontend/package-lock.json" }}
 
   test_backend:
     docker:
@@ -43,9 +47,7 @@ jobs:
       - checkout
       - run:
           name: Run backend tests
-          command: |
-            cd backend
-            npm test
+          command: cd backend && npx jest --ci --coverage
 
   test_frontend:
     docker:
@@ -54,9 +56,7 @@ jobs:
       - checkout
       - run:
           name: Run frontend tests
-          command: |
-            cd frontend
-            npm test
+          command: cd frontend && npx jest --ci --coverage
 
 workflows:
   version: 2
