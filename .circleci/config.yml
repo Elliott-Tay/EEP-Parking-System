@@ -64,7 +64,7 @@ jobs:
           name: Run frontend tests
           command: |
             cd frontend
-            npm test -- --watchAll=false --ci --coverage
+            react-scripts test --watchAll=false --ci --coverage
 
 workflows:
   version: 2
