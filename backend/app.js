@@ -12,4 +12,10 @@ app.get("/api/health", (req, res) => {
   res.json({ message: "Carpark system backend is running" });
 });
 
+app.get("/", (req, res) => {
+  res.send("Welcome to the Carpark System API");
+})
+
+
+//Export the app for use in server.js
 module.exports = app;
