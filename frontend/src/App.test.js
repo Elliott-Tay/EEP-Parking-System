@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import App from "./App";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
-import Home from "./components/Home";
+import Home from "./components/Home";;
 import "@testing-library/jest-dom";
 
 jest.mock("react-router-dom");

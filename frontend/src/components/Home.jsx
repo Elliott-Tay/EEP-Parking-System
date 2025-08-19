@@ -40,7 +40,7 @@ const CardSection = ({ title, buttons }) => (
 
 export default function Home() {
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-[auto]">
       <h1 className="text-3xl font-bold text-gray-800 mb-8">G.tech Carpark Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
