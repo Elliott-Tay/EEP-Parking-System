@@ -7,7 +7,7 @@ async function testConnection() {
     const [rows] = await db.query("SELECT NOW() AS now");
     console.log("DB Connection Successful! Current time:", rows[0].now);
   } catch (err) {
-    console.error("DB Connection Failed:", err);
+    console.error("DB Connection Failed: ", err);
   } finally {
     // Close pool if you want (optional)
     await db.end();

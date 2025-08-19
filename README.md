@@ -27,7 +27,7 @@ USE EEP;
 
 -- 3. Create the table for movement transactions
 CREATE TABLE IF NOT EXISTS movement_transactions (
-    ticket_no VARCHAR(50) NOT NULL PRIMARY KEY,   -- IU/Ticket No
+    IU_no VARCHAR(50) NOT NULL PRIMARY KEY,   -- IU
     vehicle_type VARCHAR(30) NOT NULL,           -- Vehicle Type
     holder_name VARCHAR(100) NOT NULL,           -- Holder Name
     entry_time DATETIME NOT NULL,                -- Entry Time

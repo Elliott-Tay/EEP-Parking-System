@@ -26,6 +26,28 @@ app.get("/api/movements", async (req, res) => {
   }
 });
 
+// get movement transaction by iu_no
+app.get("/api/movements/:iu_no", async (req, res) => {
+  try {
+    const { iu_no } = req.params;
+
+    // parameterized query to prevent SQL injection
+    const [rows] = await db.query(
+      "SELECT * FROM movement_transactions WHERE iu_no = ?",
+      [iu_no]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "No record found for this iu_no" });
+    }
+
+    res.json(rows[0]); // return just one object instead of an array
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error", details: error.message });
+  }
+});
+
 // welcome route
 app.get("/", (req, res) => {
   res.send("Welcome to the Carpark System API");
