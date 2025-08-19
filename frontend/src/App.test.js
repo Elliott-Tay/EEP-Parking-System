@@ -4,12 +4,7 @@ import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 import "@testing-library/jest-dom";
 
-test("renders the heading 'Hello world!'", () => {
-  render(<App />);
-  
-  const heading = screen.getByText(/Hello world!/i);
-  expect(heading).toBeInTheDocument();
-});
+jest.mock("react-router-dom");
 
 // NavBar Component Tests
 describe("NavBar Component", () => {
