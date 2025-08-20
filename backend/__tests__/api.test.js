@@ -171,7 +171,6 @@ describe("Carpark System API", () => {
 
   });
 
-
   describe("GET /", () => {
     it("should return a welcome message", async () => {
       const res = await request(app).get("/");
