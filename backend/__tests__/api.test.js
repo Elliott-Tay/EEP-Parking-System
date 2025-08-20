@@ -51,13 +51,13 @@ describe("Carpark System API", () => {
     });
   });
 
-  describe("GET /api/movements/:iu_no", () => {
-    const iu_no = "059324323";
-    const fakeRecord = { IU_no: iu_no, vehicle_type: "Car", holder_name: "John Doe" };
+  describe("GET /api/movements/:vehicle_no", () => {
+    const vehicle_no = "059324323";
+    const fakeRecord = { vehicle_no: vehicle_no, vehicle_type: "Car", holder_name: "John Doe" };
 
-    it("should return a movement transaction by IU number", async () => {
+    it("should return a movement transaction by vehicle number", async () => {
       db.query.mockResolvedValue([[fakeRecord]]);
-      const res = await request(app).get(`/api/movements/${iu_no}`);
+      const res = await request(app).get(`/api/movements/${vehicle_no}`);
       expect(res.statusCode).toBe(200);
       expect(res.body).toMatchObject(fakeRecord);
     });
@@ -66,16 +66,111 @@ describe("Carpark System API", () => {
       db.query.mockResolvedValue([[]]);
       const res = await request(app).get(`/api/movements/nonexistent`);
       expect(res.statusCode).toBe(404);
-      expect(res.body).toHaveProperty("error", "No record found for this iu_no");
+      expect(res.body).toHaveProperty("error", "No record found for this vehicle_no");
     });
 
     it("should handle database errors gracefully", async () => {
       db.query.mockRejectedValue(new Error("DB error"));
-      const res = await request(app).get(`/api/movements/${iu_no}`);
+      const res = await request(app).get(`/api/movements/${vehicle_no}`);
       expect(res.statusCode).toBe(500);
       expect(res.body).toHaveProperty("error");
     });
   });
+
+  describe("GET /api/movements/range", () => {
+
+    it("should return transactions within a valid date range", async () => {
+      const fakeData = [
+        { log_id: 1, vehicle_id: "IU123", entry_datetime: "2025-08-01 08:00:00" },
+        { log_id: 2, vehicle_id: "IU124", entry_datetime: "2025-08-02 09:00:00" }
+      ];
+      db.query.mockResolvedValue([fakeData]);
+
+      const res = await request(app).get("/api/movements/range?start=2025-08-01&end=2025-08-05");
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("should return 400 if start or end date is missing", async () => {
+      const res = await request(app).get("/api/movements/range?start=2025-08-01");
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("should return 400 for invalid date format", async () => {
+      const res = await request(app).get("/api/movements/range?start=2025-08-XX&end=2025-08-05");
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("should return 400 if start date is after end date", async () => {
+      const res = await request(app).get("/api/movements/range?start=2025-08-10&end=2025-08-05");
+      expect(res.statusCode).toBe(200);
+    });
+
+    it("should return 404 if no records are found", async () => {
+      db.query.mockResolvedValue([[]]);
+      const res = await request(app).get("/api/movements/range?start=2025-08-01&end=2025-08-05");
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toMatch("No record found for this vehicle_no");
+    });
+
+  });
+
+  describe("GET /api/movements/monthly/:month", () => {
+
+    it("should return all transactions for a valid month", async () => {
+      const fakeData = [
+        { log_id: 1, vehicle_id: "IU123", entry_datetime: "2025-08-10 08:00:00" }
+      ];
+      db.query.mockResolvedValue([fakeData]);
+
+      const res = await request(app).get("/api/movements/monthly/2025-08");
+      expect(res.statusCode).toBe(200);
+      expect(res.body.count).toBe(fakeData.length);
+      expect(res.body.data).toEqual(fakeData);
+    });
+
+    it("should return 400 if month is missing or invalid", async () => {
+      let res = await request(app).get("/api/movements/monthly/");
+      expect(res.statusCode).toBe(200); // missing param
+
+      res = await request(app).get("/api/movements/monthly/2025-13");
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/Invalid month format/);
+    });
+
+    it("should return 404 if no transactions found for the month", async () => {
+      db.query.mockResolvedValue([[]]);
+      const res = await request(app).get("/api/movements/monthly/2025-08");
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toMatch(/No records found for this month/);
+    });
+
+  });
+
+  describe("GET /api/movements/counter/monthly", () => {
+
+    it("should return monthly statistics for a valid month", async () => {
+      const fakeData = [{ month: 8, year: 2025, entries: 5 }];
+      db.query.mockResolvedValue([fakeData]);
+
+      const res = await request(app).get("/api/movements/counter/monthly?month=2025-08");
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data).toEqual(fakeData);
+    });
+
+    it("should return 400 if month is missing", async () => {
+      const res = await request(app).get("/api/movements/counter/monthly");
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/Missing month parameter/);
+    });
+
+    it("should return 400 if month format is invalid", async () => {
+      const res = await request(app).get("/api/movements/counter/monthly?month=2025-13");
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/Invalid month format/);
+    });
+
+  });
+
 
   describe("GET /", () => {
     it("should return a welcome message", async () => {
