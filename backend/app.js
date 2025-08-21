@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const db = require("./database/db");
 const movementRouter = require("./routes/movements");
+const seasonRouter = require("./routes/season")
 
 require("dotenv").config();
 
@@ -23,5 +24,13 @@ app.get("/api/health", (req, res) => {
 
 // movement transactions routes
 app.use("/api/movements", movementRouter);
+
+// season routes
+app.use("/api/seasons", seasonRouter);
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found" });
+});
 
 module.exports = app;

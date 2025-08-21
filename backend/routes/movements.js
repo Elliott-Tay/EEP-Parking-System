@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 
 // Get all movement transactions
+// This route fetches all movement transactions from the database
+// Example: GET /api/movements
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM movement_transactions");

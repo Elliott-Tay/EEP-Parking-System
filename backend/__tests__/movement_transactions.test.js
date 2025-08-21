@@ -8,7 +8,7 @@ jest.mock("../database/db", () => ({
   query: jest.fn(),
 }));
 
-describe("Carpark System API", () => {
+describe("Movement Transaction API", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
