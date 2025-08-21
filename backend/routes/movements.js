@@ -105,14 +105,15 @@ router.get("/monthly/:month", async (req, res) => {
     }
 
     const startDate = new Date(year, mon - 1, 1);
-    const endDate = new Date(year, mon, 1); // first day of next month
+    const endDate = new Date(year, mon, 1); // next month
 
     const [rows] = await db.query(
-      `SELECT *
-       FROM movement_transactions
-       WHERE DATE_FORMAT(entry_datetime, '%Y-%m') = '?`,
-      [startDate, endDate]
+        `SELECT *
+        FROM movement_transactions
+        WHERE entry_datetime >= ? AND entry_datetime < ?`,
+        [startDate, endDate]
     );
+
 
     if (rows.length === 0) {
       return res.status(404).json({ error: "No records found for this month" });
