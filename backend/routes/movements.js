@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 
-// get all movement transactions
+// Get all movement transactions
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM movement_transactions");
@@ -14,6 +14,8 @@ router.get("/", async (req, res) => {
 });
 
 // Get movement transaction by vehicle number
+// Format: /api/movements/:vehicle_no
+// Example: /api/movements/IU123
 router.get("/:vehicle_no", async (req, res) => {
   try {
     const { vehicle_no } = req.params;
@@ -37,9 +39,11 @@ router.get("/:vehicle_no", async (req, res) => {
 });
 
 // get movement transactions by date range
+// Format: YYYY-MM-DD
+// Example: /api/movements/range?start=2025-08-01&end=2025-08-19
 router.get("/range", async (req, res) => {
   try {
-    const { start, end } = req.query; // e.g., ?start=2025-08-01&end=2025-08-19
+    const { start, end } = req.query; 
 
     if (!start || !end) {
       return res.status(400).json({ error: "Missing start or end date" });
@@ -85,6 +89,8 @@ router.get("/range", async (req, res) => {
   }
 });
 
+// Get all transactions for a specific month
+// Format: YYYY-MM (e.g., 2025-08)
 router.get("/monthly/:month", async (req, res) => {
   try {
     const { month } = req.params;
@@ -124,6 +130,8 @@ router.get("/monthly/:month", async (req, res) => {
 });
 
 // get monthly statistics
+// Format: YYYY-MM (e.g., 2025-08)
+// Example: /api/movements/counter/monthly?month=2025-08
 router.get("/counter/monthly", async (req, res) => {
   try {
     const { month } = req.query;

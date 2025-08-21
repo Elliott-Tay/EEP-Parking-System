@@ -1,6 +1,7 @@
 // backend/database/test-db.js
 const db = require("./db");
 
+// Test database connection
 async function testConnection() {
   try {
     // Try a simple query
