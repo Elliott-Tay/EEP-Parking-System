@@ -226,6 +226,12 @@ CREATE TABLE ZoneTableHistory (
 );
 ```
 
+## Overview of backend
+The backend comprises of the database that is using MySQL and three backend modules that is movement_transactions, config and season parking. This is for us to track car movements through our carparks, to CRUD any details in our carpark and to check seasonality parking or CRUD it as well. 
+
+## Overview of frontend
+It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark. 
+
 ## Test cases
 To ensure that everything is working correctly, ensure that you create test cases for the ones that you are working on. There is both a frontend and backend tests so ensure you cd into the folders before running. 
 
