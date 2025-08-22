@@ -17,4 +17,20 @@ router.get("/", async (req, res) => {
     }
 });
 
+// Get a specific season by ID
+// Example: GET /api/seasons/:season_id     
+router.get("/:season_id", async (req, res) => {
+    const { season_id } = req.params;
+    try {
+        const [rows] = await db.query("SELECT * FROM seasons WHERE season_id = ?", [season_id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Season not found" });
+        }
+        res.json(rows[0]);
+    } catch (err) {
+        console.error("Error fetching season:", err);
+        res.status(500).json({ error: "Internal server error: ", err: err.message });
+    }
+});
+
 module.exports = router;
