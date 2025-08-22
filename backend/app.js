@@ -1,7 +1,6 @@
 // backend/app.js
 const express = require("express");
 const cors = require("cors");
-const db = require("./database/db");
 const movementRouter = require("./routes/movements");
 const seasonRouter = require("./routes/season")
 
@@ -28,7 +27,7 @@ app.use("/api/movements", movementRouter);
 // season routes
 app.use("/api/seasons", seasonRouter);
 
-// 404 handler
+// 404 handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });

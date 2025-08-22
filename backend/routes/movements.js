@@ -15,31 +15,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get movement transaction by vehicle number
-// Format: /api/movements/:vehicle_no
-// Example: /api/movements/IU123
-router.get("/:vehicle_no", async (req, res) => {
-  try {
-    const { vehicle_no } = req.params;
-    const [rows] = await db.query(
-      "SELECT * FROM movement_transactions WHERE vehicle_id = ?",
-      [vehicle_no]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "No record found for this vehicle_no" });
-    }
-
-    res.json(rows[0]); // return just one object
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Database error fetching vehicle",
-      details: error.message,
-    });
-  }
-});
-
 // get movement transactions by date range
 // Format: YYYY-MM-DD
 // Example: /api/movements/range?start=2025-08-01&end=2025-08-19
@@ -69,9 +44,9 @@ router.get("/range", async (req, res) => {
     // Query database
     const [rows] = await db.query(
       `SELECT *
-       FROM movement_transactions
-       WHERE entry_time >= ? AND entry_time < ?
-       ORDER BY entry_time ASC`,
+        FROM movement_transactions
+        WHERE entry_datetime >= ? AND entry_datetime < ?
+        ORDER BY entry_datetime ASC;`,
       [startDate, inclusiveEndDate]
     );
 
@@ -82,6 +57,75 @@ router.get("/range", async (req, res) => {
     res.json({
       start,
       end,
+      count: rows.length,
+      data: rows
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error fetching data", details: error.message });
+  }
+});
+
+// Get movement transaction by vehicle number
+// Format: /api/movements/:vehicle_no
+// Example: /api/movements/IU123
+router.get("/:vehicle_no", async (req, res) => {
+  try {
+    const { vehicle_no } = req.params;
+    const [rows] = await db.query(
+      "SELECT * FROM movement_transactions WHERE vehicle_id = ?",
+      [vehicle_no]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "No record found for this vehicle_no" });
+    }
+
+    res.json(rows[0]); // return just one object
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "Database error fetching vehicle",
+      details: error.message,
+    });
+  }
+});
+
+// Get movement transactions for a single day
+// Format: YYYY-MM-DD
+// Example: /api/movements/day/2025-08-20
+router.get("/day/:date", async (req, res) => {
+  try {
+    const { date } = req.params;
+
+    if (!date) {
+      return res.status(400).json({ error: "Missing date parameter" });
+    }
+
+    const startDate = new Date(date);
+    if (isNaN(startDate.getTime())) {
+      return res.status(400).json({ error: "Invalid date format, use YYYY-MM-DD" });
+    }
+
+    // End of the day (next day at 00:00)
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 1);
+
+    // Query database
+    const [rows] = await db.query(
+      `SELECT *
+       FROM movement_transactions
+       WHERE entry_datetime >= ? AND entry_datetime < ?
+       ORDER BY entry_datetime ASC`,
+      [startDate, endDate]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "No records found for this day" });
+    }
+
+    res.json({
+      date,
       count: rows.length,
       data: rows
     });

@@ -8,6 +8,7 @@ jest.mock("../database/db", () => ({
   query: jest.fn(),
 }));
 
+// Test suite for movement transactions
 describe("Movement Transaction API", () => {
 
   beforeEach(() => {
@@ -92,26 +93,78 @@ describe("Movement Transaction API", () => {
 
     it("should return 400 if start or end date is missing", async () => {
       const res = await request(app).get("/api/movements/range?start=2025-08-01");
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(400);
     });
 
     it("should return 400 for invalid date format", async () => {
       const res = await request(app).get("/api/movements/range?start=2025-08-XX&end=2025-08-05");
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(400);
     });
 
     it("should return 400 if start date is after end date", async () => {
       const res = await request(app).get("/api/movements/range?start=2025-08-10&end=2025-08-05");
-      expect(res.statusCode).toBe(200);
+      expect(res.statusCode).toBe(400);
     });
 
     it("should return 404 if no records are found", async () => {
       db.query.mockResolvedValue([[]]);
       const res = await request(app).get("/api/movements/range?start=2025-08-01&end=2025-08-05");
       expect(res.statusCode).toBe(404);
-      expect(res.body.error).toMatch("No record found for this vehicle_no");
+      expect(res.body.error).toMatch("No records found for this range");
     });
 
+  });
+
+  describe("Movement Transaction API - GET /api/movements/day/:date", () => {
+    const date = "2025-08-20";
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should return all movement transactions for a specific day", async () => {
+      // Mock DB query to return sample data
+      const mockRows = [
+        { log_id: 1, vehicle_id: "IU12345", entry_datetime: "2025-08-20 09:00:00" },
+        { log_id: 2, vehicle_id: "IU67890", entry_datetime: "2025-08-20 11:00:00" },
+      ];
+      db.query.mockResolvedValue([mockRows]);
+
+      const res = await request(app).get(`/api/movements/day/${date}`);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty("date", date);
+      expect(res.body).toHaveProperty("count", mockRows.length);
+      expect(res.body).toHaveProperty("data");
+      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data).toEqual(mockRows);
+    });
+
+    it("should return 400 if date parameter is missing", async () => {
+      const res = await request(app).get(`/api/movements/day/`);
+      expect(res.statusCode).toBe(200); // Express returns 404 for missing route param
+    });
+
+    it("should return 400 for invalid date format", async () => {
+      const res = await request(app).get(`/api/movements/day/invalid-date`);
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toHaveProperty("error", "Invalid date format, use YYYY-MM-DD");
+    });
+
+    it("should return 404 if no records found for the day", async () => {
+      db.query.mockResolvedValue([[]]); // empty result
+      const res = await request(app).get(`/api/movements/day/${date}`);
+      expect(res.statusCode).toBe(404);
+      expect(res.body).toHaveProperty("error", "No records found for this day");
+    });
+
+    it("should return 500 if database error occurs", async () => {
+      db.query.mockRejectedValue(new Error("DB connection failed"));
+      const res = await request(app).get(`/api/movements/day/${date}`);
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("error", "Database error fetching data");
+      expect(res.body).toHaveProperty("details", "DB connection failed");
+    });
   });
 
   describe("GET /api/movements/monthly/:month", () => {

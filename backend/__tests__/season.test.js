@@ -7,6 +7,7 @@ jest.mock("../database/db",() => ({
     query: jest.fn(),
 }));
 
+// Test suite for carpark seasons
 describe("Season API", () => {
     beforeEach(() => {
         jest.clearAllMocks();
