@@ -452,25 +452,42 @@ router.post("/exit", async (req, res) => {
 router.post("/entry-station", (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
+
+    // Basic validation
     if (!msg_type || !msg_datetime || !msg) {
-      return res.status(400).json({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+      return res.status(400).json({
+        success: false,
+        ack: "NACK",
+        message: "Missing msg_type, msg_datetime or msg",
+      });
     }
 
-    //Add more validation if necessary
-
-    // Emit to frontend via Socket.IO
-    if (req.io) {
-      req.io.emit("entry-status", { msg_type, msg_datetime, msg });
+    // Validate datetime
+    if (isNaN(Date.parse(msg_datetime))) {
+      return res.status(400).json({
+        success: false,
+        ack: "NACK",
+        message: "Invalid datetime format",
+      });
     }
 
-    return res.status(200).json({ status: "success", ack: "ACK" });
+    // Emit event via socket
+    const payload = { msg_type, msg_datetime, msg };
+    req.io?.emit("entry-station", payload);
+
+    return res.status(200).json({
+      success: true,
+      ack: "ACK",
+      data: payload,
+    });
 
   } catch (error) {
-    console.error("Error in /entry-station:", error);
+    console.error("Error in /entry-station:", error.stack || error);
+
     return res.status(500).json({
-      status: "error",
+      success: false,
       ack: "NACK",
-      message: "Internal server error",
+      message: "Internal server error: " + error,
     });
   }
 });
@@ -481,25 +498,42 @@ router.post("/entry-station", (req, res) => {
 router.post("/exit-station", (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
+
+    // Basic validation
     if (!msg_type || !msg_datetime || !msg) {
-      return res.status(400).json({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+      return res.status(400).json({
+        success: false,
+        ack: "NACK",
+        message: "Missing msg_type, msg_datetime or msg",
+      });
     }
 
-    // Add more validation if necessary
-
-    // Emit to frontend via Socket.IO
-    if (req.io) {
-      req.io.emit("exit-status", { msg_type, msg_datetime, msg });
+    // Validate datetime
+    if (isNaN(Date.parse(msg_datetime))) {
+      return res.status(400).json({
+        success: false,
+        ack: "NACK",
+        message: "Invalid datetime format",
+      });
     }
 
-    return res.status(200).json({ status: "success", ack: "ACK" });
+    // Emit event via socket
+    const payload = { msg_type, msg_datetime, msg };
+    req.io?.emit("exit-station", payload);
+
+    return res.status(200).json({
+      success: true,
+      ack: "ACK",
+      data: payload,
+    });
 
   } catch (error) {
-    console.error("Error in /exit-station:", error);
+    console.error("Error in /exit-station:", error.stack || error);
+
     return res.status(500).json({
-      status: "error",
+      success: false,
       ack: "NACK",
-      message: "Internal server error",
+      message: "Internal server error: " + error,
     });
   }
 });
@@ -523,21 +557,9 @@ router.post("/lot-status-entry", async (req, res) => {
     // Increment counter to reflect one car entered
     carsInLot += 1;
 
-    // Handle the Lot Status received from TSE
-    console.log("Received Lot Status from TSE:", {
-      msg_type,
-      msg_datetime,
-      msg,
-      carsInLot,
-    });
-
-    // Emit to frontend with updated lot info
-    io.emit("lot-status-entry", {
-      msg_type,
-      msg_datetime,
-      msg,
-      carsInLot, // updated count
-    });
+    // Emit event via socket
+    const payload = { msg_type, msg_datetime, msg };
+    req.io?.emit("exit-station", payload);
 
     // Send positive acknowledgement back to TSE
     return res.status(200).json({
@@ -579,21 +601,9 @@ router.post("/lot-status-exit", async (req, res) => {
     // Decrement counter to reflect one car exited
     carsInLot = Math.max(0, carsInLot - 1);
 
-    // Handle the Lot Status received from TSE
-    console.log("Received Lot Status from TSE:", {
-      msg_type,
-      msg_datetime,
-      msg,
-      carsInLot,
-    });
-
-    // Emit to frontend (React.js or similar) with updated lot info
-    io.emit("lot-status-exit", {
-      msg_type,
-      msg_datetime,
-      msg,
-      carsInLot, // updated count
-    });
+    // Emit event via socket
+    const payload = { msg_type, msg_datetime, msg };
+    req.io?.emit("exit-station", payload);
 
     // Send positive acknowledgement back to TSE
     return res.status(200).json({

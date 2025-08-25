@@ -16,6 +16,9 @@ const io = new Server(server, {
   }
 });
 
+// attach io to app
+app.locals.io = io;
+
 // Handle client connections
 io.on("connection", (socket) => {
   console.log("React client connected:", socket.id);

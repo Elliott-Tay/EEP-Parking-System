@@ -249,7 +249,11 @@ describe("Movement Transaction API", () => {
         .send(payload);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual({ status: "success", ack: "ACK" });
+      expect(res.body).toEqual({ success: true, "data": {
+         "msg": "Vehicle entered",
+         "msg_datetime": "2025-08-25T10:00:00Z",
+         "msg_type": "entry",
+       }, ack: "ACK" });
     });
 
     it("should return 400 if required fields are missing", async () => {
@@ -258,7 +262,7 @@ describe("Movement Transaction API", () => {
         .send({ msg_type: "entry" }); // missing msg_datetime and msg
 
       expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+      expect(res.body).toEqual({ message: "Missing msg_type, msg_datetime or msg", ack: "NACK", success: false });
     });
   });
 
@@ -279,7 +283,11 @@ describe("Movement Transaction API", () => {
         .send(payload);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual({ status: "success", ack: "ACK" });
+      expect(res.body).toEqual({ success: true, data: {
+         "msg": "Vehicle exited",
+         "msg_datetime": "2025-08-25T10:00:00Z",
+         "msg_type": "exit",
+       }, ack: "ACK" });
     });
 
     it("should return 400 if required fields are missing", async () => {
@@ -288,7 +296,7 @@ describe("Movement Transaction API", () => {
         .send({ msg_type: "exit" }); // missing msg_datetime and msg
 
       expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+      expect(res.body).toEqual({ message: "Missing msg_type, msg_datetime or msg", ack: "NACK", success: false});
     });
   });
 
