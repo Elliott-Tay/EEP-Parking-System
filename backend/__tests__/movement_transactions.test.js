@@ -2,6 +2,13 @@
 const request = require("supertest");
 const app = require("../app");
 const db = require("../database/db");
+const { Server } = require("socket.io");
+const http = require("http");
+
+const server = http.createServer(app);
+const io = new Server(server);
+
+io.emit = jest.fn();
 
 // Mock the database module
 jest.mock("../database/db", () => ({
@@ -222,6 +229,67 @@ describe("Movement Transaction API", () => {
       expect(res.body.error).toMatch(/Invalid month format/);
     });
 
+  });
+
+  describe("POST /api/movements/entry-station", () => {
+
+    beforeEach(() => {
+      carsInLot = 0;
+    });
+
+    it("should return 200 and emit event with valid data", async () => {
+      const payload = {
+        msg_type: "entry",
+        msg_datetime: "2025-08-25T10:00:00Z",
+        msg: "Vehicle entered",
+      };
+
+      const res = await request(app)
+        .post("/api/movements/entry-station")
+        .send(payload);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({ status: "success", ack: "ACK" });
+    });
+
+    it("should return 400 if required fields are missing", async () => {
+      const res = await request(app)
+        .post("/api/movements/entry-station")
+        .send({ msg_type: "entry" }); // missing msg_datetime and msg
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+    });
+  });
+
+  describe("POST /api/movements/exit-station", () => {
+    beforeEach(() => {
+      carsInLot = 0;
+    });
+
+    it("should return 200 and emit event with valid data", async () => {
+      const payload = {
+        msg_type: "exit",
+        msg_datetime: "2025-08-25T10:00:00Z",
+        msg: "Vehicle exited",
+      };
+
+      const res = await request(app)
+        .post("/api/movements/exit-station")
+        .send(payload);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({ status: "success", ack: "ACK" });
+    });
+
+    it("should return 400 if required fields are missing", async () => {
+      const res = await request(app)
+        .post("/api/movements/exit-station")
+        .send({ msg_type: "exit" }); // missing msg_datetime and msg
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+    });
   });
 
   describe("GET /", () => {

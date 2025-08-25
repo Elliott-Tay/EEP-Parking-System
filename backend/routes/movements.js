@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 
+// Keep a simple in-memory counter (reset on server restart)
+carsInLot = 0
+
 // Get all movement transactions
 // This route fetches all movement transactions from the database
 // Example: GET /api/movements
@@ -218,7 +221,7 @@ router.get("/counter/monthly", async (req, res) => {
 });
 
 // POST a new movement transaction with FK checks
-router.post("/", async (req, res) => {
+router.post("/entry", async (req, res) => {
   const {
     vehicle_id,
     entry_trans_type,
@@ -443,5 +446,174 @@ router.post("/exit", async (req, res) => {
   }
 });
 
+// POST /api/movement/entry-station
+// This endpoint receives movement status from the Entry Station (TS → OPC) and displays it on the frontend
+// POST /api/movements/entry-station
+router.post("/entry-station", (req, res) => {
+  try {
+    const { msg_type, msg_datetime, msg } = req.body;
+    if (!msg_type || !msg_datetime || !msg) {
+      return res.status(400).json({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+    }
+
+    //Add more validation if necessary
+
+    // Emit to frontend via Socket.IO
+    if (req.io) {
+      req.io.emit("entry-status", { msg_type, msg_datetime, msg });
+    }
+
+    return res.status(200).json({ status: "success", ack: "ACK" });
+
+  } catch (error) {
+    console.error("Error in /entry-station:", error);
+    return res.status(500).json({
+      status: "error",
+      ack: "NACK",
+      message: "Internal server error",
+    });
+  }
+});
+
+// POST /api/movement/exit-station
+// This endpoint receives movement status from the Exit Station (TS → OPC) and displays on the frontend
+// POST /api/movements/entry-station
+router.post("/exit-station", (req, res) => {
+  try {
+    const { msg_type, msg_datetime, msg } = req.body;
+    if (!msg_type || !msg_datetime || !msg) {
+      return res.status(400).json({ status: "error: Missing msg type, msg datetime or msg", ack: "NACK" });
+    }
+
+    // Add more validation if necessary
+
+    // Emit to frontend via Socket.IO
+    if (req.io) {
+      req.io.emit("exit-status", { msg_type, msg_datetime, msg });
+    }
+
+    return res.status(200).json({ status: "success", ack: "ACK" });
+
+  } catch (error) {
+    console.error("Error in /exit-station:", error);
+    return res.status(500).json({
+      status: "error",
+      ack: "NACK",
+      message: "Internal server error",
+    });
+  }
+});
+
+// POST /api/lot-status-entry
+// This endpoint receives lot status updates from the TSE to OPC
+router.post("/lot-status-entry", async (req, res) => {
+  try {
+    const { msg_type, msg_datetime, msg } = req.body;
+
+    // Basic validation (adjust later once payload structure is finalized)
+    if (!msg_type || !msg_datetime || !msg) {
+      return res.status(400).json({
+        status: "error",
+        code: 400,
+        message: "Invalid request payload or no connection",
+        ack: "NACK", // negative acknowledgement
+      });
+    }
+
+    // Increment counter to reflect one car entered
+    carsInLot += 1;
+
+    // Handle the Lot Status received from TSE
+    console.log("Received Lot Status from TSE:", {
+      msg_type,
+      msg_datetime,
+      msg,
+      carsInLot,
+    });
+
+    // Emit to frontend with updated lot info
+    io.emit("lot-status-entry", {
+      msg_type,
+      msg_datetime,
+      msg,
+      carsInLot, // updated count
+    });
+
+    // Send positive acknowledgement back to TSE
+    return res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "Lot status received by OPC",
+      ack: "ACK", // positive acknowledgement
+      carsInLot,
+    });
+
+  } catch (error) {
+    console.error("OPC Lot Status API Error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      code: 500,
+      message: "Internal server error",
+      ack: "NACK", // negative acknowledgement
+    });
+  }
+});
+
+// POST /api/lot-status-exit
+// This endpoint receives lot status updates from TSX to OPC
+router.post("/lot-status-exit", async (req, res) => {
+  try {
+    const { msg_type, msg_datetime, msg } = req.body;
+
+    // Basic validation (adjust later once payload structure is finalized)
+    if (!msg_type || !msg_datetime || !msg) {
+      return res.status(400).json({
+        status: "error",
+        code: 400,
+        message: "Invalid request payload or no connection",
+        ack: "NACK", // negative acknowledgement
+      });
+    }
+
+    // Decrement counter to reflect one car exited
+    carsInLot = Math.max(0, carsInLot - 1);
+
+    // Handle the Lot Status received from TSE
+    console.log("Received Lot Status from TSE:", {
+      msg_type,
+      msg_datetime,
+      msg,
+      carsInLot,
+    });
+
+    // Emit to frontend (React.js or similar) with updated lot info
+    io.emit("lot-status-exit", {
+      msg_type,
+      msg_datetime,
+      msg,
+      carsInLot, // updated count
+    });
+
+    // Send positive acknowledgement back to TSE
+    return res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "Lot status received by OPC",
+      ack: "ACK", // positive acknowledgement
+      carsInLot,
+    });
+
+  } catch (error) {
+    console.error("OPC Lot Status API Error:", error);
+
+    return res.status(500).json({
+      status: "error",
+      code: 500,
+      message: "Internal server error",
+      ack: "NACK", // negative acknowledgement
+    });
+  }
+});
 
 module.exports = router;

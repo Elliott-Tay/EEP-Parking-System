@@ -32,4 +32,9 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 module.exports = app;
