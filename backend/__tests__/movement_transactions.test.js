@@ -300,6 +300,74 @@ describe("Movement Transaction API", () => {
     });
   });
 
+  describe("POST /api/movements/lot-status-entry", () => {
+    test("✅ should return ACK on valid payload", async () => {
+      const res = await request(app)
+        .post("/api/movements/lot-status-entry")
+        .send({
+          msg_type: "entry",
+          msg_datetime: "2025-08-25T10:00:00",
+          msg: "Vehicle entered at gate 1",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        status: "success",
+        code: 200,
+        message: "Lot status received by OPC",
+        ack: "ACK",
+      });
+      expect(res.body.carsInLot).toBeGreaterThanOrEqual(1);
+    });
+
+    test("❌ should return NACK on invalid payload", async () => {
+      const res = await request(app)
+        .post("/api/movements/lot-status-entry")
+        .send({ msg_type: "entry" }); // missing datetime + msg
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({
+        status: "error",
+        code: 400,
+        ack: "NACK",
+      });
+    });
+  });
+
+  describe("POST /api/movements/lot-status-exit", () => {
+    test("✅ should return ACK on valid payload", async () => {
+      const res = await request(app)
+        .post("/api/movements/lot-status-exit")
+        .send({
+          msg_type: "exit",
+          msg_datetime: "2025-08-25T10:00:00",
+          msg: "Vehicle exit at gate 1",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        status: "success",
+        code: 200,
+        message: "Lot status received by OPC",
+        ack: "ACK",
+      });
+      expect(res.body.carsInLot).toBeGreaterThanOrEqual(-1);
+    });
+
+    test("❌ should return NACK on invalid payload", async () => {
+      const res = await request(app)
+        .post("/api/movements/lot-status-exit")
+        .send({ msg_type: "exit" }); // missing datetime + msg
+
+      expect(res.status).toBe(400);
+      expect(res.body).toMatchObject({
+        status: "error",
+        code: 400,
+        ack: "NACK",
+      });
+    });
+  });
+
   describe("GET /", () => {
     it("should return a welcome message", async () => {
       const res = await request(app).get("/");
