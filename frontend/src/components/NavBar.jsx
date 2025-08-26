@@ -13,24 +13,25 @@ function NavBar() {
   ];
 
   return (
-    <nav className="bg-gray-800 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo + Name */}
-          <div className="flex items-center flex-shrink-0 space-x-3">
+    <nav className="bg-black text-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-left px-2 sm:px-4 lg:px-6 ml-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo + Name LEFT aligned */}
+          <div className="flex items-center space-x-5">
             <img
               src="/logo_svg_white.svg"
               alt="G.tech Logo"
               className="h-8 w-auto sm:h-10"
             />
-            <span className="text-sm sm:text-lg md:text-xl font-bold text-blue-400 leading-tight">
-              CarPark{" "}
-              <br className="block sm:hidden" /> Management Sys
+            <span className="text-sm sm:text-lg md:text-xl text-blue-400 leading-tight">
+              Car Park{" "}
+              <br className="block sm:hidden" /> Management System
             </span>
           </div>
 
-          {/* Desktop menu */}
-          <div className="hidden md:flex space-x-2 items-right">
+          {/* Desktop menu RIGHT aligned */}
+          {/*
+          <div className="hidden md:flex mx-right">
             {navItems.map((item) => (
               <a
                 key={item.name}
@@ -42,9 +43,10 @@ function NavBar() {
               </a>
             ))}
           </div>
+          */}
 
           {/* Mobile menu button */}
-          <div className="flex items-right md:hidden">
+          <div className="flex items-center md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="focus:outline-none"
@@ -79,7 +81,7 @@ function NavBar() {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-gray-700">
+        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-black">
           {navItems.map((item) => (
             <a
               key={item.name}

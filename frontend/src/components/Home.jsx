@@ -5,11 +5,11 @@ import {
   DollarSign, 
   Users,
   TrendingUp,
-  ArrowRight,
-  ArrowLeft,
-  Clock
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import MovementsTable from './MovementsTable';
+import Overview from './Overview';
+import Operations from './Operations';
 
 // Mock data
 const parkingSpaces = Array.from({ length: 100 }, (_, i) => ({
@@ -140,7 +140,7 @@ function Home() {
       <div className="p-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm bg-blue-400 hover:bg-blue-600 focus:outline-2 focus:outline-offset-2 focus:outline-blue-500 active:bg-blue-700">
             <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <h3 className="tracking-tight text-sm">Total Spaces</h3>
               <MapPin className="h-4 w-4 text-muted-foreground" />
@@ -151,7 +151,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm bg-red-500 hover:bg-red-600 focus:outline-2 focus:outline-offset-2 focus:outline-red-500 active:bg-red-700">
             <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <h3 className="tracking-tight text-sm">Occupied</h3>
               <Car className="h-4 w-4 text-muted-foreground" />
@@ -162,7 +162,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm bg-green-500 hover:bg-green-600 focus:outline-2 focus:outline-offset-2 focus:outline-green-500 active:bg-green-700">
             <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <h3 className="tracking-tight text-sm">Available</h3>
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -173,7 +173,7 @@ function Home() {
             </div>
           </div>
 
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm bg-yellow-300 hover:bg-yellow-400 focus:outline-2 focus:outline-offset-2 focus:outline-yellow-400 active:bg-yellow-500">
             <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
               <h3 className="tracking-tight text-sm">Today's Revenue</h3>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -187,6 +187,7 @@ function Home() {
             </div>
           </div>
         </div>
+
         {/* Tabs */}
         <div className="space-y-6">
           <div className="inline-flex h-10 items-center justify-center rounded-md p-1">
@@ -205,6 +206,38 @@ function Home() {
               `}
             >
               Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('movements')}
+              className={`
+                inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
+                duration-200 transform 
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                disabled:pointer-events-none disabled:opacity-50
+                ${
+                  activeTab === 'movements'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
+                }
+              `}
+            >
+              Movements
+            </button>
+            <button
+              onClick={() => setActiveTab('operations')}
+              className={`
+                inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
+                duration-200 transform 
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                disabled:pointer-events-none disabled:opacity-50
+                ${
+                  activeTab === 'operations'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
+                }
+              `}
+            >
+              Operations
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
@@ -226,116 +259,24 @@ function Home() {
 
           {/* Overview Tab */}
           {activeTab === 'overview' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Occupancy Status Chart */}
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-col space-y-1.5 p-6">
-                    <h3 className="text-2xl leading-none tracking-tight">Parking Occupancy by Zone</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Current capacity vs occupied spaces across all zones
-                    </p>
-                  </div>
-                  <div className="p-6 pt-0">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={occupancyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="zone" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="available" stackId="a" fill="#22c55e" name="Available" />
-                        <Bar dataKey="occupied" stackId="a" fill="#ef4444" name="Occupied" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <div className="flex items-center gap-6 mt-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-green-500 rounded"></div>
-                        <span>Available Spaces</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-red-500 rounded"></div>
-                        <span>Occupied Spaces</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <Overview 
+              entryEvents={entryEvents} 
+              exitEvents={exitEvents} 
+              occupancyData={occupancyData} 
+            />
+          )}
 
-                {/* Entry Status */}
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-col space-y-1.5 p-6">
-                    <div className="flex items-center gap-2">
-                      <ArrowRight className="h-5 w-5 text-green-500" />
-                      <h3 className="text-2xl leading-none tracking-tight">Entry Status</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Live vehicle entries
-                    </p>
-                  </div>
-                  <div className="p-6 pt-0">
-                    <div className="space-y-3">
-                      {entryEvents.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Waiting for entry events...</p>
-                        </div>
-                      ) : (
-                        entryEvents.map((event) => (
-                          <div key={event.id} className="flex items-center gap-3 p-3 rounded-lg bg-green-50 border border-green-200 animate-in slide-in-from-top-2 duration-300">
-                            <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-green-800">Vehicle Entered</p>
-                              <p className="text-xs text-green-600 truncate">
-                                Space {event.space} • {event.timeAgo}
-                              </p>
-                            </div>
-                            <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs bg-white border-green-300 text-green-700 shrink-0">
-                              {event.vehicleId}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
+          {/* Movement Tab */}
+          {activeTab === 'movements' && (
+            <div className="overflow-x-auto">
+              <MovementsTable />
+            </div>
+          )}
 
-                {/* Exit Status */}
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-col space-y-1.5 p-6">
-                    <div className="flex items-center gap-2">
-                      <ArrowLeft className="h-5 w-5 text-red-500" />
-                      <h3 className="text-2xl leading-none tracking-tight">Exit Status</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Live vehicle exits
-                    </p>
-                  </div>
-                  <div className="p-6 pt-0">
-                    <div className="space-y-3">
-                      {exitEvents.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">Waiting for exit events...</p>
-                        </div>
-                      ) : (
-                        exitEvents.map((event) => (
-                          <div key={event.id} className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200 animate-in slide-in-from-top-2 duration-300">
-                            <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse"></div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-red-800">Vehicle Exited</p>
-                              <p className="text-xs text-red-600 truncate">
-                                Space {event.space} • {event.timeAgo}
-                              </p>
-                            </div>
-                            <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs bg-white border-red-300 text-red-700 shrink-0">
-                              {event.vehicleId}
-                            </span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          {/* Operations Tab */}
+          {activeTab === "operations" && (
+            <div className="overflow-x-auto">
+              <Operations />
             </div>
           )}
 

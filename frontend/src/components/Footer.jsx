@@ -3,14 +3,14 @@ import { FaCar } from "react-icons/fa";
 
 function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-300 py-6 mt-10">
+    <footer className="bg-black text-gray-300 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top section */}
         <div className="flex flex-col md:flex-row justify-between items-center">
           {/* Left: Logo + Name */}
           <div className="flex items-center space-x-3 mb-4 md:mb-0">
             <FaCar className="text-blue-400 text-2xl" />
-            <span className="text-lg font-semibold">
+            <span className="text-lg font-semibold ml">
               G.tech CarPark Management
             </span>
           </div>
