@@ -1,6 +1,7 @@
 // backend/app.js
 const express = require("express");
 const cors = require("cors");
+const { swaggerUi, specs } = require("./routes/swagger");
 const movementRouter = require("./routes/movements");
 const seasonRouter = require("./routes/season")
 
@@ -20,6 +21,9 @@ app.get("/", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.status(200).json({ message: "Carpark system backend is running" });
 });
+
+// Swagger route
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 // movement transactions routes
 app.use("/api/movements", movementRouter);

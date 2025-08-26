@@ -2,12 +2,34 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 
+/**
+ * @swagger
+ * tags:
+ *   name: Movements
+ *   description: Endpoints for vehicle movement transactions
+ */
+
 // Keep a simple in-memory counter (reset on server restart)
 carsInLot = 0
 
-// Get all movement transactions
-// This route fetches all movement transactions from the database
-// Example: GET /api/movements
+/**
+ * @swagger
+ * /movements:
+ *   get:
+ *     summary: Get all movement transactions
+ *     tags: [Movements]
+ *     responses:
+ *       200:
+ *         description: List of movement transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Database error
+ */
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.query("SELECT * FROM movement_transactions");
@@ -18,9 +40,35 @@ router.get("/", async (req, res) => {
   }
 });
 
-// get movement transactions by date range
-// Format: YYYY-MM-DD
-// Example: /api/movements/range?start=2025-08-01&end=2025-08-19
+/**
+ * @swagger
+ * /movements/range:
+ *   get:
+ *     summary: Get movement transactions within a date range
+ *     tags: [Movements]
+ *     parameters:
+ *       - in: query
+ *         name: start
+ *         schema:
+ *           type: string
+ *           example: "2025-08-01"
+ *         required: true
+ *         description: Start date in YYYY-MM-DD
+ *       - in: query
+ *         name: end
+ *         schema:
+ *           type: string
+ *           example: "2025-08-19"
+ *         required: true
+ *         description: End date in YYYY-MM-DD
+ *     responses:
+ *       200:
+ *         description: Transactions found
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: No records found
+ */
 router.get("/range", async (req, res) => {
   try {
     const { start, end } = req.query; 
@@ -69,9 +117,25 @@ router.get("/range", async (req, res) => {
   }
 });
 
-// Get movement transaction by vehicle number
-// Format: /api/movements/:vehicle_no
-// Example: /api/movements/IU123
+/**
+ * @swagger
+ * /movements/{vehicle_no}:
+ *   get:
+ *     summary: Get movement transaction by vehicle number
+ *     tags: [Movements]
+ *     parameters:
+ *       - in: path
+ *         name: vehicle_no
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: IU123
+ *     responses:
+ *       200:
+ *         description: A movement record for that vehicle
+ *       404:
+ *         description: No record found
+ */
 router.get("/:vehicle_no", async (req, res) => {
   try {
     const { vehicle_no } = req.params;
@@ -94,9 +158,27 @@ router.get("/:vehicle_no", async (req, res) => {
   }
 });
 
-// Get movement transactions for a single day
-// Format: YYYY-MM-DD
-// Example: /api/movements/day/2025-08-20
+/**
+ * @swagger
+ * /movements/day/{date}:
+ *   get:
+ *     summary: Get movement transactions for a single day
+ *     tags: [Movements]
+ *     parameters:
+ *       - in: path
+ *         name: date
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: 2025-08-20
+ *     responses:
+ *       200:
+ *         description: Transactions found
+ *       400:
+ *         description: Invalid or missing date
+ *       404:
+ *         description: No records found
+ */
 router.get("/day/:date", async (req, res) => {
   try {
     const { date } = req.params;
@@ -138,8 +220,62 @@ router.get("/day/:date", async (req, res) => {
   }
 });
 
-// Get all transactions for a specific month
-// Format: YYYY-MM (e.g., 2025-08)
+/**
+ * @swagger
+ * /monthly/{month}:
+ *   get:
+ *     summary: Get all transactions for a specific month
+ *     description: Returns all movement transactions for a given month (format: YYYY-MM).
+ *     tags: [Movements]
+ *     parameters:
+ *       - in: path
+ *         name: month
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$'
+ *         description: Month in format YYYY-MM (e.g., 2025-08)
+ *         example: "2025-08"
+ *     responses:
+ *       200:
+ *         description: Transactions found for the given month
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 month:
+ *                   type: string
+ *                   example: "2025-08"
+ *                 count:
+ *                   type: integer
+ *                   example: 12
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 101
+ *                       vehicle_plate:
+ *                         type: string
+ *                         example: "ABC1234"
+ *                       entry_datetime:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-08-05T09:30:00Z"
+ *                       exit_datetime:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-08-05T12:45:00Z"
+ *       400:
+ *         description: Missing or invalid month parameter
+ *       404:
+ *         description: No records found for this month
+ *       500:
+ *         description: Database error fetching monthly data
+ */
 router.get("/monthly/:month", async (req, res) => {
   try {
     const { month } = req.params;
@@ -179,9 +315,52 @@ router.get("/monthly/:month", async (req, res) => {
   }
 });
 
-// get monthly statistics
-// Format: YYYY-MM (e.g., 2025-08)
-// Example: /api/movements/counter/monthly?month=2025-08
+/**
+ * @swagger
+ * /counter/monthly:
+ *   get:
+ *     summary: Get monthly statistics of transactions
+ *     description: Returns aggregated statistics (entry counts) for the given month (format: YYYY-MM).
+ *     tags: [Movements]
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         required: true
+ *         schema:
+ *           type: string
+ *           pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$'
+ *         description: Month in format YYYY-MM (e.g., 2025-08)
+ *         example: "2025-08"
+ *     responses:
+ *       200:
+ *         description: Statistics found for the given month
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 month:
+ *                   type: string
+ *                   example: "2025-08"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       year:
+ *                         type: integer
+ *                         example: 2025
+ *                       month:
+ *                         type: integer
+ *                         example: 8
+ *                       entries:
+ *                         type: integer
+ *                         example: 120
+ *       400:
+ *         description: Missing or invalid month parameter
+ *       500:
+ *         description: Database error fetching monthly statistics
+ */
 router.get("/counter/monthly", async (req, res) => {
   try {
     const { month } = req.query;
@@ -220,7 +399,36 @@ router.get("/counter/monthly", async (req, res) => {
   }
 });
 
-// POST a new movement transaction with FK checks
+/**
+ * @swagger
+ * /movements/entry:
+ *   post:
+ *     summary: Create a new entry transaction
+ *     tags: [Movements]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               vehicle_id:
+ *                 type: string
+ *               entry_trans_type:
+ *                 type: string
+ *               entry_station_id:
+ *                 type: string
+ *               entry_datetime:
+ *                 type: string
+ *                 example: "2025-08-25T09:30:00Z"
+ *     responses:
+ *       201:
+ *         description: Transaction created successfully
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Database error
+ */
 router.post("/entry", async (req, res) => {
   const {
     vehicle_id,
@@ -353,8 +561,38 @@ router.post("/entry", async (req, res) => {
   }
 });
 
-// POST exit transaction in movement transactions
-// This assumes the vehicle has already entered and we are just updating the exit details
+/**
+ * @swagger
+ * /movements/exit:
+ *   post:
+ *     summary: Record an exit for a vehicle
+ *     tags: [Movements]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               vehicle_id:
+ *                 type: string
+ *               exit_trans_type:
+ *                 type: string
+ *               exit_station_id:
+ *                 type: string
+ *               exit_datetime:
+ *                 type: string
+ *                 example: "2025-08-25T09:45:00Z"
+ *     responses:
+ *       200:
+ *         description: Exit recorded successfully
+ *       400:
+ *         description: Missing fields / exit already recorded
+ *       404:
+ *         description: No entry found
+ *       500:
+ *         description: Database error
+ */
 router.post("/exit", async (req, res) => {
   const {
     vehicle_id,
@@ -446,9 +684,33 @@ router.post("/exit", async (req, res) => {
   }
 });
 
-// POST /api/movement/entry-station
-// This endpoint receives movement status from the Entry Station (TS → OPC) and displays it on the frontend
-// POST /api/movements/entry-station
+/**
+ * @swagger
+ * /movements/entry-station:
+ *   post:
+ *     summary: Receive entry station status (TS → OPC)
+ *     tags: [Movements]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               msg_type:
+ *                 type: string
+ *               msg_datetime:
+ *                 type: string
+ *               msg:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Acknowledged successfully
+ *       400:
+ *         description: Missing or invalid fields
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/entry-station", (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
@@ -492,9 +754,33 @@ router.post("/entry-station", (req, res) => {
   }
 });
 
-// POST /api/movement/exit-station
-// This endpoint receives movement status from the Exit Station (TS → OPC) and displays on the frontend
-// POST /api/movements/entry-station
+/**
+ * @swagger
+ * /movements/exit-station:
+ *   post:
+ *     summary: Receive exit station status (TS → OPC)
+ *     tags: [Movements]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               msg_type:
+ *                 type: string
+ *               msg_datetime:
+ *                 type: string
+ *               msg:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Acknowledged successfully
+ *       400:
+ *         description: Missing or invalid fields
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/exit-station", (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
@@ -538,8 +824,62 @@ router.post("/exit-station", (req, res) => {
   }
 });
 
-// POST /api/lot-status-entry
-// This endpoint receives lot status updates from the TSE to OPC
+/**
+ * @swagger
+ * /movements/lot-status-entry:
+ *   post:
+ *     summary: Receive lot status update when a car enters
+ *     description: This endpoint is called by TSE to notify OPC that a vehicle has entered the lot. Increments the `carsInLot` counter.
+ *     tags: [LotStatus]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - msg_type
+ *               - msg_datetime
+ *               - msg
+ *             properties:
+ *               msg_type:
+ *                 type: string
+ *                 example: "entry"
+ *               msg_datetime:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-08-25T09:30:00Z"
+ *               msg:
+ *                 type: string
+ *                 example: "Vehicle entered at gate 1"
+ *     responses:
+ *       200:
+ *         description: Lot status successfully received and acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Lot status received by OPC
+ *                 ack:
+ *                   type: string
+ *                   example: ACK
+ *                 carsInLot:
+ *                   type: integer
+ *                   example: 5
+ *       400:
+ *         description: Invalid request payload
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/lot-status-entry", async (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
@@ -582,8 +922,62 @@ router.post("/lot-status-entry", async (req, res) => {
   }
 });
 
-// POST /api/lot-status-exit
-// This endpoint receives lot status updates from TSX to OPC
+/**
+ * @swagger
+ * /movements/lot-status-exit:
+ *   post:
+ *     summary: Receive lot status update when a car exits
+ *     description: This endpoint is called by TSX to notify OPC that a vehicle has exited the lot. Decrements the `carsInLot` counter.
+ *     tags: [LotStatus]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - msg_type
+ *               - msg_datetime
+ *               - msg
+ *             properties:
+ *               msg_type:
+ *                 type: string
+ *                 example: "exit"
+ *               msg_datetime:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2025-08-25T09:45:00Z"
+ *               msg:
+ *                 type: string
+ *                 example: "Vehicle exited at gate 2"
+ *     responses:
+ *       200:
+ *         description: Lot status successfully received and acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Lot status received by OPC
+ *                 ack:
+ *                   type: string
+ *                   example: ACK
+ *                 carsInLot:
+ *                   type: integer
+ *                   example: 4
+ *       400:
+ *         description: Invalid request payload
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/lot-status-exit", async (req, res) => {
   try {
     const { msg_type, msg_datetime, msg } = req.body;
