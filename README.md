@@ -232,6 +232,15 @@ The backend comprises of the database that is using MySQL and three backend modu
 ## Overview of frontend
 It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark. 
 
+## API-docs
+To access the swagger api documentation, you can use this url link
+
+```
+http://localhost:5000/api-docs
+```
+
+From there you can use it to see how to interface and test the api from TS side so it is easier to know how to do API Integration. 
+
 ## Test cases
 To ensure that everything is working correctly, ensure that you create test cases for the ones that you are working on. There is both a frontend and backend tests so ensure you cd into the folders before running. 
 
