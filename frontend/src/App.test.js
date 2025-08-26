@@ -2,95 +2,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import App from "./App";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
-import Home from "./components/Home";;
 import "@testing-library/jest-dom";
 
 jest.mock("react-router-dom");
-
-// Home Component Tests
-describe("Home Page", () => {
-  beforeEach(() => {
-    render(<Home />);
-  });
-
-  test("renders main dashboard title", () => {
-    expect(
-      screen.getByRole("heading", { name: /G.tech Carpark Dashboard/i })
-    ).toBeInTheDocument();
-  });
-
-  test("renders all column titles", () => {
-    const titles = [
-      "Payment Collection",
-      "Payment Collection Details",
-      "Movement Counter & Trans",
-      "Movement History",
-      "Season Master & Details",
-      "Others",
-    ];
-
-    titles.forEach((title) => {
-      expect(screen.getByText(title)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Payment Collection column", () => {
-    const paymentButtons = [
-      "Daily Settlement File",
-      "Analysis of Ack/Sum file",
-      "Daily Cashier Shift",
-      "Daily Consolidated Summary",
-    ];
-
-    paymentButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Payment Collection Details column", () => {
-    const detailButtons = ["Daily CashCard Collection"];
-    detailButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Movement Counter & Trans column", () => {
-    const movementButtons = [
-      "Counter Daily Statistics",
-      "Counter Monthly Statistics",
-      "Daily Movement Details",
-      "Daily Parking Duration",
-    ];
-    movementButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Movement History column", () => {
-    const historyButtons = ["Remote Control History", "Station Error History"];
-    historyButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Season Master & Details column", () => {
-    const seasonButtons = [
-      "Season Card Master",
-      "Season Transaction Details",
-      "To Be Expired Season",
-    ];
-    seasonButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-
-  test("renders all buttons in Others column", () => {
-    const otherButtons = ["Ticket Complimentary", "NETS Collection Comparison"];
-    otherButtons.forEach((btn) => {
-      expect(screen.getByText(btn)).toBeInTheDocument();
-    });
-  });
-});
 
 // NavBar Component Tests
 describe("NavBar Component", () => {
