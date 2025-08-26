@@ -1,5 +1,3 @@
-{/*
-
 import { render, screen, fireEvent } from "@testing-library/react";
 import App from "./App";
 import NavBar from "./components/NavBar";
@@ -109,5 +107,4 @@ describe("Footer Component", () => {
   });
 });
 
-*/}
 
