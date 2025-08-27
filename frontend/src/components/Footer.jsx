@@ -11,7 +11,7 @@ function Footer() {
           <div className="flex items-center space-x-3 mb-4">
             <FaCar className="text-blue-400 text-2xl" />
             <span className="text-lg font-semibold">
-              G.tech CarPark Management
+              G.tech Car Park Management
             </span>
           </div>
         </div>

@@ -30,6 +30,20 @@ const transactionData = [
     parkingFee: "$7.50",
     paymentCard: "Mastercard ****9876",
   },
+  {
+    vehicleId: "V003",
+    entryVehicleNo: "SGG5324M",
+    entryStationId: "ST02",
+    entryDateTime: "2025-08-22 09:00",
+    entryTransType: "Entry",
+    exitVehicleNo: "SGG5324M",
+    exitStationId: "ST06",
+    exitDateTime: "2025-08-21 12:15",
+    exitTransType: "Exit",
+    parkedTime: "3h 15m",
+    parkingFee: "$7.50",
+    paymentCard: "American Express ****4324",
+  }
 ];
 
 // Dummy Season Data

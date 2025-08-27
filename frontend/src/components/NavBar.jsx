@@ -81,7 +81,7 @@ function NavBar() {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-red-700">
+        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-red-600">
           {navItems.map((item) => (
             <a
               key={item.name}

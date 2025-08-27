@@ -1,6 +1,12 @@
 import { ArrowRight, ArrowLeft, Clock } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
+const hourlyFlowData = [
+  { hour: '8 AM', entries: 12, exits: 5 },
+  { hour: '9 AM', entries: 18, exits: 10 },
+  { hour: '10 AM', entries: 20, exits: 15 },
+];
+
 export default function OverviewTab({ entryEvents, exitEvents, occupancyData }) {
   return (
     <div className="space-y-6">
@@ -8,30 +14,30 @@ export default function OverviewTab({ entryEvents, exitEvents, occupancyData }) 
         {/* Occupancy Status Chart */}
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col space-y-1.5 p-6">
-            <h3 className="text-2xl leading-none tracking-tight">Parking Occupancy by Zone</h3>
+            <h3 className="text-2xl leading-none tracking-tight">Hourly Vehicle Flow</h3>
             <p className="text-sm text-muted-foreground">
-              Current capacity vs occupied spaces across all zones
+              Traffic flows in and out over the course of the day.
             </p>
           </div>
           <div className="p-6 pt-0">
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={occupancyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="zone" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="available" stackId="a" fill="#22c55e" name="Available" />
-                <Bar dataKey="occupied" stackId="a" fill="#ef4444" name="Occupied" />
-              </BarChart>
+                <BarChart data={hourlyFlowData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hour" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="entries" fill="#22c55e" name="Entries" />
+                    <Bar dataKey="exits" fill="#ef4444" name="Exits" />
+                </BarChart>
             </ResponsiveContainer>
             <div className="flex items-center gap-6 mt-4 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-green-500 rounded"></div>
-                <span>Available Spaces</span>
+                <span>Entry into Carpark</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 bg-red-500 rounded"></div>
-                <span>Occupied Spaces</span>
+                <span>Exit from Carpark</span>
               </div>
             </div>
           </div>
