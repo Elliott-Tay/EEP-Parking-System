@@ -6,47 +6,13 @@ function Footer() {
     <footer className="bg-black text-gray-300 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top section */}
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          {/* Left: Logo + Name */}
-          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+        <div className="flex flex-col items-center">
+          {/* Centered Logo + Name */}
+          <div className="flex items-center space-x-3 mb-4">
             <FaCar className="text-blue-400 text-2xl" />
-            <span className="text-lg font-semibold ml">
+            <span className="text-lg font-semibold">
               G.tech CarPark Management
             </span>
-          </div>
-
-          {/* Middle: Quick Links */}
-          <div className="flex space-x-6">
-            <a
-              href="/dashboard"
-              className="hover:text-blue-400 transition-colors"
-            >
-              Dashboard
-            </a>
-            <a
-              href="/tickets"
-              className="hover:text-blue-400 transition-colors"
-            >
-              Tickets
-            </a>
-            <a
-              href="/lots"
-              className="hover:text-blue-400 transition-colors"
-            >
-              Lots
-            </a>
-            <a
-              href="/reports"
-              className="hover:text-blue-400 transition-colors"
-            >
-              Reports
-            </a>
-            <a
-              href="/settings"
-              className="hover:text-blue-400 transition-colors"
-            >
-              Settings
-            </a>
           </div>
         </div>
 

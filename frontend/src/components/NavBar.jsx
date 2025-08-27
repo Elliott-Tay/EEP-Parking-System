@@ -13,7 +13,7 @@ function NavBar() {
   ];
 
   return (
-    <nav className="bg-black text-white shadow-md sticky top-0 z-50">
+    <nav className="bg-red-600 text-white shadow-md sticky top-0 z-50">
       <div className="max-w-7xl mx-left px-2 sm:px-4 lg:px-6 ml-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo + Name LEFT aligned */}
@@ -23,7 +23,7 @@ function NavBar() {
               alt="G.tech Logo"
               className="h-8 w-auto sm:h-10"
             />
-            <span className="text-sm sm:text-lg md:text-xl text-blue-400 leading-tight">
+            <span className="text-sm sm:text-lg md:text-xl text-white leading-tight">
               Car Park{" "}
               <br className="block sm:hidden" /> Management System
             </span>
@@ -81,7 +81,7 @@ function NavBar() {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-black">
+        <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-red-700">
           {navItems.map((item) => (
             <a
               key={item.name}

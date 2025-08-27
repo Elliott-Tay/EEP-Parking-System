@@ -81,8 +81,8 @@ function StatusCard({ title, icon, events, type }) {
             </div>
           ) : (
             events.map((event) => (
-              <div key={event.id} className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg} border ${colors.border} animate-in slide-in-from-top-2 duration-300`}>
-                <div className={`w-6 h-6 rounded-full ${colors.pulse} animate-pulse`}></div>
+              <div key={event.id} className={`flex items-center gap-3 p-3 rounded-lg ${colors.bg} border ${colors.border} animate-in slide-in-from-top-2 duration-300 cursor-pointer hover:bg-${colors.bg} focus:outline-2 focus:outline-offset-2 focus:outline-${colors.bg} active:${colors.bg}`}>
+                <div className={`w-6 h-6 rounded-full ${colors.pulse}`}></div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium ${colors.text}`}>Vehicle {type === 'entry' ? 'Entered' : 'Exited'}</p>
                   <p className={`text-xs ${colors.subtext} truncate`}>

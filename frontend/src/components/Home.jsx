@@ -7,9 +7,11 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ToastContainer } from "react-toastify";
 import MovementsTable from './MovementsTable';
 import Overview from './Overview';
 import Operations from './Operations';
+import StationStatus from './StationStatus';
 
 // Mock data
 const parkingSpaces = Array.from({ length: 100 }, (_, i) => ({
@@ -137,6 +139,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <ToastContainer position="top-right" autoClose={4000} />
       <div className="p-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
@@ -175,7 +178,7 @@ function Home() {
 
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm bg-yellow-300 hover:bg-yellow-400 focus:outline-2 focus:outline-offset-2 focus:outline-yellow-400 active:bg-yellow-500">
             <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-              <h3 className="tracking-tight text-sm">Today's Revenue</h3>
+              <h3 className="tracking-tight text-sm">Revenue</h3>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="p-6 pt-0">
@@ -240,6 +243,22 @@ function Home() {
               Operations
             </button>
             <button
+              onClick={() => setActiveTab('stationStatus')}
+              className={`
+                inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
+                duration-200 transform 
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                disabled:pointer-events-none disabled:opacity-50
+                ${
+                  activeTab === 'stationStatus'
+                    ? 'bg-blue-500 text-white shadow-md'
+                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
+                }
+              `}
+            >
+              Station Status
+            </button>
+            <button
               onClick={() => setActiveTab('analytics')}
               className={`
                 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
@@ -277,6 +296,13 @@ function Home() {
           {activeTab === "operations" && (
             <div className="overflow-x-auto">
               <Operations />
+            </div>
+          )}
+
+          {/* Station Status */}
+          {activeTab === "stationStatus" && (
+            <div className="overflow-x-auto">
+              <StationStatus />
             </div>
           )}
 
