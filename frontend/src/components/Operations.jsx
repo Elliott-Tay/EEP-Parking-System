@@ -33,7 +33,7 @@ const transactionData = [
   {
     vehicleId: "V003",
     entryVehicleNo: "SGG5324M",
-    entryStationId: "ST02",
+    entryStationId: "ST03",
     entryDateTime: "2025-08-22 09:00",
     entryTransType: "Entry",
     exitVehicleNo: "SGG5324M",

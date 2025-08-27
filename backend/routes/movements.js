@@ -717,19 +717,23 @@ router.post("/entry-station", (req, res) => {
 
     // Basic validation
     if (!msg_type || !msg_datetime || !msg) {
+      const errorPayload = { message: "Missing msg_type, msg_datetime or msg" };
+      req.io?.emit("entry-station-error", errorPayload);
       return res.status(400).json({
         success: false,
         ack: "NACK",
-        message: "Missing msg_type, msg_datetime or msg",
+        ...errorPayload,
       });
     }
 
     // Validate datetime
     if (isNaN(Date.parse(msg_datetime))) {
+      const errorPayload = { message: "Invalid datetime format" };
+      req.io?.emit("entry-station-error", errorPayload);
       return res.status(400).json({
         success: false,
         ack: "NACK",
-        message: "Invalid datetime format",
+        ...errorPayload,
       });
     }
 
@@ -745,11 +749,12 @@ router.post("/entry-station", (req, res) => {
 
   } catch (error) {
     console.error("Error in /entry-station:", error.stack || error);
-
+    const errorPayload = { message: "Internal server error: " + error };
+    req.io?.emit("entry-station-error", errorPayload);
     return res.status(500).json({
       success: false,
       ack: "NACK",
-      message: "Internal server error: " + error,
+      ...errorPayload,
     });
   }
 });
@@ -787,19 +792,23 @@ router.post("/exit-station", (req, res) => {
 
     // Basic validation
     if (!msg_type || !msg_datetime || !msg) {
+      const errorPayload = { message: "Missing msg_type, msg_datetime or msg" };
+      req.io?.emit("exit-station-error", errorPayload);
       return res.status(400).json({
         success: false,
         ack: "NACK",
-        message: "Missing msg_type, msg_datetime or msg",
+        ...errorPayload,
       });
     }
 
     // Validate datetime
     if (isNaN(Date.parse(msg_datetime))) {
+      const errorPayload = { message: "Invalid datetime format" };
+      req.io?.emit("exit-station-error", errorPayload);
       return res.status(400).json({
         success: false,
         ack: "NACK",
-        message: "Invalid datetime format",
+        ...errorPayload,
       });
     }
 
@@ -815,14 +824,16 @@ router.post("/exit-station", (req, res) => {
 
   } catch (error) {
     console.error("Error in /exit-station:", error.stack || error);
-
+    const errorPayload = { message: "Internal server error: " + error };
+    req.io?.emit("exit-station-error", errorPayload);
     return res.status(500).json({
       success: false,
       ack: "NACK",
-      message: "Internal server error: " + error,
+      ...errorPayload,
     });
   }
 });
+
 
 /**
  * @swagger
