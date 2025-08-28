@@ -1,28 +1,10 @@
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ToastContainer } from "react-toastify";
 import ThreeColumnPanel from './ThreeColumnPanel';
 import MovementsTable from './MovementsTable';
 import Overview from './Overview';
 import Operations from './Operations';
-
-const hourlyData = [
-  { hour: '6AM', occupancy: 15, revenue: 45 },
-  { hour: '8AM', occupancy: 65, revenue: 195 },
-  { hour: '10AM', occupancy: 80, revenue: 240 },
-  { hour: '12PM', occupancy: 95, revenue: 285 },
-  { hour: '2PM', occupancy: 88, revenue: 264 },
-  { hour: '4PM', occupancy: 92, revenue: 276 },
-  { hour: '6PM', occupancy: 70, revenue: 210 },
-  { hour: '8PM', occupancy: 35, revenue: 105 },
-];
-
-const zoneData = [
-  { name: 'Zone A', value: 25, color: '#8884d8' },
-  { name: 'Zone B', value: 30, color: '#82ca9d' },
-  { name: 'Zone C', value: 20, color: '#ffc658' },
-  { name: 'Zone D', value: 25, color: '#ff7c7c' },
-];
+import DashboardCharts from './DashboardCharts';
 
 const occupancyData = [
   { zone: 'Zone A', total: 25, occupied: 18, available: 7 },
@@ -59,6 +41,7 @@ function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [entryEvents, setEntryEvents] = useState([]);
   const [exitEvents, setExitEvents] = useState([]);
+
 
   // Simulate backend events for entry and exit
   useEffect(() => {
@@ -218,59 +201,7 @@ function Home() {
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Revenue Chart */}
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-col space-y-1.5 p-6">
-                    <h3 className="text-2xl leading-none tracking-tight">Hourly Revenue</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Revenue generated throughout the day
-                    </p>
-                  </div>
-                  <div className="p-6 pt-0">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={hourlyData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => [`$${value}`, 'Revenue']} />
-                        <Bar dataKey="revenue" fill="#82ca9d" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Zone Distribution */}
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                  <div className="flex flex-col space-y-1.5 p-6">
-                    <h3 className="text-2xl leading-none tracking-tight">Zone Distribution</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Current occupancy by zone
-                    </p>
-                  </div>
-                  <div className="p-6 pt-0">
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={zoneData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, value }) => `${name}: ${value}`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {zoneData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </div>
+              <DashboardCharts />
             </div>
           )}
         </div>
