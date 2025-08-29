@@ -24,7 +24,7 @@ const ThreeColumnPanel = () => {
     main: {
       hourly: { allocated: 20, occupied: 20, available: 0 },
       season: { allocated: 15, occupied: 15, available: 0 },
-      total: { allocated: 50, occupied: 35, available: 15 },
+      total: { allocated: 50, occupied: 45, available: 5 },
     },
     basement: {
       hourly: { allocated: 10, occupied: 7, available: 3 },
@@ -38,8 +38,8 @@ const ThreeColumnPanel = () => {
     },
     middle: {
       hourly: { allocated: 5, occupied: 3, available: 2 },
-      season: { allocated: 5, occupied: 5, available: 0 },
-      total: { allocated: 10, occupied: 3, available: 7 },
+      season: { allocated: 5, occupied: 4, available: 1 },
+      total: { allocated: 10, occupied: 7, available: 3 },
     },
     zone_c: {
       hourly: { allocated: 5, occupied: 3, available: 2 },
@@ -235,7 +235,7 @@ const ThreeColumnPanel = () => {
                     key={zone}
                     onClick={() => setCurrentZone(zone)}
                     className={`px-2 py-1 rounded transition-all
-                      ${isSelected ? "bg-blue-500 text-white" : "bg-muted/10 text-muted-foreground"}
+                      ${isSelected ? "bg-blue-500 text-white border border-black" : "bg-muted/10 text-muted-foreground"}
                       ${isFull ? "bg-red-600 text-white animate-pulse" : ""}
                     `}
                   >
@@ -299,8 +299,8 @@ const ThreeColumnPanel = () => {
               <div className="w-full bg-muted rounded-full h-2">
                 <div 
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    occupancyRate > 90 ? 'bg-red-500' : 
-                    occupancyRate > 70 ? 'bg-orange-500' : 'bg-green-500'
+                    occupancyRate >= 90 ? 'bg-red-500' : 
+                    occupancyRate >= 70 ? 'bg-orange-500' : 'bg-green-500'
                   }`}
                   style={{ width: `${occupancyRate}%` }}
                 />
