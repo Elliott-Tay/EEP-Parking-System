@@ -44,7 +44,7 @@ function NavBar() {
 
           {/* Date & Time RIGHT aligned */}
           <div className="hidden md:flex">
-            <span className="text-sm md:text-base font-medium">
+            <span className="text-base md:text-2xl font-medium">
               {dateTime.toLocaleDateString()} {dateTime.toLocaleTimeString()}
             </span>
           </div>

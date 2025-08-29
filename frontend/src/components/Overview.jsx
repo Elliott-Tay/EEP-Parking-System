@@ -1,82 +1,64 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { setStations } from "../store"; 
 import { io } from "socket.io-client";
 
 const socket = io(process.env.REACT_APP_BACKEND_API_URL);
 
+// Mock data outside useEffect
+const entryMock = [
+  { id: "E1", name: "E1", time: "10:05:23", vehicle: "UI123", status: "OK", errors: [] },
+  { id: "E2", name: "E2", time: "10:06:11", vehicle: "UI124", status: "OK", errors: ["Simulated error"] },
+];
+
+const exitMock = [
+  { id: "X1", name: "X1", time: "10:07:02", vehicle: "UI200", card: "PC001", fee: "$2.50", balance: "$50.00", status: "OK", errors: [] },
+  { id: "X2", name: "X2", time: "10:08:45", vehicle: "UI201", card: "PC002", fee: "$3.00", balance: "$45.50", status: "OK", errors: ["Simulated error"] },
+];
+
 export default function OverviewTab() {
+  const dispatch = useDispatch();
+
+  // Pull station data from Redux
+  const { entrances, exits, entryCount, exitCount } = useSelector(
+    (state) => state.station
+  );
+
+  useEffect(() => {
+    // Dispatch mock data once on mount
+    dispatch(setStations({
+      entrances: entryMock,
+      exits: exitMock,
+      entryCount: entryMock.length,
+      exitCount: exitMock.length
+    }));
+  }, [dispatch]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Entry Stations (mock mode ON for testing) */}
         <StationCard
           title="Entry Stations"
           icon={<ArrowRight className="h-5 w-5 text-green-500" />}
-          type="entry"
-          useMock={true}
+          rows={entrances}
+          isEntry
         />
-
-        {/* Exit Stations (mock mode ON for testing) */}
         <StationCard
           title="Exit Stations"
           icon={<ArrowLeft className="h-5 w-5 text-red-500" />}
-          type="exit"
-          useMock={true}
+          rows={exits}
+          isEntry={false}
         />
       </div>
     </div>
   );
 }
 
-function StationCard({ title, icon, type, useMock = false }) {
-  const [rows, setRows] = useState([]);
-  const isEntry = type === "entry";
-
-  // Define headers
+function StationCard({ title, icon, rows, isEntry = true }) {
   const headers = isEntry
     ? ["Station", "Time", "Vehicle No", "Status"]
     : ["Station", "Time", "Vehicle No", "Payment Card No", "Fee", "Balance", "Status"];
-
-  // Mock data sets
-  const mockData = isEntry
-    ? [
-        ["E1", "10:05:23", "UI123", "OK"],
-        ["E2", "10:06:11", "UI124", "ERROR"],
-      ]
-    : [
-        ["X1", "10:07:02", "UI200", "PC001", "$2.50", "$50.00", "OK"],
-        ["X2", "10:08:45", "UI201", "PC002", "$3.00", "$45.50", "ERROR"],
-      ];
-
-  useEffect(() => {
-    if (useMock) {
-        // Simulate live updates with mock data
-        setRows(mockData);
-        return; // stop here if mocking
-    }
-
-    // If not mock, connect via socket
-    if (isEntry) {
-        socket.on("entry-station", (payload) => {
-        setRows((prev) => [
-            ...prev,
-            [payload.msg_type, payload.msg_datetime, payload.msg, "OK"],
-        ]);
-        });
-    } else {
-        socket.on("exit-station", (payload) => {
-        setRows((prev) => [
-            ...prev,
-            [payload.msg_type, payload.msg_datetime, payload.msg, "OK"],
-        ]);
-        });
-    }
-
-    return () => {
-        socket.off("entry-station");
-        socket.off("exit-station");
-    };
-    }, [useMock, isEntry]);
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -115,13 +97,26 @@ function StationCard({ title, icon, type, useMock = false }) {
                   </td>
                 </tr>
               ) : (
-                rows.map((row, rowIndex) => (
-                  <tr key={rowIndex} className="hover:bg-muted/10">
-                    {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="px-4 py-2 text-blue-700">
-                        {cell}
-                      </td>
-                    ))}
+                rows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-muted/10">
+                    {isEntry ? (
+                      <>
+                        <td className="px-4 py-2 text-blue-700">{row.name}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.time}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.vehicle}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.status}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-2 text-blue-700">{row.name}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.time}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.vehicle}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.card}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.fee}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.balance}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.status}</td>
+                      </>
+                    )}
                   </tr>
                 ))
               )}

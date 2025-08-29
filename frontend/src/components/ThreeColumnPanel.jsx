@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
 import { 
-  Power, Unlock, Settings, Building, ArrowRight, ArrowLeft,
+  Power, Unlock, Settings, ArrowRight, ArrowLeft,
   CheckCircle, XCircle, Activity, Car, Users, DollarSign, Loader2
 } from "lucide-react";
 import { io } from "socket.io-client";
+// import { useSelector } from "react-redux";
 
 const ThreeColumnPanel = () => {
+
+   /*
+    const { entrances, exits, entryCount, exitCount } = useSelector(
+      (state) => state.station
+    );
+
+  console.log("Three Column Panel Entrances:", entrances);
+  console.log("Three Column Panel Exits:", exits);
+  console.log("Three Column Entry count:", entryCount);
+  console.log("Three Column Exit count:", exitCount);
+  */
+
   // mock Lot status data 
   const lotData = {
     main: {
@@ -58,7 +71,10 @@ const ThreeColumnPanel = () => {
         setStation({
           entrances: (entryData?.entrances?.length
             ? entryData.entrances
-            : [{ id: "E1", name: "E1", errors: [], lastUpdate: new Date() }]
+            : [
+              { id: "E1", name: "E1", errors: [], lastUpdate: new Date() },
+              { id: "E2", name: "E2", errors: [], lastUpdate: new Date() }
+            ]
           ).map(e => ({
             ...e,
             errors: e.errors || [],
@@ -66,7 +82,10 @@ const ThreeColumnPanel = () => {
           })),
           exits: (exitData?.exits?.length
             ? exitData.exits
-            : [{ id: "X1", name: "X1", errors: [], lastUpdate: new Date() }]
+            : [
+              { id: "X1", name: "X1", errors: [], lastUpdate: new Date() },
+              { id: "X2", name: "X2", errors: [], lastUpdate: new Date() }
+            ]
           ).map(x => ({
             ...x,
             errors: x.errors || [],
@@ -77,10 +96,12 @@ const ThreeColumnPanel = () => {
         console.error("Station not sending status:", err);
         setStation({
           entrances: [
-            { id: "E1", name: "E1", errors: ["Station not sending status"], lastUpdate: new Date() }
+            { id: "E1", name: "E1", errors: ["Station not sending status"], lastUpdate: new Date() },
+            { id: "E2", name: "E2", errors: ["Station not sending status"], lastUpdate: new Date() }
           ],
           exits: [
-            { id: "X1", name: "X1", errors: ["Station not sending status"], lastUpdate: new Date() }
+            { id: "X1", name: "X1", errors: ["Station not sending status"], lastUpdate: new Date() },
+            { id: "X2", name: "X2", errors: ["Station not sending status"], lastUpdate: new Date() }
           ],
         });
       } finally {
@@ -145,10 +166,16 @@ const ThreeColumnPanel = () => {
   };
 
   const formatTimeAgo = date => {
-    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-    return `${Math.floor(seconds / 3600)}h ago`;
+    const d = new Date(date);
+    return d.toLocaleString("en-SG", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
   };
 
   const getStatusIcon = status => (status === "ok" ? CheckCircle : XCircle);
@@ -183,33 +210,9 @@ const ThreeColumnPanel = () => {
 
   return (
     <div className="space-y-2 mb-5">
-      {/* Overview Stats */}
-      {/*
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[ 
-          { title: "Total Capacity", value: currentLot.total.allocated, icon: Building, label: `${currentZone.charAt(0).toUpperCase() + currentZone.slice(1)} lot spaces` },
-          { title: "Occupied", value: currentLot.total.occupied, icon: Car, label: `${occupancyRate}% occupancy rate` },
-          { title: "Available", value: currentLot.total.available, icon: Users, label: "Ready for vehicles" },
-          { title: "System Status", value: "Online", icon: Activity, label: "All systems operational", isText: true, textColor: "text-green-600" }
-        ].map((stat, idx) => (
-          <div key={idx} className="rounded-lg border bg-card text-card-foreground shadow-sm">
-            <div className="flex flex-row items-center justify-between p-4 pb-2">
-              <h4 className="tracking-tight text-sm">{stat.title}</h4>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="p-4 pt-0">
-              <div className={`text-2xl ${stat.textColor || ""}`}>{stat.value}</div>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      */}
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Lot Status */}
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="lg:col-span-2 rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col space-y-1 p-3">
             <div className="flex items-center gap-2">
               <Car className="h-5 w-5 text-primary" />
@@ -221,7 +224,11 @@ const ThreeColumnPanel = () => {
             <div className="flex items-center gap-2 flex-wrap">
               {Object.keys(lotData).map(zone => {
                 const isSelected = currentZone === zone;
-                const isFull = lotData[zone].total.available <= 0;
+
+                // ✅ Mark full if ANY category has available <= 0
+                const isFull = Object.values(lotData[zone]).some(
+                  (category) => category.available <= 0
+                );
 
                 return (
                   <button
@@ -237,8 +244,7 @@ const ThreeColumnPanel = () => {
                 );
               })}
             </div>
-          </div> 
-
+          </div>
           <div className="p-6 pt-0">
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full">
@@ -304,40 +310,41 @@ const ThreeColumnPanel = () => {
         </div>
 
         {/* Remote Functions */}
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1 p-6">
-            <div className="flex items-center gap-2">
-              <Power className="h-5 w-5 text-primary" />
-              <h3 className="text-xl leading-none tracking-tight">Remote Functions</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              System control and management tools
-            </p>
+      <div className="lg:col-span-1 rounded-lg border bg-card text-card-foreground shadow-sm max-w-sm">
+        <div className="flex flex-col space-y-2 p-4">
+          <div className="flex items-center gap-2">
+            <Power className="h-5 w-5 text-primary" />
+            <h3 className="text-xl leading-none tracking-tight">Remote Functions</h3>
           </div>
-          <div className="p-6 pt-0">
-            <div className="grid gap-3">
-              {remoteActions.map(action => {
-                const IconComponent = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    className={`flex items-center gap-3 px-4 py-3 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${action.color} group`}
-                  >
-                    <IconComponent className="h-5 w-5 group-hover:scale-110 transition-transform" />
-                    <div className="flex-1 text-left">
-                      <div className="font-medium">{action.label}</div>
-                      <div className="text-xs opacity-90">{action.description}</div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            System control and management tools
+          </p>
         </div>
 
+        <div className="p-4 pt-0">
+          {/* Grid with even spacing */}
+          <div className="grid gap-3 auto-rows-fr">
+            {remoteActions.map(action => {
+              const IconComponent = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  className={`flex items-center gap-3 px-4 py-3 w-full text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${action.color} group`}
+                >
+                  <IconComponent className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                  <div className="flex-1 text-left">
+                    <div className="font-medium">{action.label}</div>
+                    <div className="text-xs opacity-90">{action.description}</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
         {/* Station Status */}
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="lg:col-span-2 rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col space-y-1.5 p-6">
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-green-500" />
@@ -354,7 +361,8 @@ const ThreeColumnPanel = () => {
                 <span className="ml-2 text-muted-foreground">Loading status...</span>
               </div>
             ) : (
-              <div className="space-y-4">
+              // ✅ Entrances and Exits side by side
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {["entrances", "exits"].map(type => (
                   <div key={type}>
                     <div className="flex items-center gap-2 mb-3">
@@ -367,7 +375,9 @@ const ThreeColumnPanel = () => {
                         {type.charAt(0).toUpperCase() + type.slice(1)}
                       </h4>
                     </div>
-                    <div className="space-y-2">
+
+                    {/* ✅ Grid of stations (5 per row on wide screens) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
                       {station[type].map(item => {
                         const hasError = item.errors && item.errors.length > 0;
                         const StatusIcon = getStatusIcon(hasError ? "error" : "ok");
