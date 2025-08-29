@@ -1,8 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { LayoutDashboard, Car, Ticket, FileChartColumn, Settings } from "lucide-react";
 
 function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [dateTime, setDateTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDateTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const navItems = [
     { name: "Dashboard", href: "dashboard", icon: <LayoutDashboard size={18} /> },
@@ -14,8 +23,9 @@ function NavBar() {
 
   return (
     <nav className="bg-red-600 text-white shadow-md sticky top-0 z-50">
-      <div className="max-w-7xl mx-left px-2 sm:px-4 lg:px-6 ml-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-8xl px-2 sm:px-4 lg:px-6 ml-8">
+        <div className="flex items-center justify-between h-16 w-full">
+          
           {/* Logo + Name LEFT aligned */}
           <div className="flex items-center space-x-5">
             <img
@@ -29,24 +39,18 @@ function NavBar() {
             </span>
           </div>
 
-          {/* Desktop menu RIGHT aligned */}
-          {/*
-          <div className="hidden md:flex mx-right">
-            {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className="flex items-right space-x-2 px-3 py-2 rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition"
-              >
-                {item.icon}
-                <span>{item.name}</span>
-              </a>
-            ))}
+          {/* Spacer pushes content apart */}
+          <div className="flex-3"></div>
+
+          {/* Date & Time RIGHT aligned */}
+          <div className="hidden md:flex">
+            <span className="text-sm md:text-base font-medium">
+              {dateTime.toLocaleDateString()} {dateTime.toLocaleTimeString()}
+            </span>
           </div>
-          */}
 
           {/* Mobile menu button */}
-          <div className="flex items-center md:hidden">
+          <div className="flex items-center md:hidden ml-2">
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="focus:outline-none"
@@ -82,6 +86,11 @@ function NavBar() {
       {/* Mobile menu */}
       {isOpen && (
         <div className="md:hidden px-2 pt-2 pb-3 space-y-1 bg-red-600">
+          {/* Date & Time for mobile */}
+          <div className="px-3 py-2 text-gray-200 font-medium">
+            {dateTime.toLocaleDateString()} {dateTime.toLocaleTimeString()}
+          </div>
+
           {navItems.map((item) => (
             <a
               key={item.name}

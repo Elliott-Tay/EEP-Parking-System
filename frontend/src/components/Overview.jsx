@@ -1,76 +1,82 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
+import { io } from "socket.io-client";
+
+const socket = io(process.env.REACT_APP_BACKEND_API_URL);
 
 export default function OverviewTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Entry Stations */}
+        {/* Entry Stations (mock mode ON for testing) */}
         <StationCard
-           title="Entry Stations"
-           icon={<ArrowRight className="h-5 w-5 text-green-500" />}
-           type="entry"
-           apiUrl={`${process.env.REACT_APP_BACKEND_API_URL}/api/stations/entry`}
+          title="Entry Stations"
+          icon={<ArrowRight className="h-5 w-5 text-green-500" />}
+          type="entry"
+          useMock={true}
         />
 
-        {/* Exit Stations */}
+        {/* Exit Stations (mock mode ON for testing) */}
         <StationCard
           title="Exit Stations"
           icon={<ArrowLeft className="h-5 w-5 text-red-500" />}
           type="exit"
-          apiUrl={`${process.env.REACT_APP_BACKEND_API_URL}/api/stations/exit`}
+          useMock={true}
         />
       </div>
     </div>
   );
 }
 
-function StationCard({ title, icon, type, apiUrl }) {
+function StationCard({ title, icon, type, useMock = false }) {
   const [rows, setRows] = useState([]);
   const isEntry = type === "entry";
 
   // Define headers
   const headers = isEntry
-    ? ["Station", "Time", "UI/Card No", "Status"]
+    ? ["Station", "Time", "Vehicle No", "Status"]
+    : ["Station", "Time", "Vehicle No", "Payment Card No", "Fee", "Balance", "Status"];
+
+  // Mock data sets
+  const mockData = isEntry
+    ? [
+        ["E1", "10:05:23", "UI123", "OK"],
+        ["E2", "10:06:11", "UI124", "ERROR"],
+      ]
     : [
-        "Station",
-        "Time",
-        "UI/Card No",
-        "Payment Card No",
-        "Fee",
-        "Balance",
-        "Status",
+        ["X1", "10:07:02", "UI200", "PC001", "$2.50", "$50.00", "OK"],
+        ["X2", "10:08:45", "UI201", "PC002", "$3.00", "$45.50", "ERROR"],
       ];
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(apiUrl);
-        const json = await res.json();
+    if (useMock) {
+        // Simulate live updates with mock data
+        setRows(mockData);
+        return; // stop here if mocking
+    }
 
-        if (json.success) {
-          // Convert API fields into row values matching headers
-          const mappedRows = json.data.map((station) =>
-            headers.map((header) => {
-              const key = header
-                .toLowerCase()
-                .replace(/ /g, "_"); // adapt field mapping if needed
-              return station[key] ?? "---";
-            })
-          );
-          setRows(mappedRows);
-        }
-      } catch (err) {
-        console.error(`Failed to fetch ${type} station data:`, err);
-      }
+    // If not mock, connect via socket
+    if (isEntry) {
+        socket.on("entry-station", (payload) => {
+        setRows((prev) => [
+            ...prev,
+            [payload.msg_type, payload.msg_datetime, payload.msg, "OK"],
+        ]);
+        });
+    } else {
+        socket.on("exit-station", (payload) => {
+        setRows((prev) => [
+            ...prev,
+            [payload.msg_type, payload.msg_datetime, payload.msg, "OK"],
+        ]);
+        });
+    }
+
+    return () => {
+        socket.off("entry-station");
+        socket.off("exit-station");
     };
-
-    fetchData();
-
-    // Optional polling (every 5 seconds)
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, [apiUrl, headers, type]);
+    }, [useMock, isEntry]);
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -103,7 +109,7 @@ function StationCard({ title, icon, type, apiUrl }) {
                 <tr>
                   <td
                     colSpan={headers.length}
-                    className="px-4 py-6 text-center text-muted-foreground"
+                    className="px-4 py-6 text-center text-muted-foreground text-red-600"
                   >
                     Waiting for {isEntry ? "entry" : "exit"} station data...
                   </td>
@@ -112,7 +118,7 @@ function StationCard({ title, icon, type, apiUrl }) {
                 rows.map((row, rowIndex) => (
                   <tr key={rowIndex} className="hover:bg-muted/10">
                     {row.map((cell, cellIndex) => (
-                      <td key={cellIndex} className="px-4 py-2">
+                      <td key={cellIndex} className="px-4 py-2 text-blue-700">
                         {cell}
                       </td>
                     ))}

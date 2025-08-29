@@ -3,6 +3,7 @@ import {
   Power, Unlock, Settings, Building, ArrowRight, ArrowLeft,
   CheckCircle, XCircle, Activity, Car, Users, DollarSign, Loader2
 } from "lucide-react";
+import { io } from "socket.io-client";
 
 const ThreeColumnPanel = () => {
   // mock Lot status data 
@@ -26,7 +27,12 @@ const ThreeColumnPanel = () => {
       hourly: { allocated: 5, occupied: 3, available: 2 },
       season: { allocated: 5, occupied: 5, available: 0 },
       total: { allocated: 10, occupied: 3, available: 7 },
-    }
+    },
+    zone_c: {
+      hourly: { allocated: 5, occupied: 3, available: 2 },
+      season: { allocated: 5, occupied: 5, available: 0 },
+      total: { allocated: 10, occupied: 3, available: 7 },
+    },
   };
 
   const [currentZone, setCurrentZone] = useState("main");
@@ -35,41 +41,104 @@ const ThreeColumnPanel = () => {
   const [station, setStation] = useState({ entrances: [], exits: [] });
   const [loading, setLoading] = useState(true);
 
+  const socket = io(process.env.REACT_APP_BACKEND_API_URL);
+
   // Fetch station data
   useEffect(() => {
     const fetchStationStatus = async () => {
       try {
-        const res = await fetch("/api/station-status");
-        const data = await res.json();
+        // Fetch both entry and exit stations
+        const [entryRes, exitRes] = await Promise.all([
+          fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movement/entry-station`),
+          fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movement/exit-station`)
+        ]);
+
+        const [entryData, exitData] = await Promise.all([entryRes.json(), exitRes.json()]);
+
         setStation({
-          entrances:
-            data.entrances?.length
-              ? data.entrances
-              : [{ id: "E1", name: "E1", status: "error", lastUpdate: new Date() }],
-          exits:
-            data.exits?.length
-              ? data.exits
-              : [{ id: "X1", name: "X1", status: "error", lastUpdate: new Date() }],
+          entrances: (entryData?.entrances?.length
+            ? entryData.entrances
+            : [{ id: "E1", name: "E1", errors: [], lastUpdate: new Date() }]
+          ).map(e => ({
+            ...e,
+            errors: e.errors || [],
+            lastUpdate: e.lastUpdate ? new Date(e.lastUpdate) : new Date(),
+          })),
+          exits: (exitData?.exits?.length
+            ? exitData.exits
+            : [{ id: "X1", name: "X1", errors: [], lastUpdate: new Date() }]
+          ).map(x => ({
+            ...x,
+            errors: x.errors || [],
+            lastUpdate: x.lastUpdate ? new Date(x.lastUpdate) : new Date(),
+          })),
         });
       } catch (err) {
-        console.error("Failed to fetch station status:", err);
+        console.error("Station not sending status:", err);
         setStation({
-          entrances: [{ id: "E1", name: "E1", status: "error", lastUpdate: new Date() }],
-          exits: [{ id: "X1", name: "X1", status: "error", lastUpdate: new Date() }],
+          entrances: [
+            { id: "E1", name: "E1", errors: ["Station not sending status"], lastUpdate: new Date() }
+          ],
+          exits: [
+            { id: "X1", name: "X1", errors: ["Station not sending status"], lastUpdate: new Date() }
+          ],
         });
       } finally {
         setLoading(false);
       }
     };
+
     fetchStationStatus();
+
+    // Listen to real-time updates via socket.io
+    const handleEntryUpdate = (payload) => {
+      setStation(prev => {
+        const exists = prev.entrances.some(e => e.id === payload.msg_type);
+        return {
+          ...prev,
+          entrances: exists
+            ? prev.entrances.map(e =>
+                e.id === payload.msg_type
+                  ? { ...e, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }
+                  : e
+              )
+            : [...prev.entrances, { id: payload.msg_type, name: payload.msg_type, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }],
+        };
+      });
+    };
+    const handleExitUpdate = (payload) => {
+      setStation(prev => {
+        const exists = prev.exits.some(e => e.id === payload.msg_type);
+        return {
+          ...prev,
+          exits: exists
+            ? prev.exits.map(e =>
+                e.id === payload.msg_type
+                  ? { ...e, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }
+                  : e
+              )
+            : [...prev.exits, { id: payload.msg_type, name: payload.msg_type, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }],
+        };
+      });
+    };
+        
+    socket.on("entry-station", handleEntryUpdate);
+    socket.on("exit-station", handleExitUpdate);
+
+    // Cleanup
+    return () => {
+      socket.off("entry-station", handleEntryUpdate);
+      socket.off("exit-station", handleExitUpdate);
+    };
   }, []);
+
 
   const toggleStationStatus = (type, id) => {
     setStation(prev => ({
       ...prev,
       [type]: prev[type].map(item =>
         item.id === id
-          ? { ...item, status: item.status === "ok" ? "error" : "ok", lastUpdate: new Date() }
+          ? { ...item, lastUpdate: new Date(), errors: item.errors.length ? [] : ["Simulated error"] }
           : item
       ),
     }));
@@ -115,8 +184,9 @@ const ThreeColumnPanel = () => {
   return (
     <div className="space-y-2 mb-5">
       {/* Overview Stats */}
+      {/*
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {[
+        {[ 
           { title: "Total Capacity", value: currentLot.total.allocated, icon: Building, label: `${currentZone.charAt(0).toUpperCase() + currentZone.slice(1)} lot spaces` },
           { title: "Occupied", value: currentLot.total.occupied, icon: Car, label: `${occupancyRate}% occupancy rate` },
           { title: "Available", value: currentLot.total.available, icon: Users, label: "Ready for vehicles" },
@@ -134,12 +204,13 @@ const ThreeColumnPanel = () => {
           </div>
         ))}
       </div>
+      */}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Lot Status */}
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1 p-6">
+          <div className="flex flex-col space-y-1 p-3">
             <div className="flex items-center gap-2">
               <Car className="h-5 w-5 text-primary" />
               <h3 className="text-xl leading-none tracking-tight">Lot Status</h3>
@@ -148,19 +219,23 @@ const ThreeColumnPanel = () => {
               Overview of lot statuses
             </p>
             <div className="flex items-center gap-2 flex-wrap">
-              {Object.keys(lotData).map(zone => (
-                <button
-                  key={zone}
-                  onClick={() => setCurrentZone(zone)}
-                  className={`px-2 py-1 rounded ${
-                    currentZone === zone
-                      ? "bg-blue-500 text-white"
-                      : "bg-muted/10 text-muted-foreground"
-                  }`}
-                >
-                  {zone.charAt(0).toUpperCase() + zone.slice(1)}
-                </button>
-              ))}
+              {Object.keys(lotData).map(zone => {
+                const isSelected = currentZone === zone;
+                const isFull = lotData[zone].total.available <= 0;
+
+                return (
+                  <button
+                    key={zone}
+                    onClick={() => setCurrentZone(zone)}
+                    className={`px-2 py-1 rounded transition-all
+                      ${isSelected ? "bg-blue-500 text-white" : "bg-muted/10 text-muted-foreground"}
+                      ${isFull ? "bg-red-600 text-white animate-pulse" : ""}
+                    `}
+                  >
+                    {zone.charAt(0).toUpperCase() + zone.slice(1)}
+                  </button>
+                );
+              })}
             </div>
           </div> 
 
@@ -283,33 +358,61 @@ const ThreeColumnPanel = () => {
                 {["entrances", "exits"].map(type => (
                   <div key={type}>
                     <div className="flex items-center gap-2 mb-3">
-                      {type === "entrances" ? <ArrowRight className="h-4 w-4 text-green-500" /> : <ArrowLeft className="h-4 w-4 text-red-500" />}
-                      <h4 className="font-medium text-sm">{type.charAt(0).toUpperCase() + type.slice(1)}</h4>
+                      {type === "entrances" ? (
+                        <ArrowRight className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <ArrowLeft className="h-4 w-4 text-red-500" />
+                      )}
+                      <h4 className="font-medium text-sm">
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </h4>
                     </div>
                     <div className="space-y-2">
                       {station[type].map(item => {
-                        const StatusIcon = getStatusIcon(item.status);
+                        const hasError = item.errors && item.errors.length > 0;
+                        const StatusIcon = getStatusIcon(hasError ? "error" : "ok");
+
                         return (
                           <div
                             key={item.id}
                             className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
-                              item.status === "ok"
-                                ? "bg-green-50 border-green-200 hover:bg-green-100"
-                                : "bg-red-50 border-red-200 hover:bg-red-100 animate-pulse"
+                              hasError
+                                ? "bg-red-50 border-red-200 hover:bg-red-100 animate-pulse"
+                                : "bg-green-50 border-green-200 hover:bg-green-100"
                             }`}
                             onClick={() => toggleStationStatus(type, item.id)}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <StatusIcon className={`h-4 w-4 ${item.status === "ok" ? "text-green-600" : "text-red-600"}`} />
-                                <span className="text-sm font-medium">{item.name || item.id}</span>
+                                <StatusIcon
+                                  className={`h-4 w-4 ${
+                                    hasError ? "text-red-600" : "text-green-600"
+                                  }`}
+                                />
+                                <span className="text-sm font-medium">
+                                  {item.name || item.id}
+                                </span>
                               </div>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                item.status === "ok" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                              }`}>
-                                {item.status.toUpperCase()}
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  hasError
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-green-100 text-green-700"
+                                }`}
+                              >
+                                {hasError ? "ERROR" : "OK"}
                               </span>
                             </div>
+
+                            {/* Multiple error messages */}
+                            {hasError && (
+                              <ul className="mt-1 space-y-1 text-xs text-red-600 list-disc list-inside">
+                                {item.errors.map((err, idx) => (
+                                  <li key={idx}>{err}</li>
+                                ))}
+                              </ul>
+                            )}
+
                             <p className="text-xs text-muted-foreground mt-1">
                               Updated {formatTimeAgo(item.lastUpdate)}
                             </p>
