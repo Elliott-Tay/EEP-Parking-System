@@ -9,9 +9,9 @@ import { io } from "socket.io-client";
 const ThreeColumnPanel = () => {
 
    /*
-    const { entrances, exits, entryCount, exitCount } = useSelector(
-      (state) => state.station
-    );
+  const { entrances, exits, entryCount, exitCount } = useSelector(
+    (state) => state.station
+  );
 
   console.log("Three Column Panel Entrances:", entrances);
   console.log("Three Column Panel Exits:", exits);
@@ -151,7 +151,7 @@ const ThreeColumnPanel = () => {
       socket.off("entry-station", handleEntryUpdate);
       socket.off("exit-station", handleExitUpdate);
     };
-  }, []);
+  }, [socket]);
 
 
   const toggleStationStatus = (type, id) => {

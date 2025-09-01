@@ -8,8 +8,6 @@ const http = require("http");
 const server = http.createServer(app);
 const io = new Server(server);
 
-io.emit = jest.fn();
-
 // Mock the database module
 jest.mock("../database/db", () => ({
   query: jest.fn(),
@@ -58,6 +56,109 @@ describe("Movement Transaction API", () => {
       expect(res.body).toHaveProperty("error");
     });
   });
+
+  describe("GET /api/movements/transaction-checker", () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should return a list of transaction tracker records with status 200", async () => {
+      // Mock db query result
+      const mockRows = [
+        {
+          vehicleId: "V002",
+          entryVehicleNo: "SGH5678M",
+          entryStationId: "ST02",
+          entryDateTime: "2025-08-21 09:00",
+          entryTransType: "Entry",
+          exitVehicleNo: "SGH5678M",
+          exitStationId: "ST06",
+          exitDateTime: "2025-08-21 12:15",
+          exitTransType: "Exit",
+          parkedTime: "3h 15m",
+          parkingFee: "$7.50",
+          paymentCard: "Mastercard ****9876",
+        },
+        {
+          vehicleId: "V003",
+          entryVehicleNo: "SGG5324M",
+          entryStationId: "ST03",
+          entryDateTime: "2025-08-22 09:00",
+          entryTransType: "Entry",
+          exitVehicleNo: "SGG5324M",
+          exitStationId: "ST06",
+          exitDateTime: "2025-08-21 12:15",
+          exitTransType: "Exit",
+          parkedTime: "3h 15m",
+          parkingFee: "$7.50",
+          paymentCard: "American Express ****4324",
+        },
+      ];
+      
+      db.query.mockResolvedValue([mockRows]);
+
+      const res = await request(app).get("/api/movements/transaction-checker");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual(mockRows);
+      expect(db.query).toHaveBeenCalledWith("SELECT * FROM transaction_tracker");
+    });
+
+    it("should return 500 and an error message when the database fails", async () => {
+      const mockError = new Error("DB connection failed");
+      db.query.mockRejectedValue(mockError);
+
+      const res = await request(app).get("/api/movements/transaction-checker");
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("error");
+    });
+  });
+
+  describe("GET /api/movements/season-checker", () => {
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should return a list of season tracker records with status 200", async () => {
+      // Mock DB query result
+      const mockRows = [
+        {
+          seasonNo: "S001",
+          vehicleNo: "SGB1234X",
+          seasonStatus: "Active",
+          validDate: "2025-01-01",
+          expireDate: "2025-12-31",
+        },
+        {
+          seasonNo: "S002",
+          vehicleNo: "SGH5678M",
+          seasonStatus: "Expired",
+          validDate: "2024-01-01",
+          expireDate: "2024-12-31",
+        },
+      ];
+
+      db.query.mockResolvedValue([mockRows]);
+
+      const res = await request(app).get("/api/movements/season-checker");
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual(mockRows);
+      expect(db.query).toHaveBeenCalledWith("SELECT * FROM season_tracker");
+    });
+
+    it("should return 500 and an error message when the database fails", async () => {
+      const mockError = new Error("DB connection failed");
+      db.query.mockRejectedValue(mockError);
+
+      const res = await request(app).get("/api/movements/season-checker");
+
+      expect(res.statusCode).toBe(500);
+      expect(res.body).toHaveProperty("error");
+    });
+  });
+
 
   describe("GET /api/movements/:vehicle_no", () => {
     const vehicle_no = "059324323";
@@ -301,68 +402,101 @@ describe("Movement Transaction API", () => {
   });
 
   describe("POST /api/movements/lot-status-entry", () => {
-    test("✅ should return ACK on valid payload", async () => {
-      const res = await request(app)
-        .post("/api/movements/lot-status-entry")
-        .send({
-          msg_type: "entry",
-          msg_datetime: "2025-08-25T10:00:00",
-          msg: "Vehicle entered at gate 1",
-        });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        status: "success",
-        code: 200,
-        message: "Lot status received by OPC",
-        ack: "ACK",
-      });
-      expect(res.body.carsInLot).toBeGreaterThanOrEqual(1);
+    afterEach(() => {
+      jest.clearAllMocks();
     });
 
-    test("❌ should return NACK on invalid payload", async () => {
-      const res = await request(app)
-        .post("/api/movements/lot-status-entry")
-        .send({ msg_type: "entry" }); // missing datetime + msg
+    const validPayload = {
+      zone: "A1",
+      type: "regular",
+      msg_type: "entry",
+      msg_datetime: "2025-09-01T12:00:00Z",
+      msg: "Vehicle entered",
+    };
 
-      expect(res.status).toBe(400);
-      expect(res.body).toMatchObject({
+    it("should return 200 and ACK with updated slot on valid payload", async () => {
+      const res = await request(app).post("/api/movements/lot-status-entry").send(validPayload);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+
+      const updatedAt = new Date(res.body.slot.updated_at);
+      const now = new Date();
+
+      // Compare only hours, minutes, seconds
+      expect(updatedAt.getHours()).toBe(now.getHours());
+      expect(updatedAt.getMinutes()).toBe(now.getMinutes());
+      expect(updatedAt.getSeconds()).toBe(now.getSeconds());
+
+      expect(res.body.slot).toMatchObject({
+        allocated: 0,
+        available: 0,
+        occupied: 0,
+        type: "regular",
+      });
+    });
+
+    it("should return 400 when required fields are missing", async () => {
+      const { zone, ...incompletePayload } = validPayload;
+
+      const res = await request(app).post("/api/movements/lot-status-entry").send(incompletePayload);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({
         status: "error",
         code: 400,
+        message: "Invalid request payload",
         ack: "NACK",
       });
+
     });
   });
 
   describe("POST /api/movements/lot-status-exit", () => {
-    test("✅ should return ACK on valid payload", async () => {
-      const res = await request(app)
-        .post("/api/movements/lot-status-exit")
-        .send({
-          msg_type: "exit",
-          msg_datetime: "2025-08-25T10:00:00",
-          msg: "Vehicle exit at gate 1",
-        });
-
-      expect(res.status).toBe(200);
-      expect(res.body).toMatchObject({
-        status: "success",
-        code: 200,
-        message: "Lot status received by OPC",
-        ack: "ACK",
-      });
-      expect(res.body.carsInLot).toBeGreaterThanOrEqual(-1);
+    afterEach(() => {
+      jest.clearAllMocks();
     });
 
-    test("❌ should return NACK on invalid payload", async () => {
-      const res = await request(app)
-        .post("/api/movements/lot-status-exit")
-        .send({ msg_type: "exit" }); // missing datetime + msg
+    const validPayload = {
+      zone: "A1",
+      type: "regular",
+      msg_type: "exit",
+      msg_datetime: "2025-09-01T12:00:00Z",
+      msg: "Vehicle exited",
+    };
 
-      expect(res.status).toBe(400);
-      expect(res.body).toMatchObject({
+    it("should return 200 and ACK with updated slot on valid payload", async () => {
+      const res = await request(app).post("/api/movements/lot-status-entry").send(validPayload);
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe("success");
+
+      const updatedAt = new Date(res.body.slot.updated_at);
+      const now = new Date();
+
+      // Compare only hours, minutes, seconds
+      expect(updatedAt.getHours()).toBe(now.getHours());
+      expect(updatedAt.getMinutes()).toBe(now.getMinutes());
+      expect(updatedAt.getSeconds()).toBe(now.getSeconds());
+
+      expect(res.body.slot).toMatchObject({
+        allocated: 0,
+        available: 0,
+        occupied: 0,
+        type: "regular",
+      });
+    });
+    
+    it("should return 400 when required fields are missing", async () => {
+      const { zone, ...incompletePayload } = validPayload;
+
+      const res = await request(app).post("/api/movements/lot-status-exit").send(incompletePayload);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({
         status: "error",
         code: 400,
+        message: "Invalid request payload",
         ack: "NACK",
       });
     });

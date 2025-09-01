@@ -1,7 +1,7 @@
 // backend/server.js
-import app from "./app.js";
-import http from "http";
-import { Server } from "socket.io";
+const app = require("./app.js");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const PORT = process.env.PORT || 5000;
 
@@ -28,10 +28,10 @@ io.on("connection", (socket) => {
   });
 });
 
-// Start the server (note: use `server.listen`, not `app.listen`)
+// Start the server
 server.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
 
 // Optional: export io for use in routes
-export { io };
+module.exports = { io };

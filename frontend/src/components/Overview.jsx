@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { setStations } from "../store"; 
-import { io } from "socket.io-client";
+// import { io } from "socket.io-client";
 
-const socket = io(process.env.REACT_APP_BACKEND_API_URL);
+// const socket = io(process.env.REACT_APP_BACKEND_API_URL);
 
 // Mock data outside useEffect
 const entryMock = [
@@ -21,7 +21,7 @@ export default function OverviewTab() {
   const dispatch = useDispatch();
 
   // Pull station data from Redux
-  const { entrances, exits, entryCount, exitCount } = useSelector(
+  const { entrances, exits } = useSelector(
     (state) => state.station
   );
 

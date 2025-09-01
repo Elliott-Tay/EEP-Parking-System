@@ -12,6 +12,9 @@ const db = require("../database/db"); // use the same db connection
 // Keep a simple in-memory counter (reset on server restart)
 carsInLot = 0
 
+// In-memory lot status
+let lotStatus = {};
+
 /**
  * @swagger
  * /movements:
@@ -32,11 +35,35 @@ carsInLot = 0
  */
 router.get("/", async (req, res) => {
   try {
+    // amend the db query when Daniel provides the table name
     const [rows] = await db.query("SELECT * FROM movement_transactions");
     res.json(rows);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error and we cannot fetch movement_transactions table: ", error});
+  }
+});
+
+router.get("/transaction-checker", async (req, res) => {
+  try {
+    // amend the db query when Daniel provides the table name
+    const [rows] = await db.query("SELECT * FROM transaction_tracker");
+    res.json(rows)
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error and we cannot fetch transaction_tracker table: ", error});
+  }
+});
+
+
+router.get("/season-checker", async (req, res) => {
+  try {
+    // amend the db query when Daniel provides the table name
+    const [rows] = await db.query("SELECT * FROM season_tracker");
+    res.json(rows)
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error and we cannot fetch season_tracker table: ", error});
   }
 });
 
@@ -834,199 +861,351 @@ router.post("/exit-station", (req, res) => {
   }
 });
 
+/**
+ * Helper function to update lot status for entry or exit
+ */
+function updateLot(zone, type, isEntry = true) {
+  if (!lotStatus[zone]) {
+    // Initialize zone if it doesn’t exist
+    lotStatus[zone] = [];
+  }
+
+  let slot = lotStatus[zone].find(t => t.type === type);
+
+  if (!slot) {
+    // Initialize type in zone if it doesn’t exist
+    slot = { type, allocated: 0, occupied: 0, updated_at: new Date() };
+    lotStatus[zone].push(slot);
+  }
+
+  // Update occupied count
+  if (isEntry) {
+    slot.occupied = Math.min(slot.allocated, slot.occupied + 1);
+  } else {
+    slot.occupied = Math.max(0, slot.occupied - 1);
+  }
+
+  // Update timestamp
+  slot.updated_at = new Date();
+
+  // Compute available dynamically
+  slot.available = slot.allocated - slot.occupied;
+
+  return slot;
+}
 
 /**
  * @swagger
- * /movements/lot-status-entry:
- *   post:
- *     summary: Receive lot status update when a car enters
- *     description: This endpoint is called by TSE to notify OPC that a vehicle has entered the lot. Increments the `carsInLot` counter.
- *     tags: [LotStatus]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - msg_type
- *               - msg_datetime
- *               - msg
- *             properties:
- *               msg_type:
- *                 type: string
- *                 example: "entry"
- *               msg_datetime:
- *                 type: string
- *                 format: date-time
- *                 example: "2025-08-25T09:30:00Z"
- *               msg:
- *                 type: string
- *                 example: "Vehicle entered at gate 1"
- *     responses:
- *       200:
- *         description: Lot status successfully received and acknowledged
+ * paths:
+ *   /lot-status-entry:
+ *     post:
+ *       summary: Record a car entering the lot
+ *       description: "Receives lot entry information for a specific zone and type.\nUpdates the occupied count and emits the new lot status via socket.\nReturns acknowledgment to the caller."
+ *       tags:
+ *         - Lot Status
+ *       requestBody:
+ *         required: true
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - zone
+ *                 - type
+ *                 - msg_type
+ *                 - msg_datetime
+ *                 - msg
  *               properties:
- *                 status:
+ *                 zone:
  *                   type: string
- *                   example: success
- *                 code:
- *                   type: integer
- *                   example: 200
- *                 message:
+ *                   description: Zone name (e.g., "zoneA")
+ *                   example: "zoneA"
+ *                 type:
  *                   type: string
- *                   example: Lot status received by OPC
- *                 ack:
+ *                   description: Parking type (hourly, season, etc.)
+ *                   example: "hourly"
+ *                 msg_type:
  *                   type: string
- *                   example: ACK
- *                 carsInLot:
- *                   type: integer
- *                   example: 5
- *       400:
- *         description: Invalid request payload
- *       500:
- *         description: Internal server error
+ *                   description: Type of message (e.g., "entry")
+ *                   example: "entry"
+ *                 msg_datetime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp of the event
+ *                   example: "2025-09-01T10:15:30Z"
+ *                 msg:
+ *                   type: string
+ *                   description: Additional message or note
+ *                   example: "Car entered"
+ *       responses:
+ *         '200':
+ *           description: Lot entry recorded successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "success"
+ *                   code:
+ *                     type: integer
+ *                     example: 200
+ *                   message:
+ *                     type: string
+ *                     example: "Lot status received"
+ *                   ack:
+ *                     type: string
+ *                     example: "ACK"
+ *                   slot:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         example: "hourly"
+ *                       allocated:
+ *                         type: integer
+ *                         example: 50
+ *                       occupied:
+ *                         type: integer
+ *                         example: 10
+ *                       available:
+ *                         type: integer
+ *                         example: 40
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-09-01T10:15:30Z"
+ *         '400':
+ *           description: Invalid request payload
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "error"
+ *                   code:
+ *                     type: integer
+ *                     example: 400
+ *                   message:
+ *                     type: string
+ *                     example: "Invalid request payload"
+ *                   ack:
+ *                     type: string
+ *                     example: "NACK"
+ *         '500':
+ *           description: Internal server error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "error"
+ *                   code:
+ *                     type: integer
+ *                     example: 500
+ *                   message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                   ack:
+ *                     type: string
+ *                     example: "NACK"
  */
+
 router.post("/lot-status-entry", async (req, res) => {
   try {
-    const { msg_type, msg_datetime, msg } = req.body;
+    const { zone, type, msg_type, msg_datetime, msg } = req.body;
 
-    // Basic validation (adjust later once payload structure is finalized)
-    if (!msg_type || !msg_datetime || !msg) {
+    if (!zone || !type || !msg_type || !msg_datetime || !msg) {
       return res.status(400).json({
         status: "error",
         code: 400,
-        message: "Invalid request payload or no connection",
-        ack: "NACK", // negative acknowledgement
+        message: "Invalid request payload",
+        ack: "NACK",
       });
     }
 
-    // Increment counter to reflect one car entered
-    carsInLot += 1;
+    const updatedSlot = updateLot(zone, type, true);
 
-    // Emit event via socket
-    const payload = { msg_type, msg_datetime, msg };
-    req.io?.emit("exit-station", payload);
+    // Emit updated lot status via socket
+    req.io?.emit("lot-update", { zone, slot: updatedSlot });
 
-    // Send positive acknowledgement back to TSE
     return res.status(200).json({
       status: "success",
       code: 200,
-      message: "Lot status received by OPC",
-      ack: "ACK", // positive acknowledgement
-      carsInLot,
+      message: "Lot status received",
+      ack: "ACK",
+      slot: updatedSlot,
     });
-
   } catch (error) {
-    console.error("OPC Lot Status API Error:", error);
-
+    console.error("Lot Status Entry Error:", error);
     return res.status(500).json({
       status: "error",
       code: 500,
       message: "Internal server error",
-      ack: "NACK", // negative acknowledgement
+      ack: "NACK",
     });
   }
 });
 
 /**
  * @swagger
- * /movements/lot-status-exit:
- *   post:
- *     summary: Receive lot status update when a car exits
- *     description: This endpoint is called by TSX to notify OPC that a vehicle has exited the lot. Decrements the `carsInLot` counter.
- *     tags: [LotStatus]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - msg_type
- *               - msg_datetime
- *               - msg
- *             properties:
- *               msg_type:
- *                 type: string
- *                 example: "exit"
- *               msg_datetime:
- *                 type: string
- *                 format: date-time
- *                 example: "2025-08-25T09:45:00Z"
- *               msg:
- *                 type: string
- *                 example: "Vehicle exited at gate 2"
- *     responses:
- *       200:
- *         description: Lot status successfully received and acknowledged
+ * paths:
+ *   /lot-status-exit:
+ *     post:
+ *       summary: Record a car exiting the lot
+ *       description: "Receives lot exit information for a specific zone and type.\nUpdates the occupied count and emits the new lot status via socket.\nReturns acknowledgment to the caller."
+ *       tags:
+ *         - Lot Status
+ *       requestBody:
+ *         required: true
  *         content:
  *           application/json:
  *             schema:
  *               type: object
+ *               required:
+ *                 - zone
+ *                 - type
+ *                 - msg_type
+ *                 - msg_datetime
+ *                 - msg
  *               properties:
- *                 status:
+ *                 zone:
  *                   type: string
- *                   example: success
- *                 code:
- *                   type: integer
- *                   example: 200
- *                 message:
+ *                   description: Zone name (e.g., "zoneA")
+ *                   example: "zoneA"
+ *                 type:
  *                   type: string
- *                   example: Lot status received by OPC
- *                 ack:
+ *                   description: Parking type (hourly, season, etc.)
+ *                   example: "hourly"
+ *                 msg_type:
  *                   type: string
- *                   example: ACK
- *                 carsInLot:
- *                   type: integer
- *                   example: 4
- *       400:
- *         description: Invalid request payload
- *       500:
- *         description: Internal server error
+ *                   description: Type of message (e.g., "exit")
+ *                   example: "exit"
+ *                 msg_datetime:
+ *                   type: string
+ *                   format: date-time
+ *                   description: Timestamp of the event
+ *                   example: "2025-09-01T10:20:30Z"
+ *                 msg:
+ *                   type: string
+ *                   description: Additional message or note
+ *                   example: "Car exited"
+ *       responses:
+ *         '200':
+ *           description: Lot exit recorded successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "success"
+ *                   code:
+ *                     type: integer
+ *                     example: 200
+ *                   message:
+ *                     type: string
+ *                     example: "Lot status received"
+ *                   ack:
+ *                     type: string
+ *                     example: "ACK"
+ *                   slot:
+ *                     type: object
+ *                     properties:
+ *                       type:
+ *                         type: string
+ *                         example: "hourly"
+ *                       allocated:
+ *                         type: integer
+ *                         example: 50
+ *                       occupied:
+ *                         type: integer
+ *                         example: 9
+ *                       available:
+ *                         type: integer
+ *                         example: 41
+ *                       updated_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-09-01T10:20:30Z"
+ *         '400':
+ *           description: Invalid request payload
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "error"
+ *                   code:
+ *                     type: integer
+ *                     example: 400
+ *                   message:
+ *                     type: string
+ *                     example: "Invalid request payload"
+ *                   ack:
+ *                     type: string
+ *                     example: "NACK"
+ *         '500':
+ *           description: Internal server error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   status:
+ *                     type: string
+ *                     example: "error"
+ *                   code:
+ *                     type: integer
+ *                     example: 500
+ *                   message:
+ *                     type: string
+ *                     example: "Internal server error"
+ *                   ack:
+ *                     type: string
+ *                     example: "NACK"
  */
+
 router.post("/lot-status-exit", async (req, res) => {
   try {
-    const { msg_type, msg_datetime, msg } = req.body;
+    const { zone, type, msg_type, msg_datetime, msg } = req.body;
 
-    // Basic validation (adjust later once payload structure is finalized)
-    if (!msg_type || !msg_datetime || !msg) {
+    if (!zone || !type || !msg_type || !msg_datetime || !msg) {
       return res.status(400).json({
         status: "error",
         code: 400,
-        message: "Invalid request payload or no connection",
-        ack: "NACK", // negative acknowledgement
+        message: "Invalid request payload",
+        ack: "NACK",
       });
     }
 
-    // Decrement counter to reflect one car exited
-    carsInLot = Math.max(0, carsInLot - 1);
+    const updatedSlot = updateLot(zone, type, false);
 
-    // Emit event via socket
-    const payload = { msg_type, msg_datetime, msg };
-    req.io?.emit("exit-station", payload);
+    // Emit updated lot status via socket
+    req.io?.emit("lot-update", { zone, slot: updatedSlot });
 
-    // Send positive acknowledgement back to TSE
     return res.status(200).json({
       status: "success",
       code: 200,
-      message: "Lot status received by OPC",
-      ack: "ACK", // positive acknowledgement
-      carsInLot,
+      message: "Lot status received",
+      ack: "ACK",
+      slot: updatedSlot,
     });
-
   } catch (error) {
-    console.error("OPC Lot Status API Error:", error);
-
+    console.error("Lot Status Exit Error:", error);
     return res.status(500).json({
       status: "error",
       code: 500,
       message: "Internal server error",
-      ack: "NACK", // negative acknowledgement
+      ack: "NACK",
     });
   }
 });

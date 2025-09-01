@@ -9,6 +9,8 @@ The purpose of this project is to be the software side that manages the carpark 
 
 - Backend: Node.js as it is easier for I/O threading, easy to scaffold and maintain compared to Django as Django comes with "battery packs" like authentication and an admin panel which we will not need. 
 
+- Devops: Circle CI for CI/CD and Docker if there is a need for package management. 
+
 ## Setup of repo
 
 We need to install the necessary packages for the frontend and the backend separately. So cd into the frontend and the backend folder individually and run this command

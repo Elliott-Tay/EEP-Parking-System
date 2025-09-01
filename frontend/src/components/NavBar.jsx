@@ -45,10 +45,11 @@ function NavBar() {
           {/* Date & Time RIGHT aligned */}
           <div className="hidden md:flex">
             <span className="text-base md:text-2xl font-medium">
-              {dateTime.toLocaleDateString()} {dateTime.toLocaleTimeString()}
+              {dateTime.toLocaleDateString("en-SG")}{" "}
+              {dateTime.toLocaleTimeString("en-SG", { hour12: false })}
             </span>
           </div>
-
+          
           {/* Mobile menu button */}
           <div className="flex items-center md:hidden ml-2">
             <button
