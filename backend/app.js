@@ -31,6 +31,8 @@ app.use("/api/movements", movementRouter);
 // season routes
 app.use("/api/seasons", seasonRouter);
 
+app.use("/api/auth", require("./routes/auth").authRouter);
+
 // 404 handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
