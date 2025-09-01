@@ -44,6 +44,55 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * paths:
+ *   /transaction-checker:
+ *     get:
+ *       summary: Fetch all transaction tracker records
+ *       description: 
+ *         Retrieves all records from the **transaction_tracker** table.  
+ *         This endpoint is for internal use only and does not accept any user input.
+ *       tags:
+ *         - Transactions
+ *       responses:
+ *         '200':
+ *           description: A list of transaction tracker records
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     transaction_type:
+ *                       type: string
+ *                       example: "entry"
+ *                     zone:
+ *                       type: string
+ *                       example: "A1"
+ *                     vehicle_id:
+ *                       type: string
+ *                       example: "SGX1234A"
+ *                     timestamp:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-09-01T12:00:00Z"
+ *         '500':
+ *           description: Database error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   error:
+ *                     type: string
+ *                     example: Database error and we cannot fetch transaction_tracker table
+ */
+
 router.get("/transaction-checker", async (req, res) => {
   try {
     // amend the db query when Daniel provides the table name
@@ -55,6 +104,55 @@ router.get("/transaction-checker", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * paths:
+ *   /season-checker:
+ *     get:
+ *       summary: Fetch all season tracker records
+ *       description: 
+ *         Retrieves all records from the **season_tracker** table.  
+ *         This endpoint is for internal use only and does not accept user input.
+ *       tags:
+ *         - Seasons
+ *       responses:
+ *         '200':
+ *           description: A list of season tracker records
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     season_name:
+ *                       type: string
+ *                       example: "Summer 2025"
+ *                     start_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2025-06-01"
+ *                     end_date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2025-08-31"
+ *                     status:
+ *                       type: string
+ *                       example: "active"
+ *         '500':
+ *           description: Database error
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   error:
+ *                     type: string
+ *                     example: Database error and we cannot fetch season_tracker table
+ */
 
 router.get("/season-checker", async (req, res) => {
   try {
