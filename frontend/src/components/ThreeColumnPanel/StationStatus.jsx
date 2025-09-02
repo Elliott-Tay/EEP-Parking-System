@@ -12,8 +12,8 @@ const StationStatus = ({ env_backend }) => {
     const fetchStationStatus = async () => {
       try {
         const [entryRes, exitRes] = await Promise.all([
-          fetch(`${env_backend}/api/movement/entry-station`),
-          fetch(`${env_backend}/api/movement/exit-station`)
+          fetch(`${env_backend}/api/movements/entry-station`),
+          fetch(`${env_backend}/api/movements/exit-station`)
         ]);
 
         const [entryData, exitData] = await Promise.all([entryRes.json(), exitRes.json()]);
