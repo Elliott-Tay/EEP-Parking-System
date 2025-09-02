@@ -1,39 +1,70 @@
 import { useState } from "react";
 import { Unlock, Settings, DollarSign, Power, ArrowRight, X } from "lucide-react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
 
-  const handleSubmit = () => {
-    if (!remarks.trim()) return; // safety check
-    console.log("Submitted remarks:", remarks);
-    setRemarks(""); // clear input
-    onClose?.(); // close modal if provided
+  // Generic handler for actions
+  const handleAction = (action) => {
+    if (!remarks.trim()) {
+      toast.error("Remarks are required before performing this action.");
+      return;
+    }
+
+    // ✅ Show success toast with action pressed
+    toast.success(`Action performed: ${action}\nRemarks: ${remarks}`);
+
+    console.log(`Action: ${action}, Remarks: ${remarks}`);
+    // TODO: call your API here for log and action execution to see who did what
+
+    setRemarks(""); // clear remarks after submit
+    onClose?.(); // optionally close modal after action
   };
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-3">Station Control</h2>
+    <div className="p-6">
+      <h2 className="text-2xl font-semibold mb-3">Station Control</h2>
       <p className="text-sm text-gray-700 dark:text-gray-300">
         Here you can control entry and exit gates remotely.
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button className="px-3 py-2 bg-green-500 text-white rounded-md">
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        <button
+          onClick={() => handleAction("Open Gate")}
+          className="px-4 py-2 bg-green-500 text-white rounded-md"
+        >
           Open Gate
         </button>
-        <button className="px-3 py-2 bg-blue-500 text-white rounded-md">
+        <button
+          onClick={() => handleAction("Open and Hold")}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md"
+        >
           Open and Hold
         </button>
-        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+        <button
+          onClick={() => handleAction("Close Gate")}
+          className="px-4 py-2 bg-red-500 text-white rounded-md"
+        >
           Close Gate
         </button>
-        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+        <button
+          onClick={() => handleAction("Restart App")}
+          className="px-4 py-2 bg-red-500 text-white rounded-md"
+        >
           Restart App
         </button>
-        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+        <button
+          onClick={() => handleAction("Eject Card")}
+          className="px-4 py-2 bg-red-500 text-white rounded-md"
+        >
           Eject Card
         </button>
-        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+        <button
+          onClick={() => handleAction("Restart UPOS")}
+          className="px-4 py-2 bg-red-500 text-white rounded-md"
+        >
           Restart UPOS
         </button>
       </div>
@@ -43,22 +74,9 @@ function StationControlModal({ onClose }) {
         value={remarks}
         onChange={(e) => setRemarks(e.target.value)}
         placeholder="Add remarks"
-        className="mt-4 w-full border rounded-md px-3 py-2 text-sm"
+        className="mt-6 w-full border rounded-md px-3 py-2 text-sm"
         rows={3}
       />
-
-      {/* Submit button */}
-      <button
-        onClick={handleSubmit}
-        disabled={!remarks.trim()}
-        className={`mt-4 w-full px-4 py-2 rounded-md text-white ${
-          remarks.trim()
-            ? "bg-blue-600 hover:bg-blue-700"
-            : "bg-gray-400 cursor-not-allowed"
-        }`}
-      >
-        Submit
-      </button>
     </div>
   );
 }
