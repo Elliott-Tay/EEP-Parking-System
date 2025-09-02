@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
-import { useSelector, useDispatch } from "react-redux";
-import { setStations } from "../store"; 
-// import { io } from "socket.io-client";
+import { io } from "socket.io-client";
 
-// const socket = io(process.env.REACT_APP_BACKEND_API_URL);
+// toggle mock mode ON/OFF
+const USE_MOCK = true; // ⬅️ change to false to use backend
 
-// Mock data outside useEffect
+const socket = !USE_MOCK ? io(process.env.REACT_APP_BACKEND_API_URL) : null;
+
+// Mock data
 const entryMock = [
   { id: "E1", name: "E1", time: "10:05:23", vehicle: "UI123", status: "OK", errors: [] },
   { id: "E2", name: "E2", time: "10:06:11", vehicle: "UI124", status: "OK", errors: ["Simulated error"] },
@@ -18,22 +19,85 @@ const exitMock = [
 ];
 
 export default function OverviewTab() {
-  const dispatch = useDispatch();
-
-  // Pull station data from Redux
-  const { entrances, exits } = useSelector(
-    (state) => state.station
-  );
+  const [entrances, setEntrances] = useState([]);
+  const [exits, setExits] = useState([]);
 
   useEffect(() => {
-    // Dispatch mock data once on mount
-    dispatch(setStations({
-      entrances: entryMock,
-      exits: exitMock,
-      entryCount: entryMock.length,
-      exitCount: exitMock.length
-    }));
-  }, [dispatch]);
+    if (USE_MOCK) {
+      // ✅ load mock data once
+      setEntrances(entryMock);
+      setExits(exitMock);
+    } else {
+      try {
+        // ✅ listen for entry success
+        socket.on("entry-station", (payload) => {
+          try {
+            const { msg_type, msg_datetime, msg } = payload;
+            const entryData = {
+              id: msg?.id || msg_type,
+              name: msg?.name || "Unknown",
+              time: msg_datetime,
+              vehicle: msg?.vehicle || "-",
+              status: msg?.status || "OK",
+              errors: msg?.errors || [],
+            };
+            setEntrances((prev) => [...prev, entryData]);
+          } catch (err) {
+            console.error("Client error parsing entry-station:", err);
+          }
+        });
+
+        // ✅ listen for exit success
+        socket.on("exit-station", (payload) => {
+          try {
+            const { msg_type, msg_datetime, msg } = payload;
+            const exitData = {
+              id: msg?.id || msg_type,
+              name: msg?.name || "Unknown",
+              time: msg_datetime,
+              vehicle: msg?.vehicle || "-",
+              card: msg?.card || "-",
+              fee: msg?.fee || "-",
+              balance: msg?.balance || "-",
+              status: msg?.status || "OK",
+              errors: msg?.errors || [],
+            };
+            setExits((prev) => [...prev, exitData]);
+          } catch (err) {
+            console.error("Client error parsing exit-station:", err);
+          }
+        });
+
+        // ✅ listen for entry error
+        socket.on("entry-station-error", (errorPayload) => {
+          console.error("Entry station error:", errorPayload);
+          setEntrances((prev) => [
+            ...prev,
+            { id: "ERR", name: "EntryError", time: new Date().toISOString(), status: "ERROR", errors: [errorPayload.message] },
+          ]);
+        });
+
+        // ✅ listen for exit error
+        socket.on("exit-station-error", (errorPayload) => {
+          console.error("Exit station error:", errorPayload);
+          setExits((prev) => [
+            ...prev,
+            { id: "ERR", name: "ExitError", time: new Date().toISOString(), status: "ERROR", errors: [errorPayload.message] },
+          ]);
+        });
+
+      } catch (outerErr) {
+        console.error("Socket setup error:", outerErr);
+      }
+
+      return () => {
+        socket.off("entry-station");
+        socket.off("exit-station");
+        socket.off("entry-station-error");
+        socket.off("exit-station-error");
+      };
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -54,6 +118,7 @@ export default function OverviewTab() {
     </div>
   );
 }
+
 
 function StationCard({ title, icon, rows, isEntry = true }) {
   const headers = isEntry

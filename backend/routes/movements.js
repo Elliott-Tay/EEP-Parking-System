@@ -962,18 +962,26 @@ router.post("/exit-station", (req, res) => {
 /**
  * Helper function to update lot status for entry or exit
  */
-function updateLot(zone, type, isEntry = true) {
-  if (!lotStatus[zone]) {
-    // Initialize zone if it doesn’t exist
-    lotStatus[zone] = [];
-  }
+function updateLot(zone, type, isEntry = true, allocated = 1) {
+  // Initialize zone if it doesn’t exist
+  if (!lotStatus[zone]) lotStatus[zone] = [];
 
-  let slot = lotStatus[zone].find(t => t.type === type);
+  // Find slot by type
+  let slot = lotStatus[zone].find(s => s.type === type);
 
   if (!slot) {
-    // Initialize type in zone if it doesn’t exist
-    slot = { type, allocated: 0, occupied: 0, updated_at: new Date() };
+    // Initialize slot if it doesn’t exist
+    slot = {
+      type,
+      allocated,      // set initial allocation from payload
+      occupied: 0,
+      available: allocated,
+      updated_at: new Date(),
+    };
     lotStatus[zone].push(slot);
+  } else {
+    // Update allocated if backend provides a new value
+    if (allocated > 0) slot.allocated = allocated;
   }
 
   // Update occupied count
@@ -983,14 +991,13 @@ function updateLot(zone, type, isEntry = true) {
     slot.occupied = Math.max(0, slot.occupied - 1);
   }
 
-  // Update timestamp
-  slot.updated_at = new Date();
-
-  // Compute available dynamically
+  // Recalculate available and timestamp
   slot.available = slot.allocated - slot.occupied;
+  slot.updated_at = new Date();
 
   return slot;
 }
+
 
 /**
  * @swagger

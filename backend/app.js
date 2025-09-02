@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { swaggerUi, specs } = require("./routes/swagger");
 const movementRouter = require("./routes/movements");
-const seasonRouter = require("./routes/season")
+const seasonRouter = require("./routes/season");
 
 require("dotenv").config();
 

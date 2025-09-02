@@ -429,9 +429,9 @@ describe("Movement Transaction API", () => {
       expect(updatedAt.getSeconds()).toBe(now.getSeconds());
 
       expect(res.body.slot).toMatchObject({
-        allocated: 0,
+        allocated: 1,
         available: 0,
-        occupied: 0,
+        occupied: 1,
         type: "regular",
       });
     });
@@ -480,13 +480,13 @@ describe("Movement Transaction API", () => {
       expect(updatedAt.getSeconds()).toBe(now.getSeconds());
 
       expect(res.body.slot).toMatchObject({
-        allocated: 0,
+        allocated: 1,
         available: 0,
-        occupied: 0,
+        occupied: 1,
         type: "regular",
       });
     });
-    
+
     it("should return 400 when required fields are missing", async () => {
       const { zone, ...incompletePayload } = validPayload;
 
