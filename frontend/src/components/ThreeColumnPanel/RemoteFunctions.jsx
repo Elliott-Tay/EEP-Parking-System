@@ -1,6 +1,100 @@
 import { useState } from "react";
 import { Unlock, Settings, DollarSign, Power, ArrowRight, X } from "lucide-react";
 
+function StationControlModal({ onClose }) {
+  const [remarks, setRemarks] = useState("");
+
+  const handleSubmit = () => {
+    if (!remarks.trim()) return; // safety check
+    console.log("Submitted remarks:", remarks);
+    setRemarks(""); // clear input
+    onClose?.(); // close modal if provided
+  };
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-3">Station Control</h2>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Here you can control entry and exit gates remotely.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button className="px-3 py-2 bg-green-500 text-white rounded-md">
+          Open Gate
+        </button>
+        <button className="px-3 py-2 bg-blue-500 text-white rounded-md">
+          Open and Hold
+        </button>
+        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+          Close Gate
+        </button>
+        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+          Restart App
+        </button>
+        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+          Eject Card
+        </button>
+        <button className="px-3 py-2 bg-red-500 text-white rounded-md">
+          Restart UPOS
+        </button>
+      </div>
+
+      {/* Remarks box */}
+      <textarea
+        value={remarks}
+        onChange={(e) => setRemarks(e.target.value)}
+        placeholder="Add remarks"
+        className="mt-4 w-full border rounded-md px-3 py-2 text-sm"
+        rows={3}
+      />
+
+      {/* Submit button */}
+      <button
+        onClick={handleSubmit}
+        disabled={!remarks.trim()}
+        className={`mt-4 w-full px-4 py-2 rounded-md text-white ${
+          remarks.trim()
+            ? "bg-blue-600 hover:bg-blue-700"
+            : "bg-gray-400 cursor-not-allowed"
+        }`}
+      >
+        Submit
+      </button>
+    </div>
+  );
+}
+
+function LotAdjustmentModal() {
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-3">Lot Adjustment</h2>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Adjust the parking allocations for different zones.
+      </p>
+      <input
+        type="number"
+        placeholder="Enter new lot count"
+        className="mt-2 w-full border rounded-md px-3 py-2 text-sm"
+      />
+    </div>
+  );
+}
+
+function ParkingTariffModal() {
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-3">Parking Tariff</h2>
+      <p className="text-sm text-gray-700 dark:text-gray-300">
+        Set or update parking tariffs for hourly or season passes.
+      </p>
+      <input
+        type="text"
+        placeholder="e.g., $2/hr"
+        className="mt-2 w-full border rounded-md px-3 py-2 text-sm"
+      />
+    </div>
+  );
+}
+
 export default function RemoteFunctions() {
   const [activeModal, setActiveModal] = useState(null);
 
@@ -11,7 +105,7 @@ export default function RemoteFunctions() {
       icon: Unlock,
       color: "bg-blue-500 hover:bg-blue-600",
       description: "Control entry/exit gates",
-      content: "Here you can control entry and exit gates remotely.",
+      component: StationControlModal,
     },
     {
       id: "lot-adjustment",
@@ -19,7 +113,7 @@ export default function RemoteFunctions() {
       icon: Settings,
       color: "bg-green-500 hover:bg-green-600",
       description: "Modify parking allocations",
-      content: "Adjust the parking allocations for different zones.",
+      component: LotAdjustmentModal,
     },
     {
       id: "parking-tariff",
@@ -27,9 +121,11 @@ export default function RemoteFunctions() {
       icon: DollarSign,
       color: "bg-orange-500 hover:bg-orange-600",
       description: "Update pricing structure",
-      content: "Set or update parking tariffs for hourly or season passes.",
+      component: ParkingTariffModal,
     },
   ];
+
+  const ActiveModalComponent = remoteActions.find((a) => a.id === activeModal)?.component;
 
   return (
     <div className="lg:col-span-1 rounded-lg border bg-card text-card-foreground shadow-sm max-w-sm">
@@ -68,37 +164,19 @@ export default function RemoteFunctions() {
       </div>
 
       {/* Modal */}
-      {activeModal && (
+      {activeModal && ActiveModalComponent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl border border-gray-200 dark:border-gray-700 relative">
-            {/* Close button */}
+          <div className="bg-white dark:bg-gray-800 p-20 rounded-xl w-200 shadow-2xl border border-gray-200 dark:border-gray-700 relative">
             <button
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
-                onClick={() => setActiveModal(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+              onClick={() => setActiveModal(null)}
             >
-                <X className="h-5 w-5" />
+              <X className="h-10 w-10" />
             </button>
-
-            {/* Modal content */}
-            <h2 className="text-lg font-semibold mb-3">
-                {remoteActions.find((a) => a.id === activeModal)?.label}
-            </h2>
-            <p className="text-sm text-gray-700 dark:text-gray-300">
-                {remoteActions.find((a) => a.id === activeModal)?.content}
-            </p>
-
-            {/* Optional footer / actions */}
-            <div className="mt-6 flex justify-end">
-                <button
-                onClick={() => setActiveModal(null)}
-                className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition"
-                >
-                Close
-                </button>
-            </div>
-            </div>
+            <ActiveModalComponent onClose={() => setActiveModal(null)} />
+          </div>
         </div>
-     )}
+      )}
     </div>
   );
 }
