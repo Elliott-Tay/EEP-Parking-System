@@ -33,9 +33,9 @@ const lotMockData = {
   },
 };
 
-export default function LotStatus({ currentZone, setCurrentZone }) {
+export default function LotStatus() {
   const [lotData, setLotData] = useState(lotMockData);
-
+  const [currentZone, setCurrentZone] = useState("main"); 
   const currentLot = lotData[currentZone] || lotData["main"];
   const occupancyRate = Math.round(
     (currentLot.total.occupied / currentLot.total.allocated) * 100 || 0
@@ -43,7 +43,6 @@ export default function LotStatus({ currentZone, setCurrentZone }) {
 
   const formatZoneName = (zone) => zone.charAt(0).toUpperCase() + zone.slice(1);
 
-  // Real-time updates with useEffect
   useEffect(() => {
     if (USE_MOCK) {
       setLotData(lotMockData);
@@ -75,7 +74,7 @@ export default function LotStatus({ currentZone, setCurrentZone }) {
       socket.off("lot-status-error");
       socket.disconnect();
     };
-  }, [currentZone, setCurrentZone]);
+  }, []);
 
   return (
     <div className="lg:col-span-2 rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -100,11 +99,12 @@ export default function LotStatus({ currentZone, setCurrentZone }) {
                 key={zone}
                 onClick={() => setCurrentZone(zone)}
                 className={`px-2 py-1 rounded transition-all
-                  ${isSelected ? "bg-blue-500 text-white border border-black" : "bg-muted/10 text-muted-foreground"}
-                  ${isFull ? "bg-red-600 text-white animate-pulse" : ""}`}
-              >
+                    ${isSelected ? "bg-blue-500 text-white border border-black" : ""}
+                    ${!isSelected && isFull ? "bg-red-600 text-white animate-pulse" : ""}
+                    ${!isSelected && !isFull ? "bg-muted/10 text-muted-foreground" : ""}`}
+                >
                 {formatZoneName(zone)}
-              </button>
+               </button>
             );
           })}
         </div>
