@@ -1,7 +1,9 @@
-import { Unlock, Settings, DollarSign, Power, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Unlock, Settings, DollarSign, Power, ArrowRight, X } from "lucide-react";
 
 export default function RemoteFunctions() {
-  // Define actions inside the component
+  const [activeModal, setActiveModal] = useState(null);
+
   const remoteActions = [
     {
       id: "station-control",
@@ -9,6 +11,7 @@ export default function RemoteFunctions() {
       icon: Unlock,
       color: "bg-blue-500 hover:bg-blue-600",
       description: "Control entry/exit gates",
+      content: "Here you can control entry and exit gates remotely.",
     },
     {
       id: "lot-adjustment",
@@ -16,6 +19,7 @@ export default function RemoteFunctions() {
       icon: Settings,
       color: "bg-green-500 hover:bg-green-600",
       description: "Modify parking allocations",
+      content: "Adjust the parking allocations for different zones.",
     },
     {
       id: "parking-tariff",
@@ -23,6 +27,7 @@ export default function RemoteFunctions() {
       icon: DollarSign,
       color: "bg-orange-500 hover:bg-orange-600",
       description: "Update pricing structure",
+      content: "Set or update parking tariffs for hourly or season passes.",
     },
   ];
 
@@ -47,6 +52,7 @@ export default function RemoteFunctions() {
             return (
               <button
                 key={action.id}
+                onClick={() => setActiveModal(action.id)}
                 className={`flex items-center gap-3 px-4 py-3 w-full text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${action.color} group`}
               >
                 <IconComponent className="h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -60,6 +66,39 @@ export default function RemoteFunctions() {
           })}
         </div>
       </div>
+
+      {/* Modal */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+            {/* Close button */}
+            <button
+                className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200"
+                onClick={() => setActiveModal(null)}
+            >
+                <X className="h-5 w-5" />
+            </button>
+
+            {/* Modal content */}
+            <h2 className="text-lg font-semibold mb-3">
+                {remoteActions.find((a) => a.id === activeModal)?.label}
+            </h2>
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+                {remoteActions.find((a) => a.id === activeModal)?.content}
+            </p>
+
+            {/* Optional footer / actions */}
+            <div className="mt-6 flex justify-end">
+                <button
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition"
+                >
+                Close
+                </button>
+            </div>
+            </div>
+        </div>
+     )}
     </div>
   );
 }
