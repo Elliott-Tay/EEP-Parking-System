@@ -37,20 +37,44 @@ function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
 
   // Generic handler for actions
-  const handleAction = (action) => {
+  const actionMap = {
+    "Open Gate": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/open`, method: "POST" },
+    "Open and Hold": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/open-hold`, method: "POST" },
+    "Close Gate": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/close`, method: "POST" },
+    "Restart App": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/system/restart-app`, method: "POST" },
+    "Eject Card": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/card/eject`, method: "POST" },
+    "Restart UPOS": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/system/restart-upos`, method: "POST" },
+  };
+
+  const handleAction = async (action) => {
     if (!remarks.trim()) {
       toast.error("Remarks are required before performing this action.");
       return;
     }
 
-    // ✅ Show success toast with action pressed
-    toast.success(`Action performed: ${action}\nRemarks: ${remarks}`);
+    const config = actionMap[action];
+    if (!config) return;
+    console.log("config", config)
+    try {
+      const res = await fetch(config.url, {
+        method: config.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ remarks }),
+      });
 
-    console.log(`Action: ${action}, Remarks: ${remarks}`);
-    // TODO: call your API here for log and action execution to see who did what
-
-    setRemarks(""); // clear remarks after submit
-    onClose?.(); // optionally close modal after action
+      const data = await res.json();
+      console.log('data', data)
+      if (!res.ok) {
+        toast.error(data.error || "Action failed");
+      } else {
+        toast.success(`Action performed: ${action}`);
+        setRemarks("");
+        onClose?.();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error performing action: " + err);
+    }
   };
 
   return (
@@ -173,7 +197,7 @@ function LotAdjustmentModal({ onClose }) {
           onClose?.();
         }
       } catch (err) {
-        toast.error("Error updating lot");
+        toast.error("Error updating lot" + err);
         console.error(err);
       }
     }

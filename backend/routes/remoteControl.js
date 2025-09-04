@@ -280,4 +280,34 @@ router.patch("/lot-status/:zone/:type", async (req, res) => {
   }
 });
 
+router.post("/gate/open", async(req, res) => {
+    // Implement gate open logic here
+    console.log('Gate open requested');
+});
+
+router.post("/gate/open-hold", async(req, res) => {
+    // Implement gate open hold logic here  
+    console.log('Gate open and hold requested');
+});
+
+router.post("/gate/close", async(req, res) => {
+    // Implement gate close logic here  
+    console.log('Gate close requested');
+});
+
+router.post("/system/restart-app", async(req, res) => {
+    // Implement system restart app logic here  
+    console.log('System restart app requested');
+})
+
+router.post("/card/eject", async(req, res) => {
+    // Implement card eject logic here
+    console.log('Card eject requested');
+});
+
+router.post("system/restart-upos", async(req, res) => {
+    // Implement system restart upos logic here  
+    console.log('System restart UPOS requested');
+});
+
 module.exports = router;
