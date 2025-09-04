@@ -2,7 +2,7 @@
 const request = require("supertest");
 const express = require("express");
 const db = require("../database/db");
-const remoteControlRouter = require("../routes/RemoteControl"); // adjust path
+const remoteControlRouter = require("../routes/remoteControl"); // adjust path
 
 jest.mock("../database/db"); // Mock the db module
 
