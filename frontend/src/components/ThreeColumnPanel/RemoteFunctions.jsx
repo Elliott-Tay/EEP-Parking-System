@@ -1,7 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Unlock, Settings, DollarSign, Power, ArrowRight, X } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+// Mock lot status data
+const lotMockData = {
+  main: {
+    hourly: { allocated: 20, occupied: 20, available: 0 },
+    season: { allocated: 15, occupied: 15, available: 0 },
+    total: { allocated: 50, occupied: 45, available: 5 },
+  },
+  basement: {
+    hourly: { allocated: 10, occupied: 7, available: 3 },
+    season: { allocated: 10, occupied: 7, available: 3 },
+    total: { allocated: 30, occupied: 20, available: 10 },
+  },
+  roof: {
+    hourly: { allocated: 5, occupied: 2, available: 3 },
+    season: { allocated: 5, occupied: 1, available: 4 },
+    total: { allocated: 10, occupied: 3, available: 7 },
+  },
+  middle: {
+    hourly: { allocated: 5, occupied: 3, available: 2 },
+    season: { allocated: 5, occupied: 4, available: 1 },
+    total: { allocated: 10, occupied: 7, available: 3 },
+  },
+  zone_c: {
+    hourly: { allocated: 5, occupied: 3, available: 2 },
+    season: { allocated: 5, occupied: 5, available: 0 },
+    total: { allocated: 10, occupied: 3, available: 7 },
+  },
+};
+
 
 function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
@@ -81,21 +111,136 @@ function StationControlModal({ onClose }) {
   );
 }
 
-function LotAdjustmentModal() {
+function LotAdjustmentModal({ onClose }) {
+  const [zones, setZones] = useState([]);
+  const [zone, setZone] = useState("");
+  const [type, setType] = useState("hourly");
+  const [allocated, setAllocated] = useState("");
+  const [occupied, setOccupied] = useState("");
+
+  const useMockData = true; // toggle this to switch between mock and real API
+
+  // Set zones dynamically from mock data for now
+  useEffect(() => {
+    const zoneList = Object.keys(lotMockData).map((z) => ({
+      name: z,
+      active: lotMockData[z].total.available > 0,
+    }));
+    setZones(zoneList);
+  }, []);
+
+  const handleLotUpdate = async () => {
+    if (!zone || !type || allocated === "" || occupied === "") {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    if (useMockData) {
+      // Update mock data locally
+      lotMockData[zone][type].allocated = Number(allocated);
+      lotMockData[zone][type].occupied = Number(occupied);
+      lotMockData[zone][type].available =
+        lotMockData[zone][type].allocated - lotMockData[zone][type].occupied;
+
+      toast.success(
+        `Updated mock zone ${zone} (${type}) to ${allocated} allocated, ${occupied} occupied`
+      );
+      setAllocated("");
+      setOccupied("");
+      onClose?.();
+    } else {
+      // Call real API
+      try {
+        const res = await fetch(`/api/remote-control/lot-status/${zone}/${type}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            allocated: Number(allocated),
+            occupied: Number(occupied),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          toast.error(data.error || "Failed to update lot");
+        } else {
+          toast.success(
+            `Updated zone ${zone} (${type}) to ${data.allocated} allocated, ${data.occupied} occupied`
+          );
+          setAllocated("");
+          setOccupied("");
+          onClose?.();
+        }
+      } catch (err) {
+        toast.error("Error updating lot");
+        console.error(err);
+      }
+    }
+  };
+
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-3">Lot Adjustment</h2>
-      <p className="text-sm text-gray-700 dark:text-gray-300">
-        Adjust the parking allocations for different zones.
+    <div className="p-6">
+      <h2 className="text-2xl font-semibold mb-3">Lot Adjustment</h2>
+      <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+        Adjust the parking allocations and occupied slots for different zones.
       </p>
-      <input
-        type="number"
-        placeholder="Enter new lot count"
-        className="mt-2 w-full border rounded-md px-3 py-2 text-sm"
-      />
+
+      <div className="flex flex-col gap-3">
+        {/* Dynamic Zone selector */}
+        <select
+          value={zone}
+          onChange={(e) => setZone(e.target.value)}
+          className="border rounded-md px-3 py-2"
+        >
+          <option value="">Select zone</option>
+          {zones.map((z) => (
+            <option key={z.name} value={z.name} disabled={!z.active}>
+              {z.name} {z.active ? "" : "(full)"}
+            </option>
+          ))}
+        </select>
+
+        {/* Type selector */}
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="border rounded-md px-3 py-2"
+        >
+          <option value="hourly">Hourly</option>
+          <option value="season">Season</option>
+        </select>
+
+        {/* Allocated input */}
+        <input
+          type="number"
+          placeholder="Enter new allocated slots"
+          value={allocated}
+          onChange={(e) => setAllocated(e.target.value)}
+          className="border rounded-md px-3 py-2"
+        />
+
+        {/* Occupied input */}
+        <input
+          type="number"
+          placeholder="Enter new occupied slots"
+          value={occupied}
+          onChange={(e) => setOccupied(e.target.value)}
+          className="border rounded-md px-3 py-2"
+        />
+
+        {/* Submit button */}
+        <button
+          onClick={handleLotUpdate}
+          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+        >
+          Update Lot
+        </button>
+      </div>
     </div>
   );
 }
+
 
 function ParkingTariffModal() {
   return (
