@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { swaggerUi, specs } = require("./routes/swagger");
 const movementRouter = require("./routes/movements");
+const remoteControlRouter = require("./routes/RemoteControl");
 const seasonRouter = require("./routes/season");
 
 require("dotenv").config();
@@ -27,6 +28,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 // movement transactions routes
 app.use("/api/movements", movementRouter);
+
+// remote control routes
+app.use("/api/remote-control", remoteControlRouter);
 
 // season routes
 app.use("/api/seasons", seasonRouter);
