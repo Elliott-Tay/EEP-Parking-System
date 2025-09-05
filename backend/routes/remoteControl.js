@@ -280,34 +280,34 @@ router.patch("/lot-status/:zone/:type", async (req, res) => {
   }
 });
 
-router.post("/gate/open", async(req, res) => {
-    // Implement gate open logic here
-    console.log('Gate open requested');
+router.post("/gate/open", async (req, res) => {
+  console.log("Gate open requested");
+  res.json({ success: true, message: "Gate open request received" });
 });
 
-router.post("/gate/open-hold", async(req, res) => {
-    // Implement gate open hold logic here  
-    console.log('Gate open and hold requested');
+router.post("/gate/open-hold", async (req, res) => {
+  console.log("Gate open and hold requested");
+  res.json({ success: true, message: "Gate open-hold request received" });
 });
 
-router.post("/gate/close", async(req, res) => {
-    // Implement gate close logic here  
-    console.log('Gate close requested');
+router.post("/gate/close", async (req, res) => {
+  console.log("Gate close requested");
+  res.json({ success: true, message: "Gate close request received" });
 });
 
-router.post("/system/restart-app", async(req, res) => {
-    // Implement system restart app logic here  
-    console.log('System restart app requested');
-})
-
-router.post("/card/eject", async(req, res) => {
-    // Implement card eject logic here
-    console.log('Card eject requested');
+router.post("/system/restart-app", async (req, res) => {
+  console.log("System restart app requested");
+  res.json({ success: true, message: "System restart-app request received" });
 });
 
-router.post("system/restart-upos", async(req, res) => {
-    // Implement system restart upos logic here  
-    console.log('System restart UPOS requested');
+router.post("/card/eject", async (req, res) => {
+  console.log("Card eject requested");
+  res.json({ success: true, message: "Card eject request received" });
+});
+
+router.post("/system/restart-upos", async (req, res) => {
+  console.log("System restart UPOS requested");
+  res.json({ success: true, message: "System restart-UPOS request received" });
 });
 
 module.exports = router;

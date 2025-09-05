@@ -53,8 +53,9 @@ function StationControlModal({ onClose }) {
     }
 
     const config = actionMap[action];
+    
     if (!config) return;
-    console.log("config", config)
+
     try {
       const res = await fetch(config.url, {
         method: config.method,
@@ -63,7 +64,7 @@ function StationControlModal({ onClose }) {
       });
 
       const data = await res.json();
-      console.log('data', data)
+
       if (!res.ok) {
         toast.error(data.error || "Action failed");
       } else {
