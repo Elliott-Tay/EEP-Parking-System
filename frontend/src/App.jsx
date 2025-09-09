@@ -4,6 +4,7 @@ import Home from './components/Home';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/PageNotFound';
+import ConfigurationPage from './components/Configuration';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -17,6 +18,7 @@ function App() {
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/configuration" element={<ConfigurationPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
