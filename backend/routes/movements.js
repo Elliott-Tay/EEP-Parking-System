@@ -3,8 +3,8 @@ const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 const { sql, config } = require("../database/db"); // use the same db connection
 const MovementDTO = require('../DTO/movementDTO');
-const TransactionCheckerDTO = require("../DTO/TransactionCheckerDTO");
-const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
+// const TransactionCheckerDTO = require("../DTO/transactionCheckerDTO");
+// const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
 
 /**
  * @swagger
