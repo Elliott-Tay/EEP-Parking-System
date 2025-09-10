@@ -54,7 +54,21 @@ function ConfigurationPage() {
         time: timestamp
         };
         
-        // call API ending point to store config changes in database
+        {/* call API ending point to store config changes in database
+        const response = await fetch('/api/config/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            station: selectedStation.name,
+            option: selectedOption.name,
+            time: timestamp
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}` + error.message);
+        }
+        */}
 
         // append to activity log
         setActivityLog(prev => [newEntry, ...prev]);

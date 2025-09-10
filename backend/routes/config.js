@@ -12,7 +12,7 @@ router.post("/send", async (req, res) => {
       return res.status(400).json({ status: "error", message: "Station and option are required." });
     }
 
-    // Insert log into SQL table when there is a 
+    // Insert log into SQL table when there is an SQL table created
     const query = `
       INSERT INTO configuration_logs (user_id, station, option, sent_at)
       VALUES (?, ?, ?, NOW())

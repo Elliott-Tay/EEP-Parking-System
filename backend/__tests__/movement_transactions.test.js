@@ -2,6 +2,8 @@
 const request = require("supertest");
 const app = require("../app");
 const db = require("../database/db");
+const sql = require("mssql");
+const config = require("../database/db");
 const { Server } = require("socket.io");
 const http = require("http");
 
@@ -28,32 +30,49 @@ describe("Movement Transaction API", () => {
     });
   });
 
-  describe("GET /api/movements", () => {
-    it("should return all movement transactions as array", async () => {
-      const fakeData = [
-        { ticket_no: "059324323", vehicle_type: "Car", holder_name: "John Doe", entry_time: "2025-08-19 10:00:00", exit_time: "2025-08-19 12:00:00", parked_time: "02:00:00", paid_amount: 10.50, card_type: "AMEX", card_no: "xxxx-xxxx", vehicle_no: "S1234A" }
+  describe("GET / (uspGetMovementTrans)", () => {
+    let mockRequest, mockPool;
+
+    beforeEach(() => {
+      mockRequest = { execute: jest.fn() };
+      mockPool = { request: jest.fn(() => mockRequest) };
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("returns rows when stored procedure succeeds", async () => {
+      jest.spyOn(sql, "connect").mockResolvedValue(mockPool);
+      const fakeRows = [
+        { log_id: 1, vehicle_id: "0712345678" },
+        { log_id: 2, vehicle_id: "0911223344" }
       ];
-      db.query.mockResolvedValue([fakeData]);
-      
-      const res = await request(app).get("/api/movements");
-      expect(res.statusCode).toBe(200);
-      expect(Array.isArray(res.body)).toBe(true);
-      expect(res.body.length).toBe(1);
-      expect(res.body[0]).toMatchObject(fakeData[0]);
+      mockRequest.execute.mockResolvedValue({ recordset: fakeRows });
+
+      const res = await request(app).get("/");
+
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({});
     });
 
-    it("should handle empty database response", async () => {
-      db.query.mockResolvedValue([[]]);
-      const res = await request(app).get("/api/movements");
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual([]);
+    it("returns 500 when stored procedure throws error", async () => {
+      jest.spyOn(sql, "connect").mockResolvedValue(mockPool);
+      mockRequest.execute.mockRejectedValue(new Error("SP failed"));
+
+      const res = await request(app).get("/");
+
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch("Welcome to the Carpark System API");
     });
 
-    it("should handle database errors", async () => {
-      db.query.mockRejectedValue(new Error("DB error"));
-      const res = await request(app).get("/api/movements");
-      expect(res.statusCode).toBe(500);
-      expect(res.body).toHaveProperty("error");
+    it("returns 500 when connection fails", async () => {
+      jest.spyOn(sql, "connect").mockRejectedValue(new Error("Connection failed"));
+
+      const res = await request(app).get("/");
+
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch("Welcome to the Carpark System API");
     });
   });
 

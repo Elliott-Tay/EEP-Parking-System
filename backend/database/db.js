@@ -1,15 +1,26 @@
-// backend/db.js
-const mysql = require("mysql2/promise");
+// db.js
+const sql = require("mssql");
+
 require("dotenv").config();
 
-const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
+const config = {
+  user: process.env.MSSQL_USER,
+  password: process.env.MSSQL_PASSWORD,
+  server: process.env.MSSQL_SERVER, 
+  database: process.env.MSSQL_DATABASE,
+  options: {
+    encrypt: false, // use true if your SQL Server requires SSL
+    enableArithAbort: true
+  }
+};
 
-module.exports = db;
+async function query(sqlQuery) {
+  const pool = await sql.connect(config);
+  return pool.request().query(sqlQuery);
+}
+
+module.exports = {
+  sql,
+  config,
+  query
+};

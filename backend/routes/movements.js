@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database/db"); // use the same db connection
+const { sql, config } = require("../database/db"); // use the same db connection
 
 /**
  * @swagger
@@ -35,14 +36,16 @@ let lotStatus = {};
  */
 router.get("/", async (req, res) => {
   try {
-    // amend the db query when Daniel provides the table name
-    const [rows] = await db.query("SELECT * FROM movement_transactions");
-    res.json(rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Database error and we cannot fetch movement_transactions table: ", error});
+    let pool = await sql.connect(config);
+    const result = await pool.request().execute("dbo.uspGetMovementTrans");
+
+    res.json(result.recordset); // return rows
+  } catch (err) {
+    console.error("SQL error", err);
+    res.status(500).send("Database error: " + err.message);
   }
 });
+
 
 /**
  * @swagger

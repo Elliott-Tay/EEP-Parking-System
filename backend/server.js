@@ -22,7 +22,6 @@ app.locals.io = io;
 // Handle client connections
 io.on("connection", (socket) => {
   console.log("React client connected:", socket.id);
-
   socket.on("disconnect", () => {
     console.log("React client disconnected:", socket.id);
   });
