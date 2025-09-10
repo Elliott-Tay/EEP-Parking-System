@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 const { sql, config } = require("../database/db"); // use the same db connection
+const MovementDTO = require('../DTO/movementDTO');
+const TransactionCheckerDTO = require("../DTO/TransactionCheckerDTO");
+const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
 
 /**
  * @swagger
@@ -39,7 +42,10 @@ router.get("/", async (req, res) => {
     let pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetMovementTrans");
 
-    res.json(result.recordset); // return rows
+    // Map the recordset to DTOs
+    const response = result.recordset.map(row => new MovementDTO(row));
+
+    res.json(response);
   } catch (err) {
     console.error("SQL error", err);
     res.status(500).send("Database error: " + err.message);
@@ -100,6 +106,10 @@ router.get("/transaction-checker", async (req, res) => {
   try {
     // amend the db query when Daniel provides the table name
     const [rows] = await db.query("SELECT * FROM transaction_tracker");
+
+     // Map the recordset to DTOs
+    // const response = result.recordset.map(row => new TransactionCheckerDTO(row));
+
     res.json(rows)
   } catch (error) {
     console.error(error);
@@ -161,6 +171,10 @@ router.get("/season-checker", async (req, res) => {
   try {
     // amend the db query when Daniel provides the table name
     const [rows] = await db.query("SELECT * FROM season_tracker");
+
+    // Map the recordset to DTOs
+    // const response = result.recordset.map(row => new SeasonCheckerDTO(row));
+
     res.json(rows)
   } catch (error) {
     console.error(error);
