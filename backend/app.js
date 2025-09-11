@@ -14,12 +14,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// welcome route
+// Welcome route
 app.get("/", (req, res) => {
   res.send("Welcome to the Carpark System API");
 });
 
-// health check route
+// Health check route
 app.get("/api/health", (req, res) => {
   res.status(200).json({ message: "Carpark system backend is running" });
 });
@@ -27,18 +27,19 @@ app.get("/api/health", (req, res) => {
 // Swagger route
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
-// movement transactions routes
+// Movement transactions routes
 app.use("/api/movements", movementRouter);
 
-// remote control routes
+// Remote control routes
 app.use("/api/remote-control", remoteControlRouter);
 
-// configuration routes
+// Configuration routes
 app.use("/api/config", configRouter);
 
-// season routes
+// Season routes
 app.use("/api/seasons", seasonRouter);
 
+// Auth routes
 app.use("/api/auth", require("./routes/auth").authRouter);
 
 // 404 handler for undefined routes
@@ -46,9 +47,6 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-});
+// ⚠️ Remove req.io = io here — use app.locals.io in routes instead
 
 module.exports = app;

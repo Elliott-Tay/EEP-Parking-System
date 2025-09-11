@@ -1,79 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { Activity, Car, Users } from "lucide-react";
-import { io } from "socket.io-client";
-
-const USE_MOCK = true; // toggle mock data
-
-// Mock lot status data
-const lotMockData = {
-  main: {
-    hourly: { allocated: 20, occupied: 20, available: 0 },
-    season: { allocated: 15, occupied: 15, available: 0 },
-    total: { allocated: 50, occupied: 45, available: 5 },
-  },
-  basement: {
-    hourly: { allocated: 10, occupied: 7, available: 3 },
-    season: { allocated: 10, occupied: 7, available: 3 },
-    total: { allocated: 30, occupied: 20, available: 10 },
-  },
-  roof: {
-    hourly: { allocated: 5, occupied: 2, available: 3 },
-    season: { allocated: 5, occupied: 1, available: 4 },
-    total: { allocated: 10, occupied: 3, available: 7 },
-  },
-  middle: {
-    hourly: { allocated: 5, occupied: 3, available: 2 },
-    season: { allocated: 5, occupied: 4, available: 1 },
-    total: { allocated: 10, occupied: 7, available: 3 },
-  },
-  zone_c: {
-    hourly: { allocated: 5, occupied: 3, available: 2 },
-    season: { allocated: 5, occupied: 5, available: 0 },
-    total: { allocated: 10, occupied: 3, available: 7 },
-  },
-};
 
 export default function LotStatus() {
-  const [lotData, setLotData] = useState(lotMockData);
-  const [currentZone, setCurrentZone] = useState("main"); 
-  const currentLot = lotData[currentZone] || lotData["main"];
-  const occupancyRate = Math.round(
-    (currentLot.total.occupied / currentLot.total.allocated) * 100 || 0
-  );
+  const [lotData, setLotData] = useState({}); // default to empty object
+  const [currentZone, setCurrentZone] = useState(""); 
+
+  // Defensive check
+  const currentLot = lotData[currentZone] || lotData["main"] || { hourly: {}, season: {}, total: { allocated: 0, occupied: 0, available: 0 } };
+
+  const occupancyRate = currentLot.total.allocated
+    ? Math.round((currentLot.total.occupied / currentLot.total.allocated) * 100)
+    : 0;
 
   const formatZoneName = (zone) => zone.charAt(0).toUpperCase() + zone.slice(1);
 
   useEffect(() => {
-    if (USE_MOCK) {
-      setLotData(lotMockData);
-      setCurrentZone(Object.keys(lotMockData)[0]);
-      return;
-    }
+    const env_backend =
+      process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
 
-    const env_backend = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
-    const socket = io(env_backend);
-
-    socket.on("lot-update", ({ zone, slot }) => {
-      setLotData((prev) => ({
-        ...prev,
-        [zone]: {
-          ...prev[zone],
-          [slot.type]: slot,
-        },
-      }));
-
-      if (!currentZone) setCurrentZone(zone);
-    });
-
-    socket.on("lot-status-error", (error) => {
-      console.error("Lot status error:", error);
-    });
-
-    return () => {
-      socket.off("lot-update");
-      socket.off("lot-status-error");
-      socket.disconnect();
+    const fetchLotData = async () => {
+      try {
+        const response = await fetch(`${env_backend}/api/remote-control/lot-status`);
+        if (!response.ok) throw new Error("Failed to fetch lot data");
+        const data = await response.json();
+        setLotData(data);
+        if (!currentZone) setCurrentZone(Object.keys(data)[0]);
+      } catch (err) {
+        console.error(err);
+      }
     };
+
+    fetchLotData();
+
+    // Optional: poll every 5s if you want near real-time updates
+    const interval = setInterval(fetchLotData, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

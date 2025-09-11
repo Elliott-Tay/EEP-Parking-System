@@ -25,12 +25,30 @@ class MovementDTO {
     this.vehicleId = vehicle_id;
     this.entryTransType = entry_trans_type;
     this.entryStationId = entry_station_id;
-    this.entryDatetime = entry_datetime;
-    this.entryDatetimeDetect = entry_datetime_detect;
+
+    // Format entry datetime
+    this.entryDatetime = entry_datetime
+      ? new Date(entry_datetime).toLocaleString('en-SG', { hour12: false })
+      : null;
+
+    // Format entry datetime detected
+    this.entryDatetimeDetect = entry_datetime_detect
+      ? new Date(entry_datetime_detect).toLocaleString('en-SG', { hour12: false })
+      : null;
+
     this.exitTransType = exit_trans_type ?? null;
     this.exitStationId = exit_station_id ?? null;
-    this.exitDatetime = exit_datetime ?? null;
-    this.exitDatetimeDetect = exit_datetime_detect ?? null;
+
+    // Format exit datetime
+    this.exitDatetime = exit_datetime
+      ? new Date(exit_datetime).toLocaleString('en-SG', { hour12: false })
+      : null;
+
+    // Format exit datetime detected
+    this.exitDatetimeDetect = exit_datetime_detect
+      ? new Date(exit_datetime_detect).toLocaleString('en-SG', { hour12: false })
+      : null;
+
     this.parkingDuration = parking_dur ?? null;
     this.parkingCharges = parking_charges ?? null;
     this.paidAmount = paid_amount ?? null;
@@ -39,7 +57,12 @@ class MovementDTO {
     this.vehicleNumber = vehicle_number ?? null;
     this.ticketType = ticket_type ?? null;
     this.ticketId = ticket_id ?? null;
-    this.updateDatetime = update_datetime;
+
+    // Format update datetime
+    this.updateDatetime = update_datetime
+      ? new Date(update_datetime).toLocaleString('en-SG', { hour12: false })
+      : null;
+
     this.receiptBit = receipt_bit ?? null;
   }
 }

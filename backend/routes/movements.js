@@ -3,8 +3,8 @@ const router = express.Router();
 const db = require("../database/db"); // use the same db connection
 const { sql, config } = require("../database/db"); // use the same db connection
 const MovementDTO = require('../DTO/movementDTO');
-// const TransactionCheckerDTO = require("../DTO/transactionCheckerDTO");
-// const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
+const TransactionCheckerDTO = require("../DTO/transactionCheckerDTO");
+const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
 
 /**
  * @swagger
@@ -61,7 +61,6 @@ router.get("/", async (req, res) => {
  *       summary: Fetch all transaction tracker records
  *       description: 
  *         Retrieves all records from the **transaction_tracker** table.  
- *         This endpoint is for internal use only and does not accept any user input.
  *       tags:
  *         - Transactions
  *       responses:
@@ -105,12 +104,13 @@ router.get("/", async (req, res) => {
 router.get("/transaction-checker", async (req, res) => {
   try {
     // amend the db query when Daniel provides the table name
-    const [rows] = await db.query("SELECT * FROM transaction_tracker");
+    let pool = await sql.connect(config);
+    const result = await pool.request().execute("dbo.uspGetTransactionChecker");
 
-     // Map the recordset to DTOs
-    // const response = result.recordset.map(row => new TransactionCheckerDTO(row));
+    //Map the recordset to DTOs
+    const response = result.recordset.map(row => new TransactionCheckerDTO(row));
 
-    res.json(rows)
+    res.json(response);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error and we cannot fetch transaction_tracker table: ", error});
@@ -125,7 +125,6 @@ router.get("/transaction-checker", async (req, res) => {
  *       summary: Fetch all season tracker records
  *       description: 
  *         Retrieves all records from the **season_tracker** table.  
- *         This endpoint is for internal use only and does not accept user input.
  *       tags:
  *         - Seasons
  *       responses:
@@ -170,12 +169,12 @@ router.get("/transaction-checker", async (req, res) => {
 router.get("/season-checker", async (req, res) => {
   try {
     // amend the db query when Daniel provides the table name
-    const [rows] = await db.query("SELECT * FROM season_tracker");
+    let pool = await sql.connect(config);
+    const result = await pool.request().execute("dbo.uspGetSeasonChecker");
+    //Map the recordset to DTOs
+    const response = (result.recordset || []).map(row => new SeasonCheckerDTO(row));
 
-    // Map the recordset to DTOs
-    // const response = result.recordset.map(row => new SeasonCheckerDTO(row));
-
-    res.json(rows)
+    res.json(response);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error and we cannot fetch season_tracker table: ", error});
@@ -261,47 +260,6 @@ router.get("/range", async (req, res) => {
 
 /**
  * @swagger
- * /movements/{vehicle_no}:
- *   get:
- *     summary: Get movement transaction by vehicle number
- *     tags: [Movements]
- *     parameters:
- *       - in: path
- *         name: vehicle_no
- *         required: true
- *         schema:
- *           type: string
- *         example: IU123
- *     responses:
- *       200:
- *         description: A movement record for that vehicle
- *       404:
- *         description: No record found
- */
-router.get("/:vehicle_no", async (req, res) => {
-  try {
-    const { vehicle_no } = req.params;
-    const [rows] = await db.query(
-      "SELECT * FROM movement_transactions WHERE vehicle_id = ?",
-      [vehicle_no]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "No record found for this vehicle_no" });
-    }
-
-    res.json(rows[0]); // return just one object
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "Database error fetching vehicle",
-      details: error.message,
-    });
-  }
-});
-
-/**
- * @swagger
  * /movements/day/{date}:
  *   get:
  *     summary: Get movement transactions for a single day
@@ -367,7 +325,7 @@ router.get("/day/:date", async (req, res) => {
  * /monthly/{month}:
  *   get:
  *     summary: Get all transactions for a specific month
- *     description: Returns all movement transactions for a given month (format: YYYY-MM).
+ *     description: Returns all movement transactions for a given month.
  *     tags: [Movements]
  *     parameters:
  *       - in: path
@@ -462,7 +420,7 @@ router.get("/monthly/:month", async (req, res) => {
  * /counter/monthly:
  *   get:
  *     summary: Get monthly statistics of transactions
- *     description: Returns aggregated statistics (entry counts) for the given month (format: YYYY-MM).
+ *     description: Returns aggregated statistics
  *     tags: [Movements]
  *     parameters:
  *       - in: query

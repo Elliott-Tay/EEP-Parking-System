@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 
 export default function OperationsPage() {
@@ -9,42 +9,72 @@ export default function OperationsPage() {
   const [seasons, setSeasons] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch Transactions
+  const backend_API_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
+ 
+   // Fetch Transactions
   useEffect(() => {
     if (activeTab === "transactions") {
       setLoading(true);
       axios
-        .get("/api/movements/transaction-checker") // adjust prefix if needed
+        .get(`${backend_API_URL}/api/movements/transaction-checker`) // adjust prefix if needed
         .then((res) => setTransactions(res.data))
         .catch((err) => console.error("Error fetching transactions:", err))
         .finally(() => setLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, backend_API_URL]);
 
   // Fetch Seasons
   useEffect(() => {
-    if (activeTab === "seasons") {
+    if (activeTab === "seons") {
       setLoading(true);
       axios
-        .get("/api/movements/season-checker") // adjust prefix if needed
+        .get(`${backend_API_URL}//api/movements/seasons-checker`) // adjust prefix if needed
         .then((res) => setSeasons(res.data))
         .catch((err) => console.error("Error fetching seasons:", err))
         .finally(() => setLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, backend_API_URL]);
+
+  // Fetch Seasons
+  useEffect(() => {
+    if (activeTab !== "seasons") return;
+
+    let cancel;
+    const fetchSeasons = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(
+          `${backend_API_URL}/api/movements/season-checker`,
+          { cancelToken: new axios.CancelToken(c => (cancel = c)) }
+        );
+        setSeasons(res.data);
+      } catch (err) {
+        if (!axios.isCancel(err)) console.error("Seasons error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSeasons();
+    return () => cancel?.();
+  }, [activeTab, backend_API_URL]);
 
   // Filtering
-  const filteredTransactions = transactions.filter((item) =>
-    Object.values(item).some((value) =>
-      value?.toString().toLowerCase().includes(transactionSearch.toLowerCase())
-    )
-  );
-
-  const filteredSeasons = seasons.filter((item) =>
-    Object.values(item).some((value) =>
-      value?.toString().toLowerCase().includes(seasonSearch.toLowerCase())
-    )
-  );
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((item) =>
+      Object.values(item).some((value) =>
+        value?.toString().toLowerCase().includes(transactionSearch.toLowerCase())
+      )
+    );
+  }, [transactions, transactionSearch]);
+  
+  const filteredSeasons = useMemo(() => {
+    return seasons.filter((item) =>
+      Object.values(item).some((value) =>
+        value?.toString().toLowerCase().includes(seasonSearch.toLowerCase())
+      )
+    );
+  }, [seasons, seasonSearch]);
 
   return (
     <div className="p-6">

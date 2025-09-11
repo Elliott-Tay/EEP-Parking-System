@@ -185,18 +185,14 @@ function Home() {
           )}
 
           {/* Movement Tab */}
-          {activeTab === 'movements' && (
-            <div className="overflow-x-auto">
-              <MovementsTable />
-            </div>
-          )}
+          <div className={activeTab === 'movements' ? '' : 'hidden'}>
+            <MovementsTable />
+          </div>
 
           {/* Operations Tab */}
-          {activeTab === "operations" && (
-            <div className="overflow-x-auto">
-              <Operations />
-            </div>
-          )}
+          <div className={activeTab === 'operations' ? '' : 'hidden'}>
+            <Operations />
+          </div>
 
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (

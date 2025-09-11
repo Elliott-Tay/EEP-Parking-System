@@ -10,18 +10,23 @@ function MovementsTable() {
 
   // Fetch data from backend API
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
         const response = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements`);
-        setMovementData(response.data);
+        if (isMounted) setMovementData(response.data);
       } catch (error) {
         console.error('Error fetching movements:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchData();
+
+    return () => {
+      isMounted = false; // prevent state updates after unmount
+    };
   }, []);
 
   // Filtered data based on search
@@ -49,7 +54,9 @@ function MovementsTable() {
           placeholder="Search movements..."
           value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
+            // Remove any non-alphanumeric characters
+            const alphanumericValue = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+            setSearch(alphanumericValue);
             setCurrentPage(1); // reset to first page on new search
           }}
           className="border px-3 py-2 rounded w-1/3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"

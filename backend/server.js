@@ -19,14 +19,6 @@ const io = new Server(server, {
 // attach io to app
 app.locals.io = io;
 
-// Handle client connections
-io.on("connection", (socket) => {
-  console.log("React client connected:", socket.id);
-  socket.on("disconnect", () => {
-    console.log("React client disconnected:", socket.id);
-  });
-});
-
 // Start the server
 server.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);

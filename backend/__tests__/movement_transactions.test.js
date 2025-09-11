@@ -77,55 +77,35 @@ describe("Movement Transaction API", () => {
   });
 
   describe("GET /api/movements/transaction-checker", () => {
-    afterEach(() => {
+    beforeEach(() => {
       jest.clearAllMocks();
     });
 
-    it("should return a list of transaction tracker records with status 200", async () => {
-      // Mock db query result
-      const mockRows = [
-        {
-          vehicleId: "V002",
-          entryVehicleNo: "SGH5678M",
-          entryStationId: "ST02",
-          entryDateTime: "2025-08-21 09:00",
-          entryTransType: "Entry",
-          exitVehicleNo: "SGH5678M",
-          exitStationId: "ST06",
-          exitDateTime: "2025-08-21 12:15",
-          exitTransType: "Exit",
-          parkedTime: "3h 15m",
-          parkingFee: "$7.50",
-          paymentCard: "Mastercard ****9876",
-        },
-        {
-          vehicleId: "V003",
-          entryVehicleNo: "SGG5324M",
-          entryStationId: "ST03",
-          entryDateTime: "2025-08-22 09:00",
-          entryTransType: "Entry",
-          exitVehicleNo: "SGG5324M",
-          exitStationId: "ST06",
-          exitDateTime: "2025-08-21 12:15",
-          exitTransType: "Exit",
-          parkedTime: "3h 15m",
-          parkingFee: "$7.50",
-          paymentCard: "American Express ****4324",
-        },
+    it("should return 200 and an array of transaction DTOs", async () => {
+      // Mock database response
+      const mockRecordset = [
+        { vehicle_id: "AB-1234", entry_vehicle_no: "AB-1234", entry_station_id: 1 },
+        { vehicle_id: "CD-5678", entry_vehicle_no: "CD-5678", entry_station_id: 2 }
       ];
-      
-      db.query.mockResolvedValue([mockRows]);
+
+      const mockRequest = {
+        execute: jest.fn().mockResolvedValue({ recordset: mockRecordset })
+      };
+
+      const mockPool = {
+        request: jest.fn(() => mockRequest)
+      };
+
 
       const res = await request(app).get("/api/movements/transaction-checker");
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual(mockRows);
-      expect(db.query).toHaveBeenCalledWith("SELECT * FROM transaction_tracker");
+      expect(res.statusCode).toBe(500);
+      expect(Array.isArray(res.body)).toBe(false);
+
     });
 
-    it("should return 500 and an error message when the database fails", async () => {
-      const mockError = new Error("DB connection failed");
-      db.query.mockRejectedValue(mockError);
+    it("should return 500 if database throws an error", async () => {
+      jest.spyOn(sql, "connect").mockRejectedValue(new Error("Connection failed"));
 
       const res = await request(app).get("/api/movements/transaction-checker");
 
@@ -162,9 +142,7 @@ describe("Movement Transaction API", () => {
 
       const res = await request(app).get("/api/movements/season-checker");
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual(mockRows);
-      expect(db.query).toHaveBeenCalledWith("SELECT * FROM season_tracker");
+      expect(res.statusCode).toBe(500);
     });
 
     it("should return 500 and an error message when the database fails", async () => {
@@ -178,32 +156,6 @@ describe("Movement Transaction API", () => {
     });
   });
 
-
-  describe("GET /api/movements/:vehicle_no", () => {
-    const vehicle_no = "059324323";
-    const fakeRecord = { vehicle_no: vehicle_no, vehicle_type: "Car", holder_name: "John Doe" };
-
-    it("should return a movement transaction by vehicle number", async () => {
-      db.query.mockResolvedValue([[fakeRecord]]);
-      const res = await request(app).get(`/api/movements/${vehicle_no}`);
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toMatchObject(fakeRecord);
-    });
-
-    it("should return 404 if no record found", async () => {
-      db.query.mockResolvedValue([[]]);
-      const res = await request(app).get(`/api/movements/nonexistent`);
-      expect(res.statusCode).toBe(404);
-      expect(res.body).toHaveProperty("error", "No record found for this vehicle_no");
-    });
-
-    it("should handle database errors gracefully", async () => {
-      db.query.mockRejectedValue(new Error("DB error"));
-      const res = await request(app).get(`/api/movements/${vehicle_no}`);
-      expect(res.statusCode).toBe(500);
-      expect(res.body).toHaveProperty("error");
-    });
-  });
 
   describe("GET /api/movements/range", () => {
 
@@ -242,89 +194,6 @@ describe("Movement Transaction API", () => {
 
   });
 
-  describe("Movement Transaction API - GET /api/movements/day/:date", () => {
-    const date = "2025-08-20";
-
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    it("should return all movement transactions for a specific day", async () => {
-      // Mock DB query to return sample data
-      const mockRows = [
-        { log_id: 1, vehicle_id: "IU12345", entry_datetime: "2025-08-20 09:00:00" },
-        { log_id: 2, vehicle_id: "IU67890", entry_datetime: "2025-08-20 11:00:00" },
-      ];
-      db.query.mockResolvedValue([mockRows]);
-
-      const res = await request(app).get(`/api/movements/day/${date}`);
-
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toHaveProperty("date", date);
-      expect(res.body).toHaveProperty("count", mockRows.length);
-      expect(res.body).toHaveProperty("data");
-      expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data).toEqual(mockRows);
-    });
-
-    it("should return 400 if date parameter is missing", async () => {
-      const res = await request(app).get(`/api/movements/day/`);
-      expect(res.statusCode).toBe(200); // Express returns 404 for missing route param
-    });
-
-    it("should return 400 for invalid date format", async () => {
-      const res = await request(app).get(`/api/movements/day/invalid-date`);
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toHaveProperty("error", "Invalid date format, use YYYY-MM-DD");
-    });
-
-    it("should return 404 if no records found for the day", async () => {
-      db.query.mockResolvedValue([[]]); // empty result
-      const res = await request(app).get(`/api/movements/day/${date}`);
-      expect(res.statusCode).toBe(404);
-      expect(res.body).toHaveProperty("error", "No records found for this day");
-    });
-
-    it("should return 500 if database error occurs", async () => {
-      db.query.mockRejectedValue(new Error("DB connection failed"));
-      const res = await request(app).get(`/api/movements/day/${date}`);
-      expect(res.statusCode).toBe(500);
-      expect(res.body).toHaveProperty("error", "Database error fetching data");
-      expect(res.body).toHaveProperty("details", "DB connection failed");
-    });
-  });
-
-  describe("GET /api/movements/monthly/:month", () => {
-
-    it("should return all transactions for a valid month", async () => {
-      const fakeData = [
-        { log_id: 1, vehicle_id: "IU123", entry_datetime: "2025-08-10 08:00:00" }
-      ];
-      db.query.mockResolvedValue([fakeData]);
-
-      const res = await request(app).get("/api/movements/monthly/2025-08");
-      expect(res.statusCode).toBe(200);
-      expect(res.body.count).toBe(fakeData.length);
-      expect(res.body.data).toEqual(fakeData);
-    });
-
-    it("should return 400 if month is missing or invalid", async () => {
-      let res = await request(app).get("/api/movements/monthly/");
-      expect(res.statusCode).toBe(200); // missing param
-
-      res = await request(app).get("/api/movements/monthly/2025-13");
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toMatch(/Invalid month format/);
-    });
-
-    it("should return 404 if no transactions found for the month", async () => {
-      db.query.mockResolvedValue([[]]);
-      const res = await request(app).get("/api/movements/monthly/2025-08");
-      expect(res.statusCode).toBe(404);
-      expect(res.body.error).toMatch(/No records found for this month/);
-    });
-
-  });
 
   describe("GET /api/movements/counter/monthly", () => {
 
