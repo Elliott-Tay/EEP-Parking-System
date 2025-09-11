@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { ArrowRight, ArrowLeft, CheckCircle, XCircle, Activity, Loader2 } from "lucide-react";
-import { io } from "socket.io-client";
 
 const StationStatus = ({ env_backend }) => {
   const [station, setStation] = useState({ entrances: [], exits: [] });
   const [loading, setLoading] = useState(true);
-  const socket = io(env_backend);
+  const [error, setError] = useState(null);
 
   // Fetch initial station status
   useEffect(() => {
@@ -19,97 +18,93 @@ const StationStatus = ({ env_backend }) => {
         const [entryData, exitData] = await Promise.all([entryRes.json(), exitRes.json()]);
 
         setStation({
-          entrances: (entryData?.entrances?.length ? entryData.entrances : [
-            { id: "E1", name: "E1", errors: [], lastUpdate: new Date() },
-            { id: "E2", name: "E2", errors: [], lastUpdate: new Date() }
-          ]).map(e => ({
-            ...e,
-            errors: e.errors || [],
-            lastUpdate: e.lastUpdate ? new Date(e.lastUpdate) : new Date(),
-          })),
-          exits: (exitData?.exits?.length ? exitData.exits : [
-            { id: "X1", name: "X1", errors: [], lastUpdate: new Date() },
-            { id: "X2", name: "X2", errors: [], lastUpdate: new Date() }
-          ]).map(x => ({
-            ...x,
-            errors: x.errors || [],
-            lastUpdate: x.lastUpdate ? new Date(x.lastUpdate) : new Date(),
-          })),
+          entrances: (entryData?.entrances || []).map(e => ({ ...e, lastUpdate: new Date() })),
+          exits: (exitData?.exits || []).map(x => ({ ...x, lastUpdate: new Date() })),
         });
       } catch (err) {
-        console.error("Station not sending status:", err);
-        setStation({
-          entrances: [
-            { id: "E1", name: "E1", errors: ["Station not sending status"], lastUpdate: new Date() },
-            { id: "E2", name: "E2", errors: ["Station not sending status"], lastUpdate: new Date() }
-          ],
-          exits: [
-            { id: "X1", name: "X1", errors: ["Station not sending status"], lastUpdate: new Date() },
-            { id: "X2", name: "X2", errors: ["Station not sending status"], lastUpdate: new Date() }
-          ],
-        });
+        console.error("Failed to fetch station status:", err);
+        setError("Failed to load station status");
       } finally {
         setLoading(false);
       }
     };
 
     fetchStationStatus();
+  }, [env_backend]);
 
-    const handleEntryUpdate = payload => {
+  // SSE subscription
+  useEffect(() => {
+    const entrySource = new EventSource(`${env_backend}/api/movements/stream/entries`);
+    const exitSource = new EventSource(`${env_backend}/api/movements/stream/exits`);
+
+    const updateStation = (type, data) => {
       setStation(prev => {
-        const exists = prev.entrances.some(e => e.id === payload.msg_type);
-        return {
-          ...prev,
-          entrances: exists
-            ? prev.entrances.map(e =>
-                e.id === payload.msg_type
-                  ? { ...e, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }
-                  : e
-              )
-            : [...prev.entrances, { id: payload.msg_type, name: payload.msg_type, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }],
-        };
+        const updated = [...prev[type]];
+        const key = data.id || data.Station;
+
+        const index = updated.findIndex(item => (item.id || item.Station) === key);
+        if (index >= 0) {
+          updated[index] = { ...updated[index], ...data, lastUpdate: new Date() };
+        } else {
+          updated.unshift({ ...data, lastUpdate: new Date() });
+        }
+
+        return { ...prev, [type]: updated };
       });
     };
 
-    const handleExitUpdate = payload => {
-      setStation(prev => {
-        const exists = prev.exits.some(e => e.id === payload.msg_type);
-        return {
-          ...prev,
-          exits: exists
-            ? prev.exits.map(e =>
-                e.id === payload.msg_type
-                  ? { ...e, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }
-                  : e
-              )
-            : [...prev.exits, { id: payload.msg_type, name: payload.msg_type, lastUpdate: new Date(payload.msg_datetime), msg: payload.msg, errors: [] }],
-        };
-      });
+    entrySource.onmessage = e => {
+      try {
+        const data = JSON.parse(e.data);
+        updateStation("entrances", data);
+      } catch (err) {
+        console.error("Error parsing entry SSE:", err);
+      }
     };
 
-    socket.on("entry-station", handleEntryUpdate);
-    socket.on("exit-station", handleExitUpdate);
+    exitSource.onmessage = e => {
+      try {
+        const data = JSON.parse(e.data);
+        updateStation("exits", data);
+      } catch (err) {
+        console.error("Error parsing exit SSE:", err);
+      }
+    };
+
+    entrySource.onerror = () => {
+      console.error("Entry SSE connection lost");
+      entrySource.close();
+    };
+
+    exitSource.onerror = () => {
+      console.error("Exit SSE connection lost");
+      exitSource.close();
+    };
 
     return () => {
-      socket.off("entry-station", handleEntryUpdate);
-      socket.off("exit-station", handleExitUpdate);
+      entrySource.close();
+      exitSource.close();
     };
-  }, [env_backend, socket]);
+  }, [env_backend]);
 
   const toggleStationStatus = (type, id) => {
     setStation(prev => ({
       ...prev,
       [type]: prev[type].map(item =>
-        item.id === id
-          ? { ...item, lastUpdate: new Date(), errors: item.errors.length ? [] : ["Simulated error"] }
+        (item.id || item.Station) === id
+          ? { 
+              ...item, 
+              lastUpdate: new Date(), 
+              errors: item.errors?.length ? [] : ["Simulated error"], 
+              status: item.status === "ok" ? "error" : "ok" // toggle status
+            }
           : item
       ),
     }));
   };
 
-  const formatTimeAgo = date => {
-    const d = new Date(date);
-    return d.toLocaleString("en-SG", {
+  const formatTimeAgo = date =>
+    new Date(date).toLocaleString("en-SG", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -118,7 +113,6 @@ const StationStatus = ({ env_backend }) => {
       second: "2-digit",
       hour12: false,
     });
-  };
 
   const getStatusIcon = status => (status === "ok" ? CheckCircle : XCircle);
 
@@ -129,14 +123,17 @@ const StationStatus = ({ env_backend }) => {
           <Activity className="h-5 w-5 text-green-500" />
           <h3 className="text-xl leading-none tracking-tight">Station Status</h3>
         </div>
-        <p className="text-sm text-muted-foreground">Real-time gate monitoring</p>
+        <p className="text-sm text-muted-foreground">Gate monitoring</p>
       </div>
+
       <div className="p-6 pt-0">
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Loading status...</span>
           </div>
+        ) : error ? (
+          <div className="text-red-600 text-center py-8">{error}</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {["entrances", "exits"].map(type => (
@@ -152,23 +149,24 @@ const StationStatus = ({ env_backend }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
                   {station[type].map(item => {
-                    const hasError = item.errors && item.errors.length > 0;
+                    // Determine error from `status` first, fallback to `errors`
+                    const hasError = item.status && (item.status !== "ok" || (item.errors?.length > 0));
                     const StatusIcon = getStatusIcon(hasError ? "error" : "ok");
 
                     return (
                       <div
-                        key={item.id}
+                        key={item.id || item.Station}
                         className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
                           hasError
                             ? "bg-red-50 border-red-200 hover:bg-red-100 animate-pulse"
                             : "bg-green-50 border-green-200 hover:bg-green-100"
                         }`}
-                        onClick={() => toggleStationStatus(type, item.id)}
+                        onClick={() => toggleStationStatus(type, item.id || item.Station)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <StatusIcon className={`h-4 w-4 ${hasError ? "text-red-600" : "text-green-600"}`} />
-                            <span className="text-sm font-medium">{item.name || item.id}</span>
+                            <span className="text-sm font-medium">{item.name || item.id || item.Station}</span>
                           </div>
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${
@@ -179,7 +177,7 @@ const StationStatus = ({ env_backend }) => {
                           </span>
                         </div>
 
-                        {hasError && (
+                        {hasError && item.errors && (
                           <ul className="mt-1 space-y-1 text-xs text-red-600 list-disc list-inside">
                             {item.errors.map((err, idx) => (
                               <li key={idx}>{err}</li>

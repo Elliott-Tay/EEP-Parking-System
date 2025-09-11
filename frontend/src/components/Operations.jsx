@@ -25,7 +25,7 @@ export default function OperationsPage() {
 
   // Fetch Seasons
   useEffect(() => {
-    if (activeTab === "seons") {
+    if (activeTab === "seasons") {
       setLoading(true);
       axios
         .get(`${backend_API_URL}//api/movements/seasons-checker`) // adjust prefix if needed

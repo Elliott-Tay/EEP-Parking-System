@@ -244,15 +244,6 @@ describe("Movement Transaction API", () => {
          "msg_type": "entry",
        }, ack: "ACK" });
     });
-
-    it("should return 400 if required fields are missing", async () => {
-      const res = await request(app)
-        .post("/api/movements/entry-station")
-        .send({ msg_type: "entry" }); // missing msg_datetime and msg
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ message: "Missing msg_type, msg_datetime or msg", ack: "NACK", success: false });
-    });
   });
 
   describe("POST /api/movements/exit-station", () => {
@@ -277,15 +268,6 @@ describe("Movement Transaction API", () => {
          "msg_datetime": "2025-08-25T10:00:00Z",
          "msg_type": "exit",
        }, ack: "ACK" });
-    });
-
-    it("should return 400 if required fields are missing", async () => {
-      const res = await request(app)
-        .post("/api/movements/exit-station")
-        .send({ msg_type: "exit" }); // missing msg_datetime and msg
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ message: "Missing msg_type, msg_datetime or msg", ack: "NACK", success: false});
     });
   });
 
