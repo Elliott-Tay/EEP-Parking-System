@@ -39,14 +39,22 @@ const StationStatus = ({ env_backend }) => {
 
     const updateStation = (type, data) => {
       setStation(prev => {
+        const key = data.Station || data.id;
         const updated = [...prev[type]];
-        const key = data.id || data.Station;
-
         const index = updated.findIndex(item => (item.id || item.Station) === key);
+
+        // normalize the fields
+        const normalized = {
+          ...data,
+          status: (data.Status || "ok").toLowerCase(), // map "Status" -> "status"
+          errors: data.errors || [],
+          lastUpdate: new Date()
+        };
+
         if (index >= 0) {
-          updated[index] = { ...updated[index], ...data, lastUpdate: new Date() };
+          updated[index] = { ...updated[index], ...normalized };
         } else {
-          updated.unshift({ ...data, lastUpdate: new Date() });
+          updated.unshift(normalized);
         }
 
         return { ...prev, [type]: updated };
