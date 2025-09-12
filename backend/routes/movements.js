@@ -46,18 +46,14 @@ router.post("/entry-movements", async (req, res) => {
 
     const pool = await sql.connect(config);
 
+    // Call the stored procedure instead of raw INSERT
     await pool.request()
       .input("vehicle_number", sql.NVarChar, data.VehicleNo)
       .input("entry_station_id", sql.NVarChar, data.Station)
       .input("entry_datetime", sql.DateTime, data.Time)
-      .input("entry_datetime_detect", sql.DateTime, new Date()) // maybe detection time = now
+      .input("entry_datetime_detect", sql.DateTime, new Date()) // detection time = now
       .input("entry_trans_type", sql.NVarChar, data.Status) // or map OK/ERROR to a type
-      .query(`
-        INSERT INTO MovementTrans 
-          (vehicle_number, entry_station_id, entry_datetime, entry_datetime_detect, entry_trans_type, update_datetime) 
-        VALUES 
-          (@vehicle_number, @entry_station_id, @entry_datetime, @entry_datetime_detect, @entry_trans_type, GETDATE())
-      `);
+      .execute("sp_InsertEntryMovement"); // <-- call the stored procedure
 
     res.json({ success: true, ack: "ACK", data });
 
@@ -69,14 +65,7 @@ router.post("/entry-movements", async (req, res) => {
 
 router.post("/exit-movements", async (req, res) => {
   try {
-    const {
-      Station,
-      Time,
-      VehicleNo,
-      PaymentCardNo,
-      Fee,
-      Balance,
-    } = req.body;
+    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance } = req.body;
 
     if (!Station || !Time || !VehicleNo) {
       return res.status(400).json({
@@ -88,49 +77,24 @@ router.post("/exit-movements", async (req, res) => {
 
     const pool = await sql.connect(config);
 
+    // Call stored procedure instead of manual SELECT + UPDATE
     await pool.request()
-      .input("exit_station_id", sql.NVarChar, Station)
-      .input("exit_datetime", sql.DateTime, Time)
-      .input("exit_datetime_detect", sql.DateTime, new Date())
-      .input("vehicle_number", sql.NVarChar, VehicleNo)
-      .input("card_number", sql.NVarChar, PaymentCardNo || null)
-      .input("card_type", sql.NVarChar, null) // frontend doesn’t send card_type
-      .input("parking_charges", sql.Decimal(10, 2), Fee || 0)
-      .input("paid_amount", sql.Decimal(10, 2), Balance || 0)
-      .input("update_datetime", sql.DateTime, new Date())
-      .query(`
-        INSERT INTO MovementTrans (
-          exit_station_id,
-          exit_datetime,
-          exit_datetime_detect,
-          vehicle_number,
-          card_number,
-          card_type,
-          parking_charges,
-          paid_amount,
-          update_datetime
-        )
-        VALUES (
-          @exit_station_id,
-          @exit_datetime,
-          @exit_datetime_detect,
-          @vehicle_number,
-          @card_number,
-          @card_type,
-          @parking_charges,
-          @paid_amount,
-          @update_datetime
-        )
-      `);
+      .input("VehicleNo", sql.NVarChar, VehicleNo)
+      .input("Station", sql.NVarChar, Station)
+      .input("Time", sql.DateTime, Time)
+      .input("PaymentCardNo", sql.NVarChar, PaymentCardNo || null)
+      .input("Fee", sql.Decimal(10, 2), Fee || 0)
+      .input("Balance", sql.Decimal(10, 2), Balance || 0)
+      .execute("sp_UpdateExitMovement"); 
 
     res.json({
       success: true,
       ack: "ACK",
-      message: "Exit movement recorded"
+      message: "Exit info updated via stored procedure"
     });
 
   } catch (err) {
-    console.error("Error inserting exit movement:", err);
+    console.error("Error updating exit movement:", err);
     res.status(500).json({
       success: false,
       ack: "NACK",
@@ -138,7 +102,6 @@ router.post("/exit-movements", async (req, res) => {
     });
   }
 });
-
 
 router.get("/transaction-checker", async (req, res) => {
   try {
