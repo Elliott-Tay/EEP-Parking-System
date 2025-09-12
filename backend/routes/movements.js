@@ -40,10 +40,108 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.post("/entry-movements", async (req, res) => {
+  try {
+    const data = req.body;
+
+    const pool = await sql.connect(config);
+
+    await pool.request()
+      .input("vehicle_number", sql.NVarChar, data.VehicleNo)
+      .input("entry_station_id", sql.NVarChar, data.Station)
+      .input("entry_datetime", sql.DateTime, data.Time)
+      .input("entry_datetime_detect", sql.DateTime, new Date()) // maybe detection time = now
+      .input("entry_trans_type", sql.NVarChar, data.Status) // or map OK/ERROR to a type
+      .query(`
+        INSERT INTO MovementTrans 
+          (vehicle_number, entry_station_id, entry_datetime, entry_datetime_detect, entry_trans_type, update_datetime) 
+        VALUES 
+          (@vehicle_number, @entry_station_id, @entry_datetime, @entry_datetime_detect, @entry_trans_type, GETDATE())
+      `);
+
+    res.json({ success: true, ack: "ACK", data });
+
+  } catch (error) {
+    console.error("Error in POST /entry-movement:", error);
+    res.status(500).json({ success: false, ack: "NACK", error: error.message });
+  }
+});
+
+router.post("/exit-movements", async (req, res) => {
+  try {
+    const {
+      Station,
+      Time,
+      VehicleNo,
+      PaymentCardNo,
+      Fee,
+      Balance,
+    } = req.body;
+
+    if (!Station || !Time || !VehicleNo) {
+      return res.status(400).json({
+        success: false,
+        ack: "NACK",
+        error: "Missing required fields: Station, Time, VehicleNo"
+      });
+    }
+
+    const pool = await sql.connect(config);
+
+    await pool.request()
+      .input("exit_station_id", sql.NVarChar, Station)
+      .input("exit_datetime", sql.DateTime, Time)
+      .input("exit_datetime_detect", sql.DateTime, new Date())
+      .input("vehicle_number", sql.NVarChar, VehicleNo)
+      .input("card_number", sql.NVarChar, PaymentCardNo || null)
+      .input("card_type", sql.NVarChar, null) // frontend doesn’t send card_type
+      .input("parking_charges", sql.Decimal(10, 2), Fee || 0)
+      .input("paid_amount", sql.Decimal(10, 2), Balance || 0)
+      .input("update_datetime", sql.DateTime, new Date())
+      .query(`
+        INSERT INTO MovementTrans (
+          exit_station_id,
+          exit_datetime,
+          exit_datetime_detect,
+          vehicle_number,
+          card_number,
+          card_type,
+          parking_charges,
+          paid_amount,
+          update_datetime
+        )
+        VALUES (
+          @exit_station_id,
+          @exit_datetime,
+          @exit_datetime_detect,
+          @vehicle_number,
+          @card_number,
+          @card_type,
+          @parking_charges,
+          @paid_amount,
+          @update_datetime
+        )
+      `);
+
+    res.json({
+      success: true,
+      ack: "ACK",
+      message: "Exit movement recorded"
+    });
+
+  } catch (err) {
+    console.error("Error inserting exit movement:", err);
+    res.status(500).json({
+      success: false,
+      ack: "NACK",
+      error: err.message
+    });
+  }
+});
+
 
 router.get("/transaction-checker", async (req, res) => {
   try {
-    // amend the db query when Daniel provides the table name
     let pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetTransactionChecker");
 
@@ -59,7 +157,6 @@ router.get("/transaction-checker", async (req, res) => {
 
 router.get("/season-checker", async (req, res) => {
   try {
-    // amend the db query when Daniel provides the table name
     let pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetSeasonChecker");
     //Map the recordset to DTOs
@@ -505,15 +602,26 @@ function broadcastExit(data) {
 
 // Call these whenever a new POST comes in
 router.post("/entry-station", (req, res) => {
-  const data = req.body;
-  broadcastEntry(data);
-  res.json({ success: true, ack: "ACK", data });
+  try {
+    const data = req.body;
+    console.log('data', data);
+    broadcastEntry(data);
+    res.json({ success: true, ack: "ACK", data });
+  } catch (error) {
+    console.error("Error in /entry-station:", error);
+    res.status(500).json({ success: false, ack: "NACK", error: error.message });
+  }
 });
 
 router.post("/exit-station", (req, res) => {
-  const data = req.body;
-  broadcastExit(data);
-  res.json({ success: true, ack: "ACK", data });
+  try {
+    const data = req.body;
+    broadcastExit(data);
+    res.json({ success: true, ack: "ACK", data });
+  } catch (error) {
+    console.error("Error in /exit-station:", error);
+    res.status(500).json({ success: false, ack: "NACK", error: error.message });
+  }
 });
 
 /**

@@ -8,9 +8,9 @@ function MovementsTable() {
   const [search, setSearch] = useState("");
   const rowsPerPage = 10;
 
-  // Fetch data from backend API
   useEffect(() => {
     let isMounted = true;
+
     const fetchData = async () => {
       try {
         const response = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements`);
@@ -22,11 +22,8 @@ function MovementsTable() {
       }
     };
 
+    // Initial fetch
     fetchData();
-
-    return () => {
-      isMounted = false; // prevent state updates after unmount
-    };
   }, []);
 
   // Filtered data based on search

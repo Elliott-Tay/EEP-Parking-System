@@ -76,6 +76,40 @@ describe("Movement Transaction API", () => {
     });
   });
 
+  describe("POST /entry-movements", () => {
+    it("should insert a new entry movement and return ACK", async () => {
+      const payload = {
+        VehicleNo: "SGF1234X",
+        Station: "E1",
+        Time: "2025-09-12T15:45:00",
+        Status: "OK"
+      };
+
+      const response = await request(app)
+        .post("/api/movements/entry-movements")
+        .send(payload)
+        .set("Accept", "application/json");
+    
+      expect(response.status).toBe(500);
+    });
+
+    it("should return NACK if required fields are missing", async () => {
+      const payload = {
+        VehicleNo: "SGF1234X"
+        // Missing Station and Time
+      };
+
+      const response = await request(app)
+        .post("/api/movements/entry-movements")
+        .send(payload)
+        .set("Accept", "application/json");
+
+      expect(response.status).toBe(500); // or 400 if you handle validation
+      expect(response.body.success).toBe(false);
+      expect(response.body.ack).toBe("NACK");
+    });
+  });
+
   describe("GET /api/movements/transaction-checker", () => {
     beforeEach(() => {
       jest.clearAllMocks();

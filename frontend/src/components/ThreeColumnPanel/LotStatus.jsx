@@ -30,11 +30,32 @@ export default function LotStatus() {
       }
     };
 
+    // Initial fetch
     fetchLotData();
 
-    // Optional: poll every 5s if you want near real-time updates
-    const interval = setInterval(fetchLotData, 5000);
-    return () => clearInterval(interval);
+    // Poll every 3 seconds
+    const intervalId = setInterval(fetchLotData, 3000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const env_backend =
+      process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
+
+    const source = new EventSource(`${env_backend}/api/remote-control/lot-status/stream`);
+
+    source.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setLotData(data); 
+    };
+
+    source.onerror = (err) => {
+      console.error("SSE connection error:", err);
+      source.close();
+    };
+
+    return () => source.close();
   }, []);
 
   return (

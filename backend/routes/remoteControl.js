@@ -4,14 +4,40 @@ const db = require("../database/db");
 const { sql, config } = require("../database/db"); 
 const parkingLotDTO = require("../DTO/parkingLotDTO");
 
+// Keep track of all connected SSE clients
+let lotStatusClients = [];
+
+// 🔹 Helper: send data to all SSE clients
+function broadcastLotStatus(data) {
+  lotStatusClients.forEach((client) => {
+    client.res.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
+}
+
+// 🔹 SSE Endpoint: clients subscribe here
+router.get("/lot-status/stream", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  const newClient = { id: clientId, res };
+  lotStatusClients.push(newClient);
+
+  // Remove client on disconnect
+  req.on("close", () => {
+    console.log(`Client ${clientId} disconnected`);
+    lotStatusClients = lotStatusClients.filter((c) => c.id !== clientId);
+  });
+});
+
+// 🔹 Normal endpoint (polling)
 router.get("/lot-status", async (req, res) => {
   try {
     let pool = await sql.connect(config);
-
-    // Call the stored procedure
     const result = await pool.request().execute("dbo.uspGetParkingLots");
-
-    const rows = result.recordset; 
+    const rows = result.recordset;
     const data = {};
 
     rows.forEach((row) => {
@@ -32,7 +58,6 @@ router.get("/lot-status", async (req, res) => {
         available: allocated - occupied,
       };
 
-      // update totals
       data[zone].total.allocated += allocated;
       data[zone].total.occupied += occupied;
       data[zone].total.available =
@@ -40,6 +65,10 @@ router.get("/lot-status", async (req, res) => {
     });
 
     res.json(data);
+
+    // 🔹 Push update to SSE clients too
+    broadcastLotStatus(data);
+
   } catch (err) {
     console.error("SQL error", err);
     res.status(500).json({ error: "Failed to fetch lot data" });

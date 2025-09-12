@@ -40,36 +40,73 @@ export default function OverviewTab() {
 
     // SSE for entries
     const entrySource = new EventSource(`${backend_API_URL}/api/movements/stream/entries`);
-    entrySource.onmessage = e => {
+    entrySource.onmessage = async (e) => {
       try {
         const data = JSON.parse(e.data);
         setEntrances(prev => updateOrInsert(prev, data));
+
+        // Send to backend for entry
+        const response = await fetch(`${backend_API_URL}/api/movements/entry-movements`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            VehicleNo: data.VehicleNo,
+            Station: data.Station,
+            Time: data.Time,
+            Status: data.Status || "OK"
+          })
+        });
+
+        if (!response.ok) {
+          console.error("Failed to post new entry", await response.text());
+        }
+
       } catch (err) {
-        console.error("Error parsing entry SSE:", err);
-        setEntryError("Error receiving entry data");
+        console.error("Error processing entry SSE:", err);
+        setEntryError("Error receiving or sending entry data");
       }
     };
+
     entrySource.onerror = () => {
-      setEntryError("Connection lost to entry station stream");
+      setEntryError("Connection lost to entry station stream. Check the backend");
       entrySource.close();
     };
 
     // SSE for exits
     const exitSource = new EventSource(`${backend_API_URL}/api/movements/stream/exits`);
-    exitSource.onmessage = e => {
+    exitSource.onmessage = async (e) => {
       try {
         const data = JSON.parse(e.data);
         setExits(prev => updateOrInsert(prev, data));
+
+        // Send to backend for exit
+        const response = await fetch(`${backend_API_URL}/api/movements/exit-movements`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            Station: data.Station,
+            Time: data.Time,
+            VehicleNo: data.VehicleNo,
+            PaymentCardNo: data.PaymentCardNo,
+            Fee: data.Fee,
+            Balance: data.Balance,
+            Status: data.Status || "OK"
+          })
+        });
+
+        if (!response.ok) {
+          console.error("Failed to post exit movement:", await response.text());
+        }
       } catch (err) {
-        console.error("Error parsing exit SSE:", err);
+        console.error("Error processing exit SSE:", err);
         setExitError("Error receiving exit data");
       }
     };
+
     exitSource.onerror = () => {
-      setExitError("Connection lost to exit station stream");
+      setExitError("Connection lost to exit station stream. Check the backend.");
       exitSource.close();
     };
-
     return () => {
       entrySource.close();
       exitSource.close();
