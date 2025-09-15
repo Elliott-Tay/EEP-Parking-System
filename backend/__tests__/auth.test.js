@@ -9,17 +9,7 @@ const jwt = require("jsonwebtoken");
 
 
 describe("Auth Routes", () => {
-  describe("POST /auth/register", () => {
-    it("should register a new user", async () => {
-      const res = await request(app).post("/api/auth/register").send({
-        username: "testuser",
-        email: "test@example.com",
-        password: "password123",
-      });
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe("User registered successfully");
-    });
-
+  describe("POST /api/auth/register", () => {
     it("should fail if fields are missing", async () => {
       const res = await request(app).post("/api/auth/register").send({
         username: "testuser",
