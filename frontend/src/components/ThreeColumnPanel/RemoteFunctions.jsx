@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Unlock, Settings, DollarSign, Power, ArrowRight, X } from "lucide-react";
+import { Unlock, Settings, DollarSign, Power, ArrowRight, X, User, Lock, Shield, Eye, EyeOff  } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -32,6 +32,162 @@ const lotMockData = {
   },
 };
 
+// Simple Login Modal
+function LoginModal({ onClose, onLoginSuccess }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!username || !password) {
+      toast.error("Username and password are required.");
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Login failed");
+      } else {
+        const token = data.token;
+        localStorage.setItem("token", token);
+        toast.success("Login successful!");
+        onLoginSuccess();
+        onClose();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Login error: " + err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={(e) => {
+        // Close only if clicking directly on the backdrop and not inside the modal
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="relative w-full max-w-md">
+        {/* Modal Card */}
+        <div className="rounded-lg border bg-white text-card-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-300">
+          {/* Header */}
+          <div className="flex flex-col space-y-1.5 p-8 pb-6">
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 border border-primary/20">
+              <Shield className="h-8 w-8 text-primary" />
+            </div>
+            <h2 className="text-center text-2xl leading-none tracking-tight">Welcome Back</h2>
+            <p className="text-center text-sm text-muted-foreground">
+              Sign in to access the parking management system
+            </p>
+          </div>
+
+          {/* Form */}
+          <div className="p-8 pt-0 space-y-6">
+            {/* Username Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="flex h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="flex h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-10 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3 pt-2">
+              <button
+                onClick={handleLogin}
+                disabled={isLoading || !username || !password}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors shadow-sm hover:shadow"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Signing In...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-4 w-4 mr-2" />
+                    Sign In
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={onClose}
+                disabled={isLoading}
+                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2.5 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-8 pb-8">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="h-1 w-1 rounded-full bg-green-500"></div>
+              <span>Secure connection established</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
@@ -53,20 +209,35 @@ function StationControlModal({ onClose }) {
     }
 
     const config = actionMap[action];
-    
     if (!config) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error("You must be logged in to perform this action.");
+      return;
+    }
 
     try {
       const res = await fetch(config.url, {
         method: config.method,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // include JWT
+        },
         body: JSON.stringify({ remarks }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Action failed");
+        // Handle authentication errors specifically
+        if (res.status === 401 || res.status === 403) {
+          toast.error("Session expired or unauthorized. Please log in again.");
+          localStorage.removeItem("token");
+          onClose?.();
+        } else {
+          toast.error(data.error || "Action failed");
+        }
       } else {
         toast.success(`Action performed: ${action}`);
         setRemarks("");
@@ -285,6 +456,13 @@ function ParkingTariffModal() {
 
 export default function RemoteFunctions() {
   const [activeModal, setActiveModal] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check token on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) setIsLoggedIn(true);
+  }, []);
 
   const remoteActions = [
     {
@@ -313,7 +491,16 @@ export default function RemoteFunctions() {
     },
   ];
 
+  // Determine which modal to render
   const ActiveModalComponent = remoteActions.find((a) => a.id === activeModal)?.component;
+
+  const handleOpenModal = (modalId) => {
+    if (!isLoggedIn) {
+      setActiveModal("login");
+    } else {
+      setActiveModal(modalId);
+    }
+  };
 
   return (
     <div className="lg:col-span-1 rounded-lg border bg-card text-card-foreground shadow-sm max-w-sm">
@@ -336,7 +523,7 @@ export default function RemoteFunctions() {
             return (
               <button
                 key={action.id}
-                onClick={() => setActiveModal(action.id)}
+                onClick={() => handleOpenModal(action.id)}
                 className={`flex items-center gap-3 px-4 py-3 w-full text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md ${action.color} group`}
               >
                 <IconComponent className="h-5 w-5 group-hover:scale-110 transition-transform" />
@@ -352,7 +539,7 @@ export default function RemoteFunctions() {
       </div>
 
       {/* Modal */}
-      {activeModal && ActiveModalComponent && (
+      {activeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-20 rounded-xl w-200 shadow-2xl border border-gray-200 dark:border-gray-700 relative">
             <button
@@ -361,7 +548,15 @@ export default function RemoteFunctions() {
             >
               <X className="h-10 w-10" />
             </button>
-            <ActiveModalComponent onClose={() => setActiveModal(null)} />
+
+            {activeModal === "login" ? (
+              <LoginModal
+                onClose={() => setActiveModal(null)}
+                onLoginSuccess={() => setIsLoggedIn(true)}
+              />
+            ) : (
+              ActiveModalComponent && <ActiveModalComponent onClose={() => setActiveModal(null)} />
+            )}
           </div>
         </div>
       )}

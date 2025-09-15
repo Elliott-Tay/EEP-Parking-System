@@ -2,11 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Activity, Car, Users } from "lucide-react";
 
 export default function LotStatus() {
-  const [lotData, setLotData] = useState({}); // default to empty object
-  const [currentZone, setCurrentZone] = useState(""); 
+  const [lotData, setLotData] = useState({}); // all lot data
+  const [currentZone, setCurrentZone] = useState(null); // selected zone
 
-  // Defensive check
-  const currentLot = lotData[currentZone] || lotData["main"] || { hourly: {}, season: {}, total: { allocated: 0, occupied: 0, available: 0 } };
+  // Compute currentLot based on selected zone or first available
+  const currentLot = currentZone && lotData[currentZone]
+    ? lotData[currentZone]
+    : Object.keys(lotData).length > 0
+      ? lotData[Object.keys(lotData)[0]]
+      : { hourly: {}, season: {}, total: { allocated: 0, occupied: 0, available: 0 } };
 
   const occupancyRate = currentLot.total.allocated
     ? Math.round((currentLot.total.occupied / currentLot.total.allocated) * 100)
@@ -14,9 +18,9 @@ export default function LotStatus() {
 
   const formatZoneName = (zone) => zone.charAt(0).toUpperCase() + zone.slice(1);
 
+  // Fetch lot data from backend every 3 seconds
   useEffect(() => {
-    const env_backend =
-      process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
+    const env_backend = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
 
     const fetchLotData = async () => {
       try {
@@ -24,30 +28,29 @@ export default function LotStatus() {
         if (!response.ok) throw new Error("Failed to fetch lot data");
         const data = await response.json();
         setLotData(data);
-        if (!currentZone) setCurrentZone(Object.keys(data)[0]);
+
+        // Set currentZone if not already set
+        if (!currentZone && Object.keys(data).length > 0) {
+          setCurrentZone(Object.keys(data)[0]);
+        }
       } catch (err) {
         console.error(err);
       }
     };
 
-    // Initial fetch
     fetchLotData();
-
-    // Poll every 3 seconds
     const intervalId = setInterval(fetchLotData, 3000);
-
     return () => clearInterval(intervalId);
-  }, []);
+  }, [currentZone]);
 
+  // SSE for real-time updates
   useEffect(() => {
-    const env_backend =
-      process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
-
+    const env_backend = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
     const source = new EventSource(`${env_backend}/api/remote-control/lot-status/stream`);
 
     source.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      setLotData(data); 
+      setLotData(data);
     };
 
     source.onerror = (err) => {
@@ -81,12 +84,12 @@ export default function LotStatus() {
                 key={zone}
                 onClick={() => setCurrentZone(zone)}
                 className={`px-2 py-1 rounded transition-all
-                    ${isSelected ? "bg-blue-500 text-white border border-black" : ""}
-                    ${!isSelected && isFull ? "bg-red-600 text-white animate-pulse" : ""}
-                    ${!isSelected && !isFull ? "bg-muted/10 text-muted-foreground" : ""}`}
-                >
+                  ${isSelected ? "bg-blue-500 text-white border border-black" : ""}
+                  ${!isSelected && isFull ? "bg-red-600 text-white animate-pulse" : ""}
+                  ${!isSelected && !isFull ? "bg-muted/10 text-muted-foreground" : ""}`}
+              >
                 {formatZoneName(zone)}
-               </button>
+              </button>
             );
           })}
         </div>

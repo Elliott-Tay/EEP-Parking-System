@@ -5,6 +5,9 @@ import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/PageNotFound';
 import ConfigurationPage from './components/Configuration';
+import PrivateRoute from './components/auth/PrivateRoute';
+import Register from "./components/auth/Register";
+import Login from './components/auth/Login';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -14,11 +17,19 @@ function App() {
       <ErrorBoundary>
         <div className="flex flex-col min-h-screen">
           <NavBar />
-
           <main className="flex-grow">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/configuration" element={<ConfigurationPage />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route
+                path="/configuration"
+                element={
+                  <PrivateRoute>
+                    <ConfigurationPage />
+                  </PrivateRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

@@ -6,6 +6,7 @@ const movementRouter = require("./routes/movements");
 const remoteControlRouter = require("./routes/remoteControl");
 const configRouter = require("./routes/config");
 const seasonRouter = require("./routes/season");
+const { authRouter } = require("./routes/auth");
 
 require("dotenv").config();
 
@@ -40,7 +41,7 @@ app.use("/api/config", configRouter);
 app.use("/api/seasons", seasonRouter);
 
 // Auth routes
-app.use("/api/auth", require("./routes/auth").authRouter);
+app.use("/api/auth", authRouter);
 
 // 404 handler for undefined routes
 app.use((req, res) => {

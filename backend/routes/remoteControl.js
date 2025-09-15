@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require("../database/db");
 const { sql, config } = require("../database/db"); 
 const parkingLotDTO = require("../DTO/parkingLotDTO");
+const { authenticateToken } = require("./auth");
 
 // Keep track of all connected SSE clients
 let lotStatusClients = [];
@@ -27,7 +28,6 @@ router.get("/lot-status/stream", (req, res) => {
 
   // Remove client on disconnect
   req.on("close", () => {
-    console.log(`Client ${clientId} disconnected`);
     lotStatusClients = lotStatusClients.filter((c) => c.id !== clientId);
   });
 });
@@ -75,32 +75,32 @@ router.get("/lot-status", async (req, res) => {
   }
 });
 
-router.post("/gate/open", async (req, res) => {
+router.post("/gate/open", authenticateToken, async (req, res) => {
   console.log("Gate open requested");
   res.json({ success: true, message: "Gate open request received" });
 });
 
-router.post("/gate/open-hold", async (req, res) => {
+router.post("/gate/open-hold", authenticateToken, async (req, res) => {
   console.log("Gate open and hold requested");
   res.json({ success: true, message: "Gate open-hold request received" });
 });
 
-router.post("/gate/close", async (req, res) => {
+router.post("/gate/close", authenticateToken, async (req, res) => {
   console.log("Gate close requested");
   res.json({ success: true, message: "Gate close request received" });
 });
 
-router.post("/system/restart-app", async (req, res) => {
+router.post("/system/restart-app", authenticateToken, async (req, res) => {
   console.log("System restart app requested");
   res.json({ success: true, message: "System restart-app request received" });
 });
 
-router.post("/card/eject", async (req, res) => {
+router.post("/card/eject", authenticateToken, async (req, res) => {
   console.log("Card eject requested");
   res.json({ success: true, message: "Card eject request received" });
 });
 
-router.post("/system/restart-upos", async (req, res) => {
+router.post("/system/restart-upos", authenticateToken, async (req, res) => {
   console.log("System restart UPOS requested");
   res.json({ success: true, message: "System restart-UPOS request received" });
 });
