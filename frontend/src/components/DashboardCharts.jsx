@@ -11,6 +11,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import LotStatusChart from "./Charts/LotStatusCharts";
 
 // Static data
 const hourlyData = [
@@ -44,6 +45,7 @@ export default function DashboardCharts() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <HourlyRevenueChart />
         <ZoneDistributionChart />
+        <LotStatusChart /> {/* New chart */}
       </div>
       <HourlyFlowChart />
     </div>
