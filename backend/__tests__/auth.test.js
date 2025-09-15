@@ -19,7 +19,7 @@ describe("Auth Routes", () => {
     });
   });
 
-  describe("POST /auth/login", () => {
+  describe("POST /api/auth/login", () => {
     it("should login successfully with correct credentials", async () => {
       const res = await request(app).post("/api/auth/login").send({
         username: "testuser",
