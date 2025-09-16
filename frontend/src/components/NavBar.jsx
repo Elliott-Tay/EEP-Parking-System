@@ -20,6 +20,7 @@ function NavBar() {
     ? [
         { name: "Dashboard", href: "/", icon: <LayoutDashboard size={18} /> },
         { name: "Configuration", href: "/configuration", icon: <Ticket size={18} /> },
+        { name: "Reports", href: "/reports", icon: <Clock size={18} /> },
       ]
     : [
       { name: "Dashboard", href: "/", icon: <LayoutDashboard size={18} /> },
@@ -30,7 +31,7 @@ function NavBar() {
     navigate(href); // just navigate directly
     setIsOpen(false);
   };
-  
+
   const handleAuthClick = () => {
     if (isLoggedIn) {
       localStorage.removeItem("token"); // log out
