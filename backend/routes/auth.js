@@ -39,7 +39,7 @@ router.post("/register", async (req, res) => {
       .request()
       .input("username", sql.VarChar, username)
       .input("email", sql.VarChar, email)
-      .query("SELECT * FROM users WHERE username=@username OR email=@email");
+      .execute("sp_GetUserByUsernameOrEmail");
 
     if (existingUser.recordset.length > 0) {
       return res.status(400).json({ error: "Username or email already exists" });
@@ -54,9 +54,7 @@ router.post("/register", async (req, res) => {
       .input("username", sql.VarChar, username)
       .input("email", sql.VarChar, email)
       .input("password_hash", sql.VarChar, password_hash)
-      .query(
-        "INSERT INTO users (username, email, password_hash) VALUES (@username, @email, @password_hash)"
-      );
+      .execute("sp_InsertUser");
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
@@ -79,7 +77,7 @@ router.post("/login", async (req, res) => {
     const result = await pool
       .request()
       .input("username", sql.VarChar, username)
-      .query("SELECT * FROM users WHERE username=@username");
+      .execute("sp_GetUserByUsername");
 
     const user = result.recordset[0];
 
@@ -96,7 +94,7 @@ router.post("/login", async (req, res) => {
     await pool
       .request()
       .input("id", sql.Int, user.id)
-      .query("UPDATE users SET last_login=GETDATE() WHERE id=@id");
+      .execute("sp_UpdateLastLogin");
 
     // Generate JWT
     const token = jwt.sign(
