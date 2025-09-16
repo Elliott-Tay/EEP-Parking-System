@@ -86,7 +86,7 @@ function Register() {
           <div className="flex flex-col space-y-1.5 p-8 pb-6 text-center">
             {/* Back Button */}
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/")}
               className="absolute top-6 left-6 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <ArrowLeft className="h-5 w-5 text-gray-600" />

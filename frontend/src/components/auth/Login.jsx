@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Lock, Shield, Eye, EyeOff, AlertCircle, Car } from "lucide-react";
+import { User, Lock, Shield, Eye, EyeOff, AlertCircle, Car, ArrowLeft } from "lucide-react";
 
 function Login() {
   const [username, setUsername] = useState("");
@@ -63,6 +63,12 @@ function Login() {
         <div className="rounded-2xl border bg-white/80 backdrop-blur-xl shadow-2xl shadow-red-500/10 animate-in fade-in-0 zoom-in-95 duration-500">
           {/* Header Section */}
           <div className="flex flex-col space-y-1.5 p-8 pb-6 text-center">
+            <button
+              onClick={() => navigate("/")}
+              className="absolute top-6 left-6 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
+            </button>
             {/* Logo and Icon */}
             <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg shadow-red-500/25">
               <div className="flex items-center gap-1">
