@@ -151,7 +151,7 @@ function LoginModal({ onClose, onLoginSuccess }) {
               <button
                 onClick={handleLogin}
                 disabled={isLoading || !username || !password}
-                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors shadow-sm hover:shadow"
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors shadow-sm hover:shadow bg-red-500"
               >
                 {isLoading ? (
                   <>
@@ -169,7 +169,7 @@ function LoginModal({ onClose, onLoginSuccess }) {
               <button
                 onClick={onClose}
                 disabled={isLoading}
-                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2.5 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors"
+                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2.5 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 transition-colors bg-blue-500"
               >
                 Cancel
               </button>

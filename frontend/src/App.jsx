@@ -7,6 +7,7 @@ import NotFound from './components/PageNotFound';
 import ConfigurationPage from './components/Configuration';
 import PrivateRoute from './components/auth/PrivateRoute';
 import Register from "./components/auth/Register";
+import ReportPage from './components/Report';
 import Login from './components/auth/Login';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -27,6 +28,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <ConfigurationPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <PrivateRoute>
+                    <ReportPage />
                   </PrivateRoute>
                 }
               />
