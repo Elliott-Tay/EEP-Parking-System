@@ -32,7 +32,34 @@ router.get("/lot-status/stream", (req, res) => {
   });
 });
 
-// 🔹 Normal endpoint (polling)
+/**
+ * @swagger
+ * /lot-status:
+ *   get:
+ *     summary: Fetch current parking lot status
+ *     responses:
+ *       200:
+ *         description: Successfully fetched parking lot status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               additionalProperties:
+ *                 type: object
+ *                 properties:
+ *                   hourly:
+ *                     type: object
+ *                   season:
+ *                     type: object
+ *                   total:
+ *                     type: object
+ *                     properties:
+ *                       allocated: { type: integer }
+ *                       occupied: { type: integer }
+ *                       available: { type: integer }
+ *       500:
+ *         description: Failed to fetch lot data
+ */
 router.get("/lot-status", async (req, res) => {
   try {
     let pool = await sql.connect(config);

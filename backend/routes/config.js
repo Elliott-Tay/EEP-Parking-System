@@ -20,10 +20,10 @@ router.post("/send", async (req, res) => {
     await db.query(query, [userId, station, option]);
 
     res.json({ status: "success", message: "Configuration sent successfully!" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ status: "error", message: "Database error saving configuration", details: error.message });
-  }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ status: "error", message: "Database error saving configuration", details: error.message });
+      }
 });
 
 module.exports = router;

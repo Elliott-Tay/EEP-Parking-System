@@ -64,6 +64,44 @@ router.post("/register", async (req, res) => {
 });
 
 // ======== LOGIN ========
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: User login and JWT token generation
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username: { type: string }
+ *               password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token: { type: string }
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: integer }
+ *                     username: { type: string }
+ *                     role: { type: string }
+ *       400:
+ *         description: Invalid username or password / missing fields
+ *       401:
+ *         description: Missing token
+ *       403:
+ *         description: Invalid token
+ *       500:
+ *         description: Server error
+ */
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
