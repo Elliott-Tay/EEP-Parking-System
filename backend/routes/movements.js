@@ -40,6 +40,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/movements/entry-movements:
+ *   post:
+ *     summary: Log vehicle entry
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               VehicleNo:
+ *                 type: string
+ *               Station:
+ *                 type: string
+ *               Time:
+ *                 type: string
+ *                 format: date-time
+ *               Status:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OK
+ *       500:
+ *         description: Error
+ */
 router.post("/entry-movements", async (req, res) => {
   try {
     const data = req.body;
@@ -62,6 +89,40 @@ router.post("/entry-movements", async (req, res) => {
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
+
+/**
+ * @swagger
+ * /exit-movements:
+ *   post:
+ *     summary: Log vehicle exit
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               VehicleNo:
+ *                 type: string
+ *               Station:
+ *                 type: string
+ *               Time:
+ *                 type: string
+ *                 format: date-time
+ *               PaymentCardNo:
+ *                 type: string
+ *               Fee:
+ *                 type: number
+ *               Balance:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Missing required fields
+ *       500:
+ *         description: Server error
+ */
 
 router.post("/exit-movements", async (req, res) => {
   try {
@@ -103,6 +164,18 @@ router.post("/exit-movements", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /transaction-checker:
+ *   get:
+ *     summary: Fetch transaction checker data
+ *     responses:
+ *       200:
+ *         description: List of transaction checker records
+ *       500:
+ *         description: Database error
+ */
+
 router.get("/transaction-checker", async (req, res) => {
   try {
     let pool = await sql.connect(config);
@@ -118,6 +191,17 @@ router.get("/transaction-checker", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /season-checker:
+ *   get:
+ *     summary: Fetch season checker data
+ *     responses:
+ *       200:
+ *         description: List of season checker records
+ *       500:
+ *         description: Database error
+ */
 router.get("/season-checker", async (req, res) => {
   try {
     let pool = await sql.connect(config);
@@ -132,6 +216,36 @@ router.get("/season-checker", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /range:
+ *   get:
+ *     summary: Fetch movement transactions within a date range
+ *     parameters:
+ *       - in: query
+ *         name: start
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: end
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Records found for the given date range
+ *       400:
+ *         description: Missing or invalid query parameters
+ *       404:
+ *         description: No records found
+ *       500:
+ *         description: Database error
+ */
 router.get("/range", async (req, res) => {
   try {
     const { start, end } = req.query; 
@@ -563,11 +677,31 @@ function broadcastExit(data) {
   exitClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
-// Call these whenever a new POST comes in
+/**
+ * @swagger
+ * /entry-station:
+ *   post:
+ *     summary: Broadcast vehicle entry to the system
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               VehicleNo: { type: string }
+ *               Station: { type: string }
+ *               Time: { type: string, format: date-time }
+ *               Status: { type: string }
+ *     responses:
+ *       200:
+ *         description: Broadcast successful
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/entry-station", (req, res) => {
   try {
     const data = req.body;
-    console.log('data', data);
     broadcastEntry(data);
     res.json({ success: true, ack: "ACK", data });
   } catch (error) {
@@ -576,6 +710,30 @@ router.post("/entry-station", (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /exit-station:
+ *   post:
+ *     summary: Broadcast vehicle exit to the system
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               VehicleNo: { type: string }
+ *               Station: { type: string }
+ *               Time: { type: string, format: date-time }
+ *               PaymentCardNo: { type: string }
+ *               Fee: { type: number }
+ *               Balance: { type: number }
+ *     responses:
+ *       200:
+ *         description: Broadcast successful
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/exit-station", (req, res) => {
   try {
     const data = req.body;
@@ -626,6 +784,31 @@ function updateLot(zone, type, isEntry = true, allocated = 1) {
   return slot;
 }
 
+/**
+ * @swagger
+ * /lot-status-entry:
+ *   post:
+ *     summary: Update parking lot status
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               zone: { type: string }
+ *               type: { type: string }
+ *               msg_type: { type: string }
+ *               msg_datetime: { type: string, format: date-time }
+ *               msg: { type: string }
+ *     responses:
+ *       200:
+ *         description: Lot status received successfully
+ *       400:
+ *         description: Invalid request payload
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/lot-status-entry", async (req, res) => {
   try {
     const { zone, type, msg_type, msg_datetime, msg } = req.body;
@@ -659,7 +842,31 @@ router.post("/lot-status-entry", async (req, res) => {
   }
 });
 
-
+/**
+ * @swagger
+ * /lot-status-exit:
+ *   post:
+ *     summary: Update parking lot status on exit
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               zone: { type: string }
+ *               type: { type: string }
+ *               msg_type: { type: string }
+ *               msg_datetime: { type: string, format: date-time }
+ *               msg: { type: string }
+ *     responses:
+ *       200:
+ *         description: Lot status received successfully
+ *       400:
+ *         description: Invalid request payload
+ *       500:
+ *         description: Internal server error
+ */
 router.post("/lot-status-exit", async (req, res) => {
   try {
     const { zone, type, msg_type, msg_datetime, msg } = req.body;
