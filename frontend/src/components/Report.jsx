@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   DollarSign, 
   BarChart3, 
@@ -15,11 +16,13 @@ import {
   Clock,
   TrendingUp,
   Activity,
-  Shield
+  Shield,
+  ExternalLink
 } from "lucide-react";
 
 export default function ReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
   const reportCategories = [
     {
@@ -29,10 +32,10 @@ export default function ReportPage() {
       color: "bg-green-100 text-green-600 border-green-200",
       description: "Financial reports and payment analysis",
       reports: [
-        { id: 1, name: "Daily Settlement File", description: "Complete daily payment settlement", icon: FileText },
-        { id: 2, name: "Analysis of Ack/Sum File", description: "Payment acknowledgment analysis", icon: BarChart3 },
-        { id: 3, name: "Daily Consolidated Summary", description: "Consolidated daily payment report", icon: TrendingUp },
-        { id: 4, name: "Daily Cashcard Collection", description: "Cashcard transaction summary", icon: CreditCard }
+        { id: 1, name: "Daily Settlement File", description: "Complete daily payment settlement", icon: FileText, route: "/reports/daily-settlement" },
+        { id: 2, name: "Analysis of Ack/Sum File", description: "Payment acknowledgment analysis", icon: BarChart3, route: "/reports/ack-sum-analysis" },
+        { id: 3, name: "Daily Consolidated Summary", description: "Consolidated daily payment report", icon: TrendingUp, route: "/reports/daily-summary" },
+        { id: 4, name: "Daily Cashcard Collection", description: "Cashcard transaction summary", icon: CreditCard, route: "/reports/cashcard-collection" }
       ]
     },
     {
@@ -42,10 +45,10 @@ export default function ReportPage() {
       color: "bg-blue-100 text-blue-600 border-blue-200",
       description: "Traffic flow and transaction monitoring",
       reports: [
-        { id: 5, name: "Counter Daily Statistics", description: "Daily vehicle movement statistics", icon: BarChart3 },
-        { id: 6, name: "Counter Monthly Statistics", description: "Monthly traffic analysis", icon: Calendar },
-        { id: 7, name: "Daily Movement Details", description: "Detailed vehicle movement logs", icon: Activity },
-        { id: 8, name: "Daily Parking Duration", description: "Average parking duration analysis", icon: Clock }
+        { id: 5, name: "Counter Daily Statistics", description: "Daily vehicle movement statistics", icon: BarChart3, route: "/reports/counter-daily" },
+        { id: 6, name: "Counter Monthly Statistics", description: "Monthly traffic analysis", icon: Calendar, route: "/reports/counter-monthly" },
+        { id: 7, name: "Daily Movement Details", description: "Detailed vehicle movement logs", icon: Activity, route: "/reports/movement-details" },
+        { id: 8, name: "Daily Parking Duration", description: "Average parking duration analysis", icon: Clock, route: "/reports/parking-duration" }
       ]
     },
     {
@@ -55,8 +58,8 @@ export default function ReportPage() {
       color: "bg-purple-100 text-purple-600 border-purple-200",
       description: "System audit trails and historical data",
       reports: [
-        { id: 9, name: "Remote Control History", description: "System control operation logs", icon: History },
-        { id: 10, name: "Station Error History", description: "Equipment error and maintenance logs", icon: AlertTriangle }
+        { id: 9, name: "Remote Control History", description: "System control operation logs", icon: History, route: "/reports/remote-control-history" },
+        { id: 10, name: "Station Error History", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" }
       ]
     },
     {
@@ -66,9 +69,9 @@ export default function ReportPage() {
       color: "bg-orange-100 text-orange-600 border-orange-200",
       description: "Season parking management reports",
       reports: [
-        { id: 11, name: "Season Card Master", description: "Season card holder database", icon: CreditCard },
-        { id: 12, name: "Season Transaction Details", description: "Season parking transaction logs", icon: FileText },
-        { id: 13, name: "To Be Expired Season", description: "Expiring season card alerts", icon: Calendar }
+        { id: 11, name: "Season Card Master", description: "Season card holder database", icon: CreditCard, route: "/reports/season-master" },
+        { id: 12, name: "Season Transaction Details", description: "Season parking transaction logs", icon: FileText, route: "/reports/season-transactions" },
+        { id: 13, name: "To Be Expired Season", description: "Expiring season card alerts", icon: Calendar, route: "/reports/expiring-season" }
       ]
     },
     {
@@ -78,16 +81,20 @@ export default function ReportPage() {
       color: "bg-gray-100 text-gray-600 border-gray-200",
       description: "Additional system reports",
       reports: [
-        { id: 14, name: "Ticket Complimentary", description: "Complimentary ticket usage report", icon: FileText },
-        { id: 15, name: "NETS Collection Comparison", description: "NETS payment comparison analysis", icon: BarChart3 }
+        { id: 14, name: "Ticket Complimentary", description: "Complimentary ticket usage report", icon: FileText, route: "/reports/ticket-complimentary" },
+        { id: 15, name: "NETS Collection Comparison", description: "NETS payment comparison analysis", icon: BarChart3, route: "/reports/nets-comparison" }
       ]
     }
   ];
 
   const handleGenerateReport = (report) => {
-    // Simulate report generation
-    console.log(`Generating report: ${report.name}`);
-    // In a real application, this would trigger the report generation API
+    // Navigate to the specific report route
+    navigate(report.route);
+  };
+
+  const handlePreviewReport = (report) => {
+    // Navigate to preview mode for the report
+    navigate(`${report.route}/preview`);
   };
 
   const filteredCategories = reportCategories.filter(category =>
@@ -234,20 +241,20 @@ export default function ReportPage() {
                                 title="Preview Report"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  console.log(`Preview: ${report.name}`);
+                                  handlePreviewReport(report);
                                 }}
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
                               <button
                                 className="p-1.5 rounded-md hover:bg-green-600 hover:text-white transition-colors"
-                                title="Download Report"
+                                title="View Report"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  console.log(`Download: ${report.name}`);
+                                  navigate(report.route);
                                 }}
                               >
-                                <Download className="h-3.5 w-3.5" />
+                                <ExternalLink className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           </div>
@@ -282,7 +289,10 @@ export default function ReportPage() {
           </div>
           <div className="p-6 pt-0">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+              <button 
+                onClick={() => navigate("/reports/bulk-generate")}
+                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
                 <div className="p-2 rounded-lg bg-blue-100">
                   <Download className="h-4 w-4 text-blue-600" />
                 </div>
@@ -292,7 +302,10 @@ export default function ReportPage() {
                 </div>
               </button>
               
-              <button className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+              <button 
+                onClick={() => navigate("/reports/scheduler")}
+                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
                 <div className="p-2 rounded-lg bg-green-100">
                   <Calendar className="h-4 w-4 text-green-600" />
                 </div>
@@ -302,7 +315,10 @@ export default function ReportPage() {
                 </div>
               </button>
               
-              <button className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+              <button 
+                onClick={() => navigate("/reports/history")}
+                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
                 <div className="p-2 rounded-lg bg-purple-100">
                   <History className="h-4 w-4 text-purple-600" />
                 </div>
