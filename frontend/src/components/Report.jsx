@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   DollarSign, 
@@ -17,12 +17,120 @@ import {
   TrendingUp,
   Activity,
   Shield,
-  ExternalLink
+  ExternalLink,
+  ChevronDown,
+  Settings,
+  Wrench
 } from "lucide-react";
 
 export default function ReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const menuRef = useRef(null);
   const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+
+  const dropdownMenus = [
+    {
+      name: "System Configuration",
+      icon: Settings,
+      color: "bg-blue-100 text-blue-600 border-blue-200",
+      items: [
+        { name: "Holiday Setup", href: "/config/holiday-setup" },
+        { name: "Parking Tariff Setup", href: "/config/parking-tariff" },
+        { name: "Season Master", href: "/config/season-master" },
+        { name: "Season Update", href: "/config/season-update" },
+        { name: "Change Season No", href: "/config/change-season-no" },
+        { name: "Multiple Season Register", href: "/config/multiple-season-register" },
+        { name: "Check/Search Season", href: "/config/check-search-season" }
+      ]
+    },
+    {
+      name: "Enquiry",
+      icon: Search,
+      color: "bg-green-100 text-green-600 border-green-200",
+      items: [
+        { name: "Movement Transaction", href: "/enquiry/movement-transaction" },
+        { name: "Entry Transaction", href: "/enquiry/entry-transaction" },
+        { name: "Exit Valid Transaction", href: "/enquiry/exit-valid-transaction" },
+        { name: "Exit Invalid Transaction Detail", href: "/enquiry/exit-invalid-detail" },
+        { name: "Exit Invalid Transaction Summary", href: "/enquiry/exit-invalid-summary" },
+        { name: "Complimentary", href: "/enquiry/complimentary" },
+        { name: "Season Master History", href: "/enquiry/season-master-history" },
+        { name: "Collection File Report", href: "/enquiry/collection-file-report" },
+        { name: "Collection File Ack/Sum", href: "/enquiry/collection-file-ack-sum" },
+        { name: "LCSC Collection Comparison", href: "/enquiry/lcsc-collection-comparison" },
+        { name: "Hourly Max Occupancy Report", href: "/enquiry/hourly-max-occupancy" },
+        { name: "Tailgate Report", href: "/enquiry/tailgate-report" },
+        { name: "IU Frequency Report", href: "/enquiry/iu-frequency-report" },
+        { name: "Vehicles Parked More Than 72 Hours", href: "/enquiry/vehicles-72-hours" },
+        { name: "EPS Performance Report", href: "/enquiry/eps-performance" },
+        { name: "UPOS Collection File Report", href: "/enquiry/upos-collection-file" },
+        { name: "UPOS Collection Report", href: "/enquiry/upos-collection-report" }
+      ]
+    },
+    {
+      name: "VCC/EZPay",
+      icon: CreditCard,
+      color: "bg-purple-100 text-purple-600 border-purple-200",
+      items: [
+        { name: "VCC Whitelist", href: "/vcc-ezpay/vcc-whitelist" },
+        { name: "VCC Exit Transaction", href: "/vcc-ezpay/vcc-exit-transaction" },
+        { name: "VCC Settlement File Report", href: "/vcc-ezpay/vcc-settlement-file" },
+        { name: "VCC Collection Comparison", href: "/vcc-ezpay/vcc-collection-comparison" },
+        { name: "EZP Whitelist", href: "/vcc-ezpay/ezp-whitelist" },
+        { name: "EZP Exit Transaction", href: "/vcc-ezpay/ezp-exit-transaction" },
+        { name: "EZP Settlement File Report", href: "/vcc-ezpay/ezp-settlement-file" },
+        { name: "EZP Collection Comparison", href: "/vcc-ezpay/ezp-collection-comparison" }
+      ]
+    },
+    {
+      name: "Outstanding",
+      icon: FileText,
+      color: "bg-orange-100 text-orange-600 border-orange-200",
+      items: [
+        { name: "Settlement File", href: "/outstanding/settlement-file" },
+        { name: "Acknowledge File", href: "/outstanding/acknowledge-file" },
+        { name: "Summary File", href: "/outstanding/summary-file" },
+        { name: "LTA Collection File", href: "/outstanding/lta-collection-file" },
+        { name: "LTA Acknowledge File", href: "/outstanding/lta-acknowledge-file" },
+        { name: "LTA Result File", href: "/outstanding/lta-result-file" },
+        { name: "Movement Transaction", href: "/outstanding/movement-transaction" }
+      ]
+    },
+    {
+      name: "System Maintenance",
+      icon: Wrench,
+      color: "bg-red-100 text-red-600 border-red-200",
+      items: [
+        { name: "Access Control", href: "/maintenance/access-control" },
+        { name: "Change Password", href: "/maintenance/change-password" },
+        { name: "Function Audit", href: "/maintenance/function-audit" },
+        { name: "View Log", href: "/maintenance/view-log" }
+      ]
+    }
+  ];
+
+  const handleDropdownClick = (e, dropdownName) => {
+    e.stopPropagation();
+    setOpenDropdown(openDropdown === dropdownName ? null : dropdownName);
+  };
+
+  const handleDropdownItemClick = (href) => {
+    navigate(href);
+    setOpenDropdown(null);
+  };
 
   const reportCategories = [
     {
@@ -138,6 +246,60 @@ export default function ReportPage() {
         </div>
       </div>
 
+      <div className="p-6 flex flex-wrap gap-4">
+        {dropdownMenus.map((dropdown) => {
+            const IconComponent = dropdown.icon;
+            const isOpen = openDropdown === dropdown.name;
+
+            return (
+            <div key={dropdown.name} className="relative">
+                {/* Dropdown Button */}
+                <button
+                onClick={(e) => handleDropdownClick(e, dropdown.name)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
+                >
+                <div className={`p-1.5 rounded-md border ${dropdown.color}`}>
+                    <IconComponent className="h-4 w-4" />
+                </div>
+                <span className="font-medium">{dropdown.name}</span>
+                <ChevronDown
+                    className={`h-4 w-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
+                </button>
+
+                {/* Dropdown Items */}
+                {isOpen && (
+                <div className="absolute top-full left-0 mt-2 w-80 bg-white border-2 border-gray-300 rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-200">
+                    <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2">
+                    <div className={`p-1.5 rounded-md border ${dropdown.color}`}>
+                        <IconComponent className="h-4 w-4" />
+                    </div>
+                    <div>
+                        <p className="font-medium text-gray-900">{dropdown.name}</p>
+                        <p className="text-xs text-gray-500">{dropdown.items.length} options</p>
+                    </div>
+                    </div>
+
+                    <div className="py-1">
+                    {dropdown.items.map((item, index) => (
+                        <button
+                        key={item.name}
+                        onClick={() => handleDropdownItemClick(item.href)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 flex items-center gap-3"
+                        >
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0"></div>
+                        <span className="flex-1">{item.name}</span>
+                        <div className="text-xs text-gray-400">#{index + 1}</div>
+                        </button>
+                    ))}
+                    </div>
+                </div>
+                )}
+            </div>
+            );
+        })}
+        </div>
+    
       <div className="p-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
