@@ -9,7 +9,6 @@ import {
   Calendar, 
   Car, 
   AlertTriangle,
-  Download,
   Eye,
   Filter,
   Search,
@@ -439,58 +438,6 @@ export default function ReportPage() {
               </div>
             );
           })}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8 rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6">
-            <h3 className="text-2xl leading-none tracking-tight">Quick Actions</h3>
-            <p className="text-sm text-muted-foreground">
-              Frequently used report operations
-            </p>
-          </div>
-          <div className="p-6 pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button 
-                onClick={() => navigate("/reports/bulk-generate")}
-                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <div className="p-2 rounded-lg bg-blue-100">
-                  <Download className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Generate All Reports</p>
-                  <p className="text-xs text-muted-foreground">Bulk generate all available reports</p>
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => navigate("/reports/scheduler")}
-                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <div className="p-2 rounded-lg bg-green-100">
-                  <Calendar className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Schedule Reports</p>
-                  <p className="text-xs text-muted-foreground">Set up automated report generation</p>
-                </div>
-              </button>
-              
-              <button 
-                onClick={() => navigate("/reports/history")}
-                className="flex items-center gap-3 p-4 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-              >
-                <div className="p-2 rounded-lg bg-purple-100">
-                  <History className="h-4 w-4 text-purple-600" />
-                </div>
-                <div className="text-left">
-                  <p className="font-medium">Report History</p>
-                  <p className="text-xs text-muted-foreground">View previously generated reports</p>
-                </div>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
