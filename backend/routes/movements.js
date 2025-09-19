@@ -333,7 +333,46 @@ router.get("/overstayed", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Database error fetching overstayed vehicles", details: err.message });
   }
-});;
+});
+
+// --- GET entry transactions ---
+router.get("/entry-transactions", async (req, res) => {
+  const { start_date, end_date, ticket_search } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+    let query = "SELECT * FROM MovementTrans WHERE 1=1";
+    const request = pool.request();
+
+    // Filter by Ticket/Card/Vehicle No (partial match)
+    if (ticket_search) {
+      query += ` AND (
+        ticket_id LIKE @ticket_search OR
+        card_number LIKE @ticket_search OR
+        vehicle_number LIKE @ticket_search
+      )`;
+      request.input("ticket_search", sql.NVarChar, `%${ticket_search}%`);
+    }
+
+    // Filter by entry_datetime/date range
+    if (start_date) {
+      query += " AND entry_datetime >= @start_date";
+      request.input("start_date", sql.DateTime, new Date(start_date));
+    }
+    if (end_date) {
+      const end = new Date(end_date);
+      end.setHours(23, 59, 59, 999);
+      query += " AND entry_datetime <= @end_date";
+      request.input("end_date", sql.DateTime, end);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
 
 router.post("/entry", async (req, res) => {
   const {

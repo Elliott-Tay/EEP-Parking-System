@@ -103,4 +103,39 @@ router.delete("/holidays/:id", async (req, res) => {
   }
 });
 
+// --- GET season holders ---
+router.get("/season-holder", async (req, res) => {
+  const { seasonNo, vehicleNo, holderName, company } = req.query;
+
+  try {
+    const pool = await getPool();
+    let query = "SELECT * FROM SeasonHolders WHERE 1=1";
+    const request = pool.request();
+
+    const { searchTerm } = req.query; // frontend sends 'searchTerm'
+
+    if (seasonNo) {
+        query += " AND season_no = @seasonNo";
+        request.input("seasonNo", sql.VarChar, seasonNo);
+    }
+
+    if (searchTerm) {
+        query += ` AND (
+            season_no LIKE @searchTerm OR
+            vehicle_no LIKE @searchTerm OR
+            holder_name LIKE @searchTerm OR
+            company LIKE @searchTerm
+        )`;
+        request.input("searchTerm", sql.NVarChar, `%${searchTerm}%`);
+    }
+
+    const result = await request.query(query);
+    res.json({ count: result.recordset.length, data: result.recordset });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+
 module.exports = router;

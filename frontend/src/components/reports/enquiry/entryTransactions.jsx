@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 export default function EntryTransaction() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [iuTicketNo, setIuTicketNo] = useState("");
+  const [ticketSearch, setTicketSearch] = useState("");
   const [results, setResults] = useState([]);
   const navigate = useNavigate();
 
@@ -13,20 +13,20 @@ export default function EntryTransaction() {
       const queryParams = new URLSearchParams({
         start_date: startDate,
         end_date: endDate,
-        iu_ticket_no: iuTicketNo
+        ticket_search: ticketSearch
       });
 
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/entry-transactions?${queryParams.toString()}`,
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/entry-transactions?${queryParams.toString()}`,
         { method: "GET", headers: { "Content-Type": "application/json" } }
       );
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Error: ${response.status}`);
 
       const data = await response.json();
-      setResults(data); // assuming API returns an array of entry transactions
+
+      console.log('results', results);
+      setResults(data); // array of MovementTrans records
     } catch (error) {
       console.error(error);
       alert("Failed to fetch entry transactions.");
@@ -37,7 +37,7 @@ export default function EntryTransaction() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-start p-8">
       <h1 className="text-2xl font-bold mb-6">Entry Transaction Enquiry</h1>
 
-      <div className="w-full max-w-xl bg-white border rounded-lg shadow p-6 space-y-4">
+      <div className="w-full max-w-5xl bg-white border rounded-lg shadow p-6 space-y-4">
         
         {/* Report Period */}
         <div className="flex gap-4 items-center">
@@ -57,14 +57,14 @@ export default function EntryTransaction() {
           />
         </div>
 
-        {/* IU/Cashcard/Ticket No */}
+        {/* Ticket/Vehicle/Card Search */}
         <div className="flex gap-4 items-center">
-          <label className="font-medium text-gray-700 w-32">IU/Cashcard/Ticket No:</label>
+          <label className="font-medium text-gray-700 w-32">Ticket/Vehicle/Card No:</label>
           <input
             type="text"
-            value={iuTicketNo}
-            onChange={(e) => setIuTicketNo(e.target.value)}
-            placeholder="Enter IU, Cashcard, or Ticket No"
+            value={ticketSearch}
+            onChange={(e) => setTicketSearch(e.target.value)}
+            placeholder="Enter Ticket ID, Card Number, or Vehicle Number"
             className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -84,9 +84,12 @@ export default function EntryTransaction() {
           <table className="min-w-full table-auto border-collapse border border-gray-300">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border px-3 py-2 text-left">IU/Ticket No</th>
-                <th className="border px-3 py-2 text-left">Type</th>
+                <th className="border px-3 py-2 text-left">Card No</th>
+                <th className="border px-3 py-2 text-left">Entry Type</th>
                 <th className="border px-3 py-2 text-left">Entry Time</th>
+                <th className="border px-3 py-2 text-left">Vehicle No</th>
+                <th className="border px-3 py-2 text-left">Ticket Type</th>
+                <th className="border px-3 py-2 text-left">Paid Amount</th>
                 <th className="border px-3 py-2 text-left">Status</th>
               </tr>
             </thead>
@@ -94,15 +97,20 @@ export default function EntryTransaction() {
               {results.length > 0 ? (
                 results.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
-                    <td className="border px-3 py-2">{item.iu_ticket_no}</td>
-                    <td className="border px-3 py-2">{item.type}</td>
-                    <td className="border px-3 py-2">{item.entry_time}</td>
-                    <td className="border px-3 py-2">{item.status}</td>
+                    <td className="border px-3 py-2">{item.card_number}</td>
+                    <td className="border px-3 py-2">{item.entry_trans_type}</td>
+                    <td className="border px-3 py-2">{item.entry_datetime}</td>
+                    <td className="border px-3 py-2">{item.vehicle_number}</td>
+                    <td className="border px-3 py-2">{item.ticket_type}</td>
+                    <td className="border px-3 py-2">{item.paid_amount}</td>
+                    <td className="border px-3 py-2">
+                      {item.exit_trans_type ? "Exited" : "In Parking"}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td className="border px-3 py-2 text-center" colSpan={4}>
+                  <td className="border px-3 py-2 text-center" colSpan={7}>
                     No record found!
                   </td>
                 </tr>

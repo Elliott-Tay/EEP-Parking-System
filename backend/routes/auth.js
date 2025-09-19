@@ -133,6 +133,17 @@ router.post("/login", async (req, res) => {
       .input("id", sql.Int, user.id)
       .execute("sp_UpdateLastLogin");
 
+    // Insert login log
+    await pool
+      .request()
+      .input("user_id", sql.Int, user.id)
+      .input("username", sql.VarChar, user.username) // <-- add this
+      .input("login_time", sql.DateTime, new Date())
+      .input("ip_address", sql.VarChar, req.ip)
+      .input("device_info", sql.VarChar, req.headers["user-agent"])
+      .query(
+        "INSERT INTO UserLoginLog (user_id, username, login_time, ip_address, device_info) VALUES (@user_id, @username, @login_time, @ip_address, @device_info)"
+    );
     // Generate JWT
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
@@ -141,6 +152,31 @@ router.post("/login", async (req, res) => {
     );
 
     res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/logout", async (req, res) => {
+  const { userId } = req.body; // Pass the user's ID from frontend or decoded JWT
+  if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+  try {
+    const pool = await getPool();
+
+    // Update the latest login record for this user
+    await pool
+      .request()
+      .input("user_id", sql.Int, userId)
+      .input("logout_time", sql.DateTime, new Date())
+      .query(`
+        UPDATE UserLoginLog
+        SET logout_time = @logout_time
+        WHERE user_id = @user_id AND logout_time IS NULL
+      `);
+
+    res.json({ message: "Logout recorded successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
