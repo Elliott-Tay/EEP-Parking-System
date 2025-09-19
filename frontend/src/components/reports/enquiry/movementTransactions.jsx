@@ -64,18 +64,6 @@ export default function MovementTransaction() {
           />
         </div>
 
-        {/* IU/Cashcard/Ticket No */}
-        <div className="flex gap-4 items-center">
-          <label className="font-medium text-gray-700 w-32">IU/Cashcard/Ticket No:</label>
-          <input
-            type="text"
-            value={iuTicketNo}
-            onChange={(e) => setIuTicketNo(e.target.value)}
-            placeholder="Enter IU, Cashcard, or Ticket No"
-            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
         {/* Vehicle No */}
         <div className="flex gap-4 items-center">
           <label className="font-medium text-gray-700 w-32">Vehicle No:</label>

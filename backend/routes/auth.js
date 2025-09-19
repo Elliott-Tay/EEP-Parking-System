@@ -147,6 +147,51 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// ======== CHANGE PASSWORD ========
+router.post("/change-password", async (req, res) => {
+  const { username, old_password, new_password } = req.body;
+
+  if (!username || !old_password || !new_password) {
+    return res.status(400).json({ error: "Username, old password, and new password are required" });
+  }
+
+  try {
+    const pool = await getPool();
+
+    // Fetch user by username
+    const result = await pool
+      .request()
+      .input("username", sql.VarChar, username)
+      .execute("sp_GetUserByUsername"); // make sure this SP exists
+
+    const user = result.recordset[0];
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Verify old password
+    const isMatch = await bcrypt.compare(old_password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Old password is incorrect" });
+    }
+
+    // Hash new password
+    const newHash = await bcrypt.hash(new_password, 12);
+
+    // Update password in DB
+    await pool
+      .request()
+      .input("id", sql.Int, user.id)
+      .input("password_hash", sql.VarChar, newHash)
+      .execute("sp_UpdateUserPassword");
+
+    res.json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+});
+
 // ======== AUTH MIDDLEWARE ========
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
