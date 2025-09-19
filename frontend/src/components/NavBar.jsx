@@ -35,13 +35,14 @@ function NavBar() {
   const handleAuthClick = () => {
     if (isLoggedIn) {
       localStorage.removeItem("token"); // log out
-      navigate("/login");
+      navigate("/");                     // navigate to home
+      window.location.reload();          // reload page to reset state
     } else {
       navigate("/login"); // go to login
     }
     setIsOpen(false);
   };
-
+  
   return (
     <nav className="bg-red-600 text-white shadow-lg border-b border-red-500/20 sticky top-0 z-50 backdrop-blur-sm">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
