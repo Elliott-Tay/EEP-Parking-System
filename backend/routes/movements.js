@@ -218,123 +218,61 @@ router.get("/season-checker", async (req, res) => {
 
 /**
  * @swagger
- * /range:
+ * /day/{date}:
  *   get:
- *     summary: Fetch movement transactions within a date range
+ *     summary: Fetch movement transactions for a specific date
  *     parameters:
- *       - in: query
- *         name: start
+ *       - in: path
+ *         name: date
  *         required: true
  *         schema:
  *           type: string
  *           format: date
- *         description: Start date (YYYY-MM-DD)
- *       - in: query
- *         name: end
- *         required: true
- *         schema:
- *           type: string
- *           format: date
- *         description: End date (YYYY-MM-DD)
+ *           example: "2025-09-12"
+ *         description: Date in YYYY-MM-DD format
  *     responses:
  *       200:
- *         description: Records found for the given date range
+ *         description: List of movement transactions for the given date
  *       400:
- *         description: Missing or invalid query parameters
+ *         description: Missing or invalid date parameter
  *       404:
- *         description: No records found
+ *         description: No records found for this date
  *       500:
  *         description: Database error
  */
-router.get("/range", async (req, res) => {
-  try {
-    const { start, end } = req.query; 
-
-    if (!start || !end) {
-      return res.status(400).json({ error: "Missing start or end date" });
-    }
-
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res.status(400).json({ error: "Invalid date format, use YYYY-MM-DD" });
-    }
-
-    if (startDate > endDate) {
-      return res.status(400).json({ error: "Start date cannot be after end date" });
-    }
-
-    // Increment endDate by 1 day so we include the end day completely
-    const inclusiveEndDate = new Date(endDate);
-    inclusiveEndDate.setDate(inclusiveEndDate.getDate() + 1);
-
-    // Query database
-    const [rows] = await db.query(
-      `SELECT *
-        FROM movement_transactions
-        WHERE entry_datetime >= ? AND entry_datetime < ?
-        ORDER BY entry_datetime ASC;`,
-      [startDate, inclusiveEndDate]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "No records found for this range" });
-    }
-
-    res.json({
-      start,
-      end,
-      count: rows.length,
-      data: rows
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Database error fetching data", details: error.message });
-  }
-});
-
 router.get("/day/:date", async (req, res) => {
   try {
     const { date } = req.params;
 
-    if (!date) {
-      return res.status(400).json({ error: "Missing date parameter" });
-    }
-
-    const startDate = new Date(date);
-    if (isNaN(startDate.getTime())) {
+    if (!date) return res.status(400).json({ error: "Missing date parameter" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ error: "Invalid date format, use YYYY-MM-DD" });
     }
 
-    // End of the day (next day at 00:00)
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 1);
+    const query = `
+      SELECT *
+      FROM MovementTrans
+      WHERE CONVERT(VARCHAR, entry_datetime, 23) = @date
+      ORDER BY entry_datetime ASC
+    `;
 
-    // Query database
-    const [rows] = await db.query(
-      `SELECT *
-       FROM movement_transactions
-       WHERE entry_datetime >= ? AND entry_datetime < ?
-       ORDER BY entry_datetime ASC`,
-      [startDate, endDate]
-    );
+    const pool = await sql.connect(config);
+    const result = await pool.request()
+      .input('date', sql.VarChar, date) // pass date as string
+      .query(query);
 
-    if (rows.length === 0) {
-      return res.status(404).json({ error: "No records found for this day" });
+    const rows = result.recordset;
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "No records found for this date" });
     }
 
-    res.json({
-      date,
-      count: rows.length,
-      data: rows
-    });
+    res.json({ date, count: rows.length, data: rows });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error fetching data", details: error.message });
   }
 });
-
 
 router.get("/monthly/:month", async (req, res) => {
   try {

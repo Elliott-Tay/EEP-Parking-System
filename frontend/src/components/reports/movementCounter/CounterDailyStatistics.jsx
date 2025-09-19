@@ -1,158 +1,440 @@
-// src/components/reports/CounterDailyStatistics.js
 import React, { useState, useEffect } from "react";
-import { Search, Download, Eye, BarChart3 } from "lucide-react";
+import { 
+  Search, 
+  Download, 
+  Eye, 
+  X, 
+  ArrowLeft, 
+  Calendar, 
+  BarChart3, 
+  TrendingUp, 
+  Users, 
+  DollarSign,
+  Clock,
+  MapPin,
+  FileText,
+  Filter,
+  RefreshCw
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 function CounterDailyStatistics() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [records, setRecords] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [previewRecord, setPreviewRecord] = useState(null);
 
-  // Dummy data
+  const env_backend = process.env.REACT_APP_BACKEND_API_URL;
+
   useEffect(() => {
-    const dummyData = [
-      {
-        id: 1,
-        date: "2025-09-17",
-        counter: "A1",
-        totalVehicles: 320,
-        peakHourVehicles: 50,
-        downtimeMinutes: 0,
-      },
-      {
-        id: 2,
-        date: "2025-09-17",
-        counter: "B2",
-        totalVehicles: 280,
-        peakHourVehicles: 45,
-        downtimeMinutes: 5,
-      },
-      {
-        id: 3,
-        date: "2025-09-16",
-        counter: "A1",
-        totalVehicles: 310,
-        peakHourVehicles: 48,
-        downtimeMinutes: 0,
-      },
-    ];
-    setRecords(dummyData);
-  }, []);
+    if (!selectedDate) return;
 
-  const filteredRecords = records.filter(
-    (r) =>
-      r.date.includes(searchTerm) ||
-      r.counter.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.totalVehicles.toString().includes(searchTerm)
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${env_backend}/api/movements/day/${selectedDate}`
+        );
+        const result = await response.json();
+        const mappedRecords = result.data.map((r) => ({ ...r }));
+        setRecords(mappedRecords);
+      } catch (err) {
+        console.error("Error fetching records:", err);
+        setRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedDate, env_backend]);
+
+  const filteredRecords = records.filter((r) =>
+    Object.values(r).some((val) =>
+      val ? val.toString().toLowerCase().includes(searchTerm.toLowerCase()) : false
+    )
   );
 
   const handleDownload = (record) => {
-    console.log("Downloading Counter Daily Statistics for:", record.date, record.counter);
+    console.log("Downloading record:", record.log_id);
   };
 
   const handlePreview = (record) => {
-    console.log("Previewing Counter Daily Statistics for:", record.date, record.counter);
+    setPreviewRecord(record);
   };
 
+  const closeModal = () => setPreviewRecord(null);
+
+  // Summary calculations
+  const totalParkingCharges = filteredRecords.reduce(
+    (sum, r) => sum + (r.parking_charges || 0),
+    0
+  );
+  const totalPaidAmount = filteredRecords.reduce(
+    (sum, r) => sum + (r.paid_amount || 0),
+    0
+  );
+  const uniqueCounters = [...new Set(filteredRecords.map((r) => r.entry_station_id))];
+  const avgParkingCharge = filteredRecords.length
+    ? (totalParkingCharges / filteredRecords.length).toFixed(2)
+    : 0;
+
+  const tableColumns = [
+    "log_id",
+    "vehicle_id", 
+    "entry_trans_type",
+    "entry_station_id",
+    "entry_datetime",
+    "entry_datetime_detect",
+    "exit_trans_type",
+    "exit_station_id", 
+    "exit_datetime",
+    "exit_datetime_detect",
+    "parking_dur",
+    "parking_charges",
+    "paid_amount",
+    "card_type",
+    "card_number",
+    "vehicle_number",
+    "ticket_type",
+    "ticket_id",
+    "update_datetime",
+    "receipt_bit"
+  ];
+
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <h1 className="text-2xl font-semibold mb-4">Counter Daily Statistics</h1>
-
-      {/* Search */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by date, counter..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 w-full h-10 rounded-md border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="rounded-lg border bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <BarChart3 className="h-6 w-6 text-blue-600" />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b bg-card px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg hover:bg-accent transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+            </button>
+            <div className="p-2 rounded-lg bg-red-100 border border-red-200">
+              <BarChart3 className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl">Counter Daily Statistics</h1>
+              <p className="text-muted-foreground">Analyze daily transaction data and parking statistics</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Counters</p>
-            <p className="text-lg font-semibold">{new Set(records.map(r => r.counter)).size}</p>
-          </div>
-        </div>
-        <div className="rounded-lg border bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-100">
-            <BarChart3 className="h-6 w-6 text-green-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Vehicles Today</p>
-            <p className="text-lg font-semibold">
-              {records.reduce((sum, r) => sum + r.totalVehicles, 0)}
-            </p>
-          </div>
-        </div>
-        <div className="rounded-lg border bg-white p-4 shadow-sm flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-red-100">
-            <BarChart3 className="h-6 w-6 text-red-600" />
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">Total Downtime (min)</p>
-            <p className="text-lg font-semibold">
-              {records.reduce((sum, r) => sum + r.downtimeMinutes, 0)}
-            </p>
+          
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+            <span>Live Data</span>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto bg-white rounded-lg shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Counter</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Total Vehicles</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Peak Hour Vehicles</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Downtime (min)</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {filteredRecords.length > 0 ? (
-              filteredRecords.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm">{record.date}</td>
-                  <td className="px-6 py-4 text-sm">{record.counter}</td>
-                  <td className="px-6 py-4 text-sm">{record.totalVehicles}</td>
-                  <td className="px-6 py-4 text-sm">{record.peakHourVehicles}</td>
-                  <td className="px-6 py-4 text-sm">{record.downtimeMinutes}</td>
-                  <td className="px-6 py-4 text-sm flex gap-2">
-                    <button
-                      onClick={() => handlePreview(record)}
-                      className="flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      <Eye className="h-4 w-4" /> Preview
-                    </button>
-                    <button
-                      onClick={() => handleDownload(record)}
-                      className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                    >
-                      <Download className="h-4 w-4" /> Download
-                    </button>
-                  </td>
-                </tr>
-              ))
+      <div className="p-6 max-w-8xl mx-auto">
+        {/* Controls */}
+        <div className="mb-6 rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="flex flex-col space-y-1.5 p-6 pb-4">
+            <h3 className="text-lg leading-none tracking-tight">Data Filters & Search</h3>
+            <p className="text-sm text-muted-foreground">Configure date range and search criteria</p>
+          </div>
+          <div className="p-6 pt-0">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Date Picker */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Date</label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Search */}
+              <div className="flex-1 space-y-2">
+                <label className="text-sm font-medium">Search Records</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search all fields..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* Filter Button */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium invisible">Action</label>
+                <button className="h-10 inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        {!loading && filteredRecords.length > 0 && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Total Records</span>
+                </div>
+                <p className="text-2xl font-semibold">{filteredRecords.length}</p>
+                <p className="text-xs text-muted-foreground">Filtered results</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">Data Fields</span>
+                </div>
+                <p className="text-2xl font-semibold">{Object.keys(filteredRecords[0] || {}).length}</p>
+                <p className="text-xs text-muted-foreground">Per record</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-purple-800">Total Charges</span>
+                </div>
+                <p className="text-2xl font-semibold">${totalParkingCharges.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Parking fees</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-orange-600" />
+                  <span className="text-sm font-medium text-orange-800">Paid Amount</span>
+                </div>
+                <p className="text-2xl font-semibold">${totalPaidAmount.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">Collected</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="h-4 w-4 text-indigo-600" />
+                  <span className="text-sm font-medium text-indigo-800">Unique Counters</span>
+                </div>
+                <p className="text-lg font-semibold">{uniqueCounters.join(", ") || "N/A"}</p>
+                <p className="text-xs text-muted-foreground">Active stations</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4 text-teal-600" />
+                  <span className="text-sm font-medium text-teal-800">Avg Charge</span>
+                </div>
+                <p className="text-2xl font-semibold">${avgParkingCharge}</p>
+                <p className="text-xs text-muted-foreground">Per transaction</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Data Table */}
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="flex flex-col space-y-1.5 p-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg leading-none tracking-tight">Transaction Records</h3>
+                <p className="text-sm text-muted-foreground">
+                  {selectedDate ? `Data for ${selectedDate}` : 'Select a date to view records'}
+                </p>
+              </div>
+              {loading && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  <span>Loading...</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 pt-0">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <RefreshCw className="h-8 w-8 mx-auto text-muted-foreground animate-spin mb-4" />
+                  <p className="text-muted-foreground">Loading transaction records...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Please wait while we fetch the data</p>
+                </div>
+              </div>
+            ) : !selectedDate ? (
+              <div className="text-center py-12">
+                <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Select a Date</h3>
+                <p className="text-sm text-muted-foreground">Choose a date above to view transaction records</p>
+              </div>
             ) : (
-              <tr>
-                <td colSpan={6} className="text-center py-4 text-gray-500">
-                  No records found
-                </td>
-              </tr>
+              <div className="overflow-hidden rounded-lg border">
+                <div className="overflow-x-auto max-h-96">
+                  <table className="w-full">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr>
+                        {tableColumns.map((col) => (
+                          <th
+                            key={col}
+                            className="px-4 py-3 text-left text-sm font-medium text-muted-foreground whitespace-nowrap"
+                          >
+                            {col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </th>
+                        ))}
+                        <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground sticky right-0 bg-muted/50">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredRecords.length > 0 ? (
+                        filteredRecords.map((record, index) => (
+                          <tr key={record.log_id || index} className="hover:bg-muted/25 transition-colors">
+                            {tableColumns.map((col) => (
+                              <td key={col} className="px-4 py-3 text-sm whitespace-nowrap">
+                                <span className="truncate max-w-32 inline-block">
+                                  {record[col]?.toString() || "-"}
+                                </span>
+                              </td>
+                            ))}
+                            <td className="px-4 py-3 text-sm sticky right-0 bg-background">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handlePreview(record)}
+                                  className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors shadow-sm"
+                                  title="Preview Record"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => handleDownload(record)}
+                                  className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
+                                  title="Download Record"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  Export
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={tableColumns.length + 1} className="text-center py-12">
+                            <div className="text-center">
+                              <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                              <h3 className="text-lg font-medium text-foreground mb-2">No Records Found</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {searchTerm 
+                                  ? 'No records match your search criteria. Try adjusting your search term.'
+                                  : 'No transaction records available for the selected date.'
+                                }
+                              </p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
+
+      {/* Enhanced Modal */}
+      {previewRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="rounded-lg border bg-card text-card-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-300">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100 border border-blue-200">
+                    <Eye className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl leading-none tracking-tight">Transaction Record Preview</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Log ID: {previewRecord.log_id || 'N/A'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  title="Close Preview"
+                >
+                  <X className="h-5 w-5 text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(previewRecord).map(([key, value]) => (
+                    <div key={key} className="rounded-lg border bg-muted/25 p-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                        </label>
+                        <p className="text-sm font-mono break-all">
+                          {value?.toString() || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex items-center justify-between p-6 border-t bg-muted/25">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  <span>Last updated: {previewRecord.update_datetime || 'N/A'}</span>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleDownload(previewRecord)}
+                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Record
+                  </button>
+                  <button
+                    onClick={closeModal}
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
