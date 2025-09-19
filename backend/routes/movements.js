@@ -310,6 +310,31 @@ router.get("/monthly/:month", async (req, res) => {
   }
 });
 
+router.get("/overstayed", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const result = await pool.request().query(`
+      SELECT *,
+             DATEDIFF(HOUR, entry_datetime, ISNULL(exit_datetime, GETDATE())) AS hours_parked
+      FROM MovementTrans
+      WHERE DATEDIFF(HOUR, entry_datetime, ISNULL(exit_datetime, GETDATE())) > 72
+      ORDER BY entry_datetime ASC
+    `);
+
+    const rows = result.recordset;
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: "No vehicles have overstayed 72 hours." });
+    }
+
+    res.json({ count: rows.length, data: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error fetching overstayed vehicles", details: err.message });
+  }
+});;
+
 router.post("/entry", async (req, res) => {
   const {
     vehicle_id,

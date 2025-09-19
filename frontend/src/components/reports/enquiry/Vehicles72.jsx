@@ -3,10 +3,32 @@ import React, { useState } from "react";
 function VehiclesParked72HoursReport() {
   const [reportMonth, setReportMonth] = useState("");
 
-  const handleSearch = () => {
-    // TODO: Replace with actual API call, e.g. `${process.env.REACT_APP_BACKEND_API_URL}/api/parked-72hours`
-    console.log("Fetching Vehicles Parked >72 Hours", { reportMonth });
-  };
+  const handleSearch = async () => {
+    try {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/overstayed`);
+        const result = await response.json();
+
+        if (!response.ok) {
+        alert(result.error || "Failed to fetch overstayed vehicles");
+        return;
+        }
+
+        // Map backend data to table-friendly format
+        const mappedData = result.data.map((r) => ({
+        iuTicket: r.ticket_id || r.iu_no || r.cashcard_no,
+        entryTime: new Date(r.entry_datetime).toLocaleString(),
+        exitTime: r.exit_datetime ? new Date(r.exit_datetime).toLocaleString() : "-",
+        parkedTime: `${Math.floor(r.hours_parked)}:${Math.round((r.hours_parked % 1) * 60).toString().padStart(2, "0")}`,
+        paidAmount: r.paid_amount ?? "-",
+        vehicleNo: r.vehicle_number ?? "-",
+        }));
+
+        console.log(mappedData); // Replace with setState to render table
+    } catch (err) {
+        console.error(err);
+        alert("Server error while fetching overstayed vehicles.");
+    }
+    };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">

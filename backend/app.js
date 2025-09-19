@@ -8,6 +8,7 @@ const configRouter = require("./routes/config");
 const seasonRouter = require("./routes/season");
 const reportsRouter = require("./routes/reports");
 const { authRouter } = require("./routes/auth");
+const systemConfigurationRoute = require("./routes/systemConfiguraiton")
 
 require("dotenv").config();
 
@@ -46,6 +47,9 @@ app.use("/api/reports", reportsRouter);
 
 // Auth routes
 app.use("/api/auth", authRouter);
+
+// System configuration
+app.use("/api/system-configuration", systemConfigurationRoute)
 
 // 404 handler for undefined routes
 app.use((req, res) => {
