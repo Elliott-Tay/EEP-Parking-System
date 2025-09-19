@@ -1,6 +1,6 @@
 // src/components/reports/CounterMonthlyStatistics.js
 import React, { useState, useEffect } from "react";
-import { Search, Eye, Calendar, X } from "lucide-react";
+import { Search, Eye, Calendar, X, Download } from "lucide-react";
 
 export default function CounterMonthlyStatistics() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +32,9 @@ export default function CounterMonthlyStatistics() {
   }, [selectedMonth]);
 
   const filteredRecords = records.filter((r) =>
-    Object.values(r).some((val) => val?.toString().toLowerCase().includes(searchTerm.toLowerCase()))
+    Object.values(r).some((val) =>
+      val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const handlePreview = (record) => setSelectedRecord(record);
@@ -44,10 +46,30 @@ export default function CounterMonthlyStatistics() {
   const totalPaidAmount = filteredRecords.reduce((sum, r) => sum + (r.paid_amount || 0), 0);
   const totalParkingCharges = filteredRecords.reduce((sum, r) => sum + (r.parking_charges || 0), 0);
 
-  // Approximate avg daily vehicles
   const [year, month] = selectedMonth.split("-").map(Number);
   const daysInMonth = new Date(year, month, 0).getDate();
   const avgDailyVehicles = daysInMonth ? totalVehicles / daysInMonth : 0;
+
+  // --- CSV Download ---
+  const handleDownloadCSV = () => {
+    if (!filteredRecords.length) return;
+
+    const headers = Object.keys(filteredRecords[0]);
+    const csvContent = [
+      headers.join(","),
+      ...filteredRecords.map(r =>
+        headers.map(h => r[h] ?? "").join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `counter_monthly_${selectedMonth}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -71,6 +93,14 @@ export default function CounterMonthlyStatistics() {
             className="pl-10 w-full h-10 rounded-md border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+        {filteredRecords.length > 0 && (
+          <button
+            onClick={handleDownloadCSV}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            <Download className="h-4 w-4" /> Download CSV
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}

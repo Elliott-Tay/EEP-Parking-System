@@ -57,9 +57,39 @@ function CounterDailyStatistics() {
     )
   );
 
-  const handleDownload = (record) => {
-    console.log("Downloading record:", record.log_id);
-  };
+  const handleDownloadCSV = (singleRecord = null) => {
+    let csvData = [];
+    let filename = "counter_daily_records.csv";
+
+    if (singleRecord) {
+        // Export only a single record
+        csvData = [tableColumns.map(col => singleRecord[col] ?? "")];
+        filename = `counter_daily_record_${singleRecord.log_id}.csv`;
+    } else {
+        // Export all filtered records or placeholder if empty
+        if (filteredRecords.length > 0) {
+        csvData = filteredRecords.map(record =>
+            tableColumns.map(col => record[col] ?? "")
+        );
+        } else {
+        csvData = [tableColumns.map(() => "No records found")];
+        }
+    }
+
+    // Include headers
+    const csvContent = [
+        tableColumns.join(","), // header row
+        ...csvData.map(row => row.map(val => `"${val}"`).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    };
 
   const handlePreview = (record) => {
     setPreviewRecord(record);
@@ -176,6 +206,13 @@ function CounterDailyStatistics() {
                 <button className="h-10 inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors">
                   <Filter className="h-4 w-4 mr-2" />
                   Filter
+                </button>
+                <button
+                  onClick={() => handleDownloadCSV()}
+                  className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm ml-2"
+                  >
+                  <Download className="h-4 w-4" />
+                  Download CSV
                 </button>
               </div>
             </div>
@@ -327,14 +364,6 @@ function CounterDailyStatistics() {
                                   <Eye className="h-3 w-3" />
                                   View
                                 </button>
-                                <button
-                                  onClick={() => handleDownload(record)}
-                                  className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
-                                  title="Download Record"
-                                >
-                                  <Download className="h-3 w-3" />
-                                  Export
-                                </button>
                               </div>
                             </td>
                           </tr>
@@ -416,13 +445,6 @@ function CounterDailyStatistics() {
                   <span>Last updated: {previewRecord.update_datetime || 'N/A'}</span>
                 </div>
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => handleDownload(previewRecord)}
-                    className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors shadow-sm"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Record
-                  </button>
                   <button
                     onClick={closeModal}
                     className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
