@@ -277,10 +277,7 @@ router.get("/day/:date", async (req, res) => {
 router.get("/monthly/:month", async (req, res) => {
   try {
     const { month } = req.params;
-
-    if (!month) {
-      return res.status(400).json({ error: "Missing month parameter" });
-    }
+    if (!month) return res.status(400).json({ error: "Missing month parameter" });
 
     const [year, mon] = month.split("-").map(Number);
     if (!year || !mon || mon < 1 || mon > 12) {
@@ -288,70 +285,30 @@ router.get("/monthly/:month", async (req, res) => {
     }
 
     const startDate = new Date(year, mon - 1, 1);
-    const endDate = new Date(year, mon, 1); // next month
+    const endDate = new Date(year, mon, 1); // first day of next month
 
-    const [rows] = await db.query(
-        `SELECT *
-        FROM movement_transactions
-        WHERE entry_datetime >= ? AND entry_datetime < ?`,
-        [startDate, endDate]
-    );
+    const pool = await sql.connect(config); // your MSSQL config
+    const result = await pool.request()
+      .input("startDate", sql.DateTime, startDate)
+      .input("endDate", sql.DateTime, endDate)
+      .query(`
+        SELECT *
+        FROM MovementTrans
+        WHERE entry_datetime >= @startDate AND entry_datetime < @endDate
+        ORDER BY entry_datetime ASC
+      `);
 
-
-    if (rows.length === 0) {
+    const rows = result.recordset;
+    if (!rows || rows.length === 0) {
       return res.status(404).json({ error: "No records found for this month" });
     }
 
-    res.json({
-      month,
-      count: rows.length,
-      data: rows
-    });
+    res.json({ month, count: rows.length, data: rows });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Database error fetching monthly data", details: error.message });
   }
 });
-
-
-router.get("/counter/monthly", async (req, res) => {
-  try {
-    const { month } = req.query;
-
-    if (!month) {
-      return res.status(400).json({ error: "Missing month parameter" });
-    }
-
-    // Parse year and month
-    const [year, mon] = month.split("-").map(Number);
-    if (!year || !mon || mon < 1 || mon > 12) {
-      return res.status(400).json({ error: "Invalid month format, use YYYY-MM" });
-    }
-
-    // Start and end of the month
-    const startDate = new Date(year, mon - 1, 1);
-    const endDate = new Date(year, mon, 1); // next month
-
-    // Query database
-    const [rows] = await db.query(
-      `SELECT MONTH(entry_datetime) AS month, YEAR(entry_datetime) AS year, COUNT(*) AS entries
-       FROM movement_transactions
-       WHERE entry_datetime >= ? AND entry_datetime < ?
-       GROUP BY YEAR(entry_datetime), MONTH(entry_datetime)
-       ORDER BY YEAR(entry_datetime), MONTH(entry_datetime)`,
-      [startDate, endDate]
-    );
-
-    res.json({
-      month,
-      data: rows
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Database error fetching monthly statistics", details: error.message });
-  }
-});
-
 
 router.post("/entry", async (req, res) => {
   const {
