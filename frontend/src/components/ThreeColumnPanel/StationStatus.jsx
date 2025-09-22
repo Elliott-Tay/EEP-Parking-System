@@ -14,7 +14,6 @@ const StationStatus = ({ env_backend }) => {
           fetch(`${env_backend}/api/movements/entry-station`),
           fetch(`${env_backend}/api/movements/exit-station`)
         ]);
-
         const [entryData, exitData] = await Promise.all([entryRes.json(), exitRes.json()]);
 
         setStation({
@@ -37,6 +36,8 @@ const StationStatus = ({ env_backend }) => {
     const entrySource = new EventSource(`${env_backend}/api/movements/stream/entries`);
     const exitSource = new EventSource(`${env_backend}/api/movements/stream/exits`);
 
+    console.log('entrySource', entrySource);
+    console.log('exitSource', exitSource);
     const updateStation = (type, data) => {
       setStation(prev => {
         const key = data.Station || data.id;

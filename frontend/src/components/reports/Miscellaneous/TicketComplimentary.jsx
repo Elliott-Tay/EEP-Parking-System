@@ -1,31 +1,76 @@
-// src/components/reports/TicketComplimentary.js
 import React, { useState, useEffect } from "react";
 import { Search, Download, Eye, Calendar } from "lucide-react";
 
 export default function TicketComplimentary() {
   const [searchTerm, setSearchTerm] = useState("");
   const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Dummy data for illustration
-    const dummyTickets = [
-      { id: 1, date: "2025-09-15", ticketNo: "CMP-00123", issuedBy: "Admin", reason: "Customer Service", status: "Used" },
-      { id: 2, date: "2025-09-16", ticketNo: "CMP-00124", issuedBy: "Admin", reason: "Promotion", status: "Unused" },
-      { id: 3, date: "2025-09-16", ticketNo: "CMP-00125", issuedBy: "Supervisor", reason: "VIP Guest", status: "Used" },
-    ];
-    setTickets(dummyTickets);
+    const fetchTickets = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/complimentary-tickets`
+        );
+        if (!response.ok) throw new Error("Failed to fetch tickets");
+
+        const data = await response.json();
+        setTickets(data);
+      } catch (err) {
+        console.error("Error fetching tickets:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTickets();
   }, []);
 
-  const filteredTickets = tickets.filter(
-    (ticket) =>
-      ticket.ticketNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.issuedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTickets = tickets.filter((ticket) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (ticket.ticketNo || "").toLowerCase().includes(term) ||
+      (ticket.issuedBy || "").toLowerCase().includes(term) ||
+      (ticket.reason || "").toLowerCase().includes(term) ||
+      (ticket.status || "").toLowerCase().includes(term) ||
+      (ticket.date || "").includes(term)
+    );
+  });
 
-  const handleViewTicket = (ticket) => console.log("View ticket:", ticket);
-  const handleDownloadTicket = (ticket) => console.log("Download ticket:", ticket);
+  const handleViewTicket = (ticket) => {
+    alert(
+      `Ticket No: ${ticket.ticketNo}\nDate: ${ticket.date}\nIssued By: ${ticket.issuedBy}\nReason: ${ticket.reason}\nStatus: ${ticket.status}`
+    );
+  };
+
+  const handleDownloadTicket = (ticket) => {
+    const csvContent = `Ticket No,Date,Issued By,Reason,Status\n${ticket.ticketNo},${ticket.date},${ticket.issuedBy},${ticket.reason},${ticket.status}`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${ticket.ticketNo}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadAll = () => {
+    if (!tickets.length) return;
+    const csvRows = ["Ticket No,Date,Issued By,Reason,Status"];
+    tickets.forEach((t) => {
+      csvRows.push(`${t.ticketNo},${t.date},${t.issuedBy},${t.reason},${t.status}`);
+    });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `complimentary_tickets.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -45,6 +90,12 @@ export default function TicketComplimentary() {
               className="pl-10 w-full h-10 rounded-md border border-gray-300 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <button
+            onClick={handleDownloadAll}
+            className="flex items-center gap-1 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            <Download className="h-4 w-4" /> Download All
+          </button>
         </div>
       </div>
 
@@ -61,7 +112,11 @@ export default function TicketComplimentary() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredTickets.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="text-center py-4 text-gray-500">Loading...</td>
+              </tr>
+            ) : filteredTickets.length > 0 ? (
               filteredTickets.map((ticket) => (
                 <tr key={ticket.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm">{ticket.date}</td>
@@ -93,9 +148,7 @@ export default function TicketComplimentary() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="text-center py-4 text-gray-500">
-                  No tickets found
-                </td>
+                <td colSpan={6} className="text-center py-4 text-gray-500">No tickets found</td>
               </tr>
             )}
           </tbody>

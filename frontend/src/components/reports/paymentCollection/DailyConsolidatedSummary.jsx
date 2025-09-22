@@ -1,37 +1,39 @@
-// src/components/reports/DailyConsolidatedSummary.js
 import React, { useState, useEffect } from "react";
-import { Search, Download, Eye } from "lucide-react";
+import { Search, Download, Eye, X } from "lucide-react";
 
 function DailyConsolidatedSummary() {
   const [searchTerm, setSearchTerm] = useState("");
   const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [previewRecord, setPreviewRecord] = useState(null);
 
-  // Dummy data for demonstration
+  // Fetch data from backend API
   useEffect(() => {
-    const dummyData = [
-      {
-        id: 1,
-        date: "2025-09-17",
-        totalPayments: 12500,
-        totalTransactions: 120,
-        discrepancies: 2,
-      },
-      {
-        id: 2,
-        date: "2025-09-16",
-        totalPayments: 11000,
-        totalTransactions: 105,
-        discrepancies: 0,
-      },
-      {
-        id: 3,
-        date: "2025-09-15",
-        totalPayments: 9800,
-        totalTransactions: 100,
-        discrepancies: -1,
-      },
-    ];
-    setRecords(dummyData);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/daily-consolidated-summary`
+        );
+        if (!response.ok) throw new Error("Failed to fetch data");
+        const data = await response.json();
+
+        const formatted = data.map((d, index) => ({
+          id: index + 1,
+          date: d.log_date.split("T")[0], // Keep only YYYY-MM-DD
+          totalPayments: d.totalPayments,
+          totalTransactions: d.totalTransactions,
+          discrepancies: d.discrepancies,
+        }));
+
+        setRecords(formatted);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const filteredRecords = records.filter(
@@ -43,12 +45,28 @@ function DailyConsolidatedSummary() {
   );
 
   const handleDownload = (record) => {
-    console.log("Downloading Daily Consolidated Summary for:", record.date);
+    // Convert the record to CSV
+    const headers = Object.keys(record).filter((k) => k !== "id");
+    const csvContent = [
+      headers.join(","), // header
+      headers.map((h) => `"${record[h]}"`).join(","), // row
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `daily_summary_${record.date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handlePreview = (record) => {
-    console.log("Previewing Daily Consolidated Summary for:", record.date);
+    setPreviewRecord(record);
   };
+
+  const closeModal = () => setPreviewRecord(null);
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -76,12 +94,18 @@ function DailyConsolidatedSummary() {
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Date</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Total Payments</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Total Transactions</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Discrepancies</th>
+              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Number of transactions</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredRecords.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-500">
+                  Loading...
+                </td>
+              </tr>
+            ) : filteredRecords.length > 0 ? (
               filteredRecords.map((record) => (
                 <tr key={record.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm">{record.date}</td>
@@ -120,6 +144,26 @@ function DailyConsolidatedSummary() {
           </tbody>
         </table>
       </div>
+
+      {/* Preview Modal */}
+      {previewRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 relative">
+            <button
+              onClick={closeModal}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <h2 className="text-xl font-semibold mb-4">Preview: {previewRecord.date}</h2>
+            <ul className="space-y-2">
+              <li>Total Payments: ${previewRecord.totalPayments.toLocaleString()}</li>
+              <li>Total Transactions: {previewRecord.totalTransactions}</li>
+              <li>Discrepancies: {previewRecord.discrepancies}</li>
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -467,6 +467,121 @@ router.get("/exit-invalid-transactions", async (req, res) => {
 });
 
 
+// --- GET daily consolidated summary ---
+router.get("/daily-consolidated-summary", async (req, res) => {
+  const { start_date, end_date, search } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+
+    let query = `
+      SELECT 
+        CAST(entry_datetime AS DATE) AS log_date,
+        SUM(ISNULL(paid_amount,0)) AS totalPayments,
+        COUNT(*) AS totalTransactions,
+        SUM(CASE WHEN ISNULL(parking_charges,0) <> ISNULL(paid_amount,0) THEN 1 ELSE 0 END) AS discrepancies
+      FROM MovementTrans
+      WHERE 1=1
+    `;
+
+    const request = pool.request();
+
+    // Filter by date range
+    if (start_date) {
+      query += " AND entry_datetime >= @start_date";
+      request.input("start_date", sql.DateTime, new Date(start_date));
+    }
+    if (end_date) {
+      const end = new Date(end_date);
+      end.setHours(23, 59, 59, 999);
+      query += " AND entry_datetime <= @end_date";
+      request.input("end_date", sql.DateTime, end);
+    }
+
+    query += " GROUP BY CAST(entry_datetime AS DATE) ORDER BY log_date DESC";
+
+    const result = await request.query(query);
+    let summaries = result.recordset;
+
+    // Optional search filter (date or totals)
+    if (search) {
+      const term = search.toLowerCase();
+      summaries = summaries.filter(
+        (r) =>
+          r.log_date.toISOString().includes(term) ||
+          r.totalPayments.toString().includes(term) ||
+          r.totalTransactions.toString().includes(term) ||
+          r.discrepancies.toString().includes(term)
+      );
+    }
+
+    res.json(summaries);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// --- GET CSV download for a specific date ---
+router.get("/daily-summary/download/:date", async (req, res) => {
+  const { date } = req.params;
+
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+    request.input("date", sql.Date, new Date(date));
+
+    const query = `
+      SELECT *
+      FROM MovementTrans
+      WHERE CAST(entry_datetime AS DATE) = @date
+    `;
+
+    const result = await request.query(query);
+    const records = result.recordset;
+
+    if (!records.length) {
+      return res.status(404).json({ error: "No records found for this date" });
+    }
+
+    // Convert to CSV
+    const headers = Object.keys(records[0]);
+    const csvData = [
+      headers.join(","), // header row
+      ...records.map((r) => headers.map((h) => `"${r[h] ?? ""}"`).join(",")),
+    ].join("\n");
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=daily_summary_${date}.csv`
+    );
+    res.send(csvData);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// GET all station errors
+router.get("/station-error-history", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const result = await pool.request().query(`
+      SELECT 
+      *
+      FROM StationErrorHistory
+      ORDER BY error_timestamp DESC
+    `);
+
+    res.json({ errors: result.recordset });
+  } catch (err) {
+    console.error("Error fetching station errors:", err);
+    res.status(500).json({ errors: [], message: "Failed to fetch station errors" });
+  }
+});
+
 router.post("/entry", async (req, res) => {
   const {
     vehicle_id,
@@ -690,6 +805,64 @@ router.post("/exit", async (req, res) => {
   }
 });
 
+// --- GET Complimentary Tickets ---
+router.get("/complimentary-tickets", async (req, res) => {
+  const { start_date, end_date, search } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+
+    let query = `
+      SELECT * FROM ComplimentaryTickets;
+    `;
+
+    const request = pool.request();
+
+    // Filter by date range
+    if (start_date) {
+      query += " AND CAST(issued_datetime AS DATE) >= @start_date";
+      request.input("start_date", sql.DateTime, new Date(start_date));
+    }
+    if (end_date) {
+      const end = new Date(end_date);
+      end.setHours(23, 59, 59, 999);
+      query += " AND CAST(issued_datetime AS DATE) <= @end_date";
+      request.input("end_date", sql.DateTime, end);
+    }
+
+    const result = await request.query(query);
+    let tickets = result.recordset;
+
+    // Optional search filter
+    if (search) {
+      const term = search.toLowerCase();
+      tickets = tickets.filter(
+        (t) =>
+          t.ticket_id.toString().includes(term) ||
+          t.vehicle_number.toLowerCase().includes(term) ||
+          t.issued_by?.toLowerCase().includes(term) ||
+          t.reason?.toLowerCase().includes(term) ||
+          t.status.toLowerCase().includes(term)
+      );
+    }
+
+    // Map to frontend-friendly format
+    tickets = tickets.map((t) => ({
+      id: t.ticket_id,
+      date: t.issued_datetime?.toISOString().split("T")[0] || "-",
+      ticketNo: `CMP-${String(t.ticket_id).padStart(5, "0")}`,
+      issuedBy: t.issued_by || "-",
+      reason: t.reason || "-",
+      status: t.status,
+    }));
+
+    res.json(tickets);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
 // SSE for entry stations
 router.get("/stream/entries", (req, res) => {
   res.set({
@@ -729,6 +902,27 @@ function broadcastExit(data) {
   exitClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
+async function logStationError(stationName, errorDescription) {
+  try {
+    const pool = await sql.connect(config);
+    const query = `
+      INSERT INTO StationErrorHistory 
+        (error_timestamp, station_name, error_description, resolved, created_at, updated_at)
+      VALUES 
+        (GETDATE(), @stationName, @errorDescription, 0, GETDATE(), GETDATE())
+    `;
+    await pool.request()
+      .input("stationName", sql.NVarChar, stationName)
+      .input("errorDescription", sql.NVarChar, errorDescription)
+      .query(query);
+
+  } catch (err) {
+    console.error("Failed to log station error:", err);
+  }
+}
+
+
+
 /**
  * @swagger
  * /entry-station:
@@ -751,13 +945,33 @@ function broadcastExit(data) {
  *       500:
  *         description: Internal server error
  */
-router.post("/entry-station", (req, res) => {
+router.post("/entry-station", async (req, res) => {
   try {
     const data = req.body;
+
+    // Broadcast normally
     broadcastEntry(data);
+
+    // Check if status indicates an error
+    if (data.Status && data.Status.toUpperCase() === "ERROR") {
+      const errors = Array.isArray(data.errors) ? data.errors : [data.errors || "Unknown error"];
+      for (const errMsg of errors) {
+        await logStationError(
+          data.Station || "Unknown Station",
+          errMsg,
+        );
+      }
+    }
+
     res.json({ success: true, ack: "ACK", data });
   } catch (error) {
     console.error("Error in /entry-station:", error);
+    
+    await logStationError(
+      req.body.Station || "Unknown Station",
+      error.message,
+    );
+
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
@@ -786,13 +1000,28 @@ router.post("/entry-station", (req, res) => {
  *       500:
  *         description: Internal server error
  */
-router.post("/exit-station", (req, res) => {
+router.post("/exit-station", async (req, res) => {
   try {
     const data = req.body;
+
+    // Push to SSE immediately, including errors if present
     broadcastExit(data);
+
+    // Also log to database if Status is ERROR
+    if (data.Status && data.Status.toUpperCase() === "ERROR") {
+      const errors = Array.isArray(data.errors) ? data.errors : [data.errors || "Unknown error"];
+      for (const errMsg of errors) {
+        await logStationError(data.Station || "Unknown Station", errMsg);
+      }
+    }
+
     res.json({ success: true, ack: "ACK", data });
   } catch (error) {
     console.error("Error in /exit-station:", error);
+
+    // Log internal server errors too
+    await logStationError(req.body.Station || "Unknown Station", error.message);
+
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
