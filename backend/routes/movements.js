@@ -374,6 +374,99 @@ router.get("/entry-transactions", async (req, res) => {
   }
 });
 
+// --- GET exit transactions with flexible filters ---
+router.get("/exit-valid-transactions", async (req, res) => {
+  const { start_date, end_date, ticket_id, vehicle_number, card_number } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+    let query = "SELECT * FROM MovementTrans WHERE exit_datetime IS NOT NULL";
+    const request = pool.request();
+
+    // Optional filters
+    if (ticket_id) {
+      query += " AND ticket_id LIKE @ticket_id";
+      request.input("ticket_id", sql.NVarChar, `%${ticket_id}%`);
+    }
+
+    if (vehicle_number) {
+      query += " AND vehicle_number LIKE @vehicle_number";
+      request.input("vehicle_number", sql.NVarChar, `%${vehicle_number}%`);
+    }
+
+    if (card_number) {
+      query += " AND card_number LIKE @card_number";
+      request.input("card_number", sql.NVarChar, `%${card_number}%`);
+    }
+
+    // Date range filters
+    if (start_date) {
+      query += " AND exit_datetime >= @start_date";
+      request.input("start_date", sql.DateTime, new Date(start_date));
+    }
+
+    if (end_date) {
+      const end = new Date(end_date);
+      end.setHours(23, 59, 59, 999); // include the full day
+      query += " AND exit_datetime <= @end_date";
+      request.input("end_date", sql.DateTime, end);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// --- GET exit invalid transactions ---
+router.get("/exit-invalid-transactions", async (req, res) => {
+  const { start_date, end_date, ticket_id, vehicle_number, card_number } = req.query;
+
+  try {
+    const pool = await sql.connect(config);
+    let query = "SELECT * FROM MovementTrans WHERE exit_datetime IS NULL AND parking_charges IS NULL AND paid_amount IS NULL ";
+    const request = pool.request();
+
+    // Optional filters
+    if (ticket_id) {
+      query += " AND ticket_id LIKE @ticket_id";
+      request.input("ticket_id", sql.NVarChar, `%${ticket_id}%`);
+    }
+
+    if (vehicle_number) {
+      query += " AND vehicle_number LIKE @vehicle_number";
+      request.input("vehicle_number", sql.NVarChar, `%${vehicle_number}%`);
+    }
+
+    if (card_number) {
+      query += " AND card_number LIKE @card_number";
+      request.input("card_number", sql.NVarChar, `%${card_number}%`);
+    }
+
+    // Date range filters based on entry_datetime
+    if (start_date) {
+      query += " AND entry_datetime >= @start_date";
+      request.input("start_date", sql.DateTime, new Date(start_date));
+    }
+
+    if (end_date) {
+      const end = new Date(end_date);
+      end.setHours(23, 59, 59, 999);
+      query += " AND entry_datetime <= @end_date";
+      request.input("end_date", sql.DateTime, end);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+
 router.post("/entry", async (req, res) => {
   const {
     vehicle_id,

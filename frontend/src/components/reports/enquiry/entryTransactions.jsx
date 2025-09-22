@@ -24,13 +24,17 @@ export default function EntryTransaction() {
       if (!response.ok) throw new Error(`Error: ${response.status}`);
 
       const data = await response.json();
-
-      console.log('results', results);
-      setResults(data); // array of MovementTrans records
+      console.log("API response:", data);
+      setResults(data); // MovementTrans records
     } catch (error) {
       console.error(error);
       alert("Failed to fetch entry transactions.");
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString(); // human-readable
   };
 
   return (
@@ -99,7 +103,7 @@ export default function EntryTransaction() {
                   <tr key={idx} className="hover:bg-gray-50">
                     <td className="border px-3 py-2">{item.card_number}</td>
                     <td className="border px-3 py-2">{item.entry_trans_type}</td>
-                    <td className="border px-3 py-2">{item.entry_datetime}</td>
+                    <td className="border px-3 py-2">{formatDate(item.entry_datetime)}</td>
                     <td className="border px-3 py-2">{item.vehicle_number}</td>
                     <td className="border px-3 py-2">{item.ticket_type}</td>
                     <td className="border px-3 py-2">{item.paid_amount}</td>
@@ -128,7 +132,6 @@ export default function EntryTransaction() {
             Home
           </button>
         </div>
-
       </div>
     </div>
   );

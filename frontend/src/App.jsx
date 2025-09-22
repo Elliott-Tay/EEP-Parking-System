@@ -31,7 +31,6 @@ import MovementTransaction from './components/reports/enquiry/movementTransactio
 import EntryTransaction from './components/reports/enquiry/entryTransactions';
 import ExitValidTransaction from './components/reports/enquiry/exitValidTransaction';
 import ExitInvalidTransactionDetail from './components/reports/enquiry/exitInvalidTransactions';
-import ExitInvalidTransactionSummary from './components/reports/enquiry/exitInvalidTransactionsSummary';
 import DailyComplimentaryEnquiry from './components/reports/enquiry/complimentary';
 import SeasonMasterHistoryEnquiry from './components/reports/enquiry/seasonMasterHistory';
 import CepasCollectionFileReport from './components/reports/enquiry/collectionFileReport';
@@ -120,7 +119,6 @@ function App() {
     { path: "/enquiry/entry-transaction", element: <EntryTransaction /> },
     { path: "/enquiry/exit-valid-transaction", element: <ExitValidTransaction /> },
     { path: "/enquiry/exit-invalid-detail", element: <ExitInvalidTransactionDetail /> },
-    { path: "/enquiry/exit-invalid-summary", element: <ExitInvalidTransactionSummary /> },
     { path: "/enquiry/complimentary", element: <DailyComplimentaryEnquiry /> },
     { path: "/enquiry/season-master-history", element: <SeasonMasterHistoryEnquiry /> },
     { path: "/enquiry/collection-file-report", element: <CepasCollectionFileReport /> },

@@ -1,40 +1,43 @@
 // src/components/reports/ToBeExpiredSeason.js
 import React, { useState, useEffect } from "react";
 import { Search, Calendar, Bell, RefreshCw } from "lucide-react";
+import axios from "axios";
 
 export default function ToBeExpiredSeason() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Dummy data
+  // Fetch data from API
   useEffect(() => {
-    const dummyCards = [
-      {
-        id: 1,
-        cardNumber: "SC-001",
-        holderName: "John Tan",
-        expiryDate: "2025-09-30",
-        daysLeft: 13,
-        status: "Active",
-      },
-      {
-        id: 2,
-        cardNumber: "SC-002",
-        holderName: "Mary Lim",
-        expiryDate: "2025-10-05",
-        daysLeft: 18,
-        status: "Active",
-      },
-      {
-        id: 3,
-        cardNumber: "SC-003",
-        holderName: "Alex Lee",
-        expiryDate: "2025-09-20",
-        daysLeft: 3,
-        status: "Active",
-      },
-    ];
-    setCards(dummyCards);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("http://localhost:5000/api/seasons/to-be-expired");
+        // Map API data to your table format
+        const mappedCards = res.data.map((item) => {
+          const expiryDate = new Date(item.valid_to);
+          const today = new Date();
+          const timeDiff = expiryDate - today;
+          const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+          return {
+            id: item.id,
+            cardNumber: item.season_no,
+            holderName: item.holder_name,
+            expiryDate: expiryDate.toISOString().split("T")[0], // format as YYYY-MM-DD
+            daysLeft,
+            status: item.season_status === "Valid" ? "Active" : "Expired",
+          };
+        });
+        setCards(mappedCards);
+      } catch (err) {
+        console.error("Error fetching to-be-expired seasons:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const filteredCards = cards.filter(
@@ -76,11 +79,16 @@ export default function ToBeExpiredSeason() {
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Expiry Date</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Days Left</th>
               <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
-              <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredCards.length > 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="text-center py-4 text-gray-500">
+                  Loading...
+                </td>
+              </tr>
+            ) : filteredCards.length > 0 ? (
               filteredCards.map((card) => (
                 <tr key={card.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 text-sm">{card.cardNumber}</td>
@@ -97,20 +105,6 @@ export default function ToBeExpiredSeason() {
                     >
                       {card.status}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm flex gap-2">
-                    <button
-                      onClick={() => handleNotify(card)}
-                      className="flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                    >
-                      <Bell className="h-4 w-4" /> Notify
-                    </button>
-                    <button
-                      onClick={() => handleRenew(card)}
-                      className="flex items-center gap-1 px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                    >
-                      <RefreshCw className="h-4 w-4" /> Renew
-                    </button>
                   </td>
                 </tr>
               ))

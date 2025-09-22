@@ -64,7 +64,6 @@ export default function ReportPage() {
         { name: "Entry Transaction", href: "/enquiry/entry-transaction" },
         { name: "Exit Valid Transaction", href: "/enquiry/exit-valid-transaction" },
         { name: "Exit Invalid Transaction Detail", href: "/enquiry/exit-invalid-detail" },
-        { name: "Exit Invalid Transaction Summary", href: "/enquiry/exit-invalid-summary" },
         { name: "Complimentary", href: "/enquiry/complimentary" },
         { name: "Season Master History", href: "/enquiry/season-master-history" },
         { name: "Collection File Report", href: "/enquiry/collection-file-report" },

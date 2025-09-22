@@ -17,15 +17,18 @@ export default function ExitValidTransaction() {
       });
 
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/exit-valid-transactions?${queryParams.toString()}`,
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/exit-valid-transactions?${queryParams.toString()}`,
         { method: "GET", headers: { "Content-Type": "application/json" } }
       );
+
+      console.log('response', response);
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('data', data);
       setResults(data); // assuming API returns an array of exit valid transactions
     } catch (error) {
       console.error(error);
@@ -84,7 +87,7 @@ export default function ExitValidTransaction() {
             <thead>
               <tr className="bg-gray-100">
                 <th className="border px-3 py-2 text-left">IU/Ticket No</th>
-                <th className="border px-3 py-2 text-left">Type</th>
+                <th className="border px-3 py-2 text-left">Vehicle No</th>
                 <th className="border px-3 py-2 text-left">Exit Time</th>
                 <th className="border px-3 py-2 text-left">Parked Time</th>
                 <th className="border px-3 py-2 text-left">Parking Fee</th>
@@ -97,13 +100,13 @@ export default function ExitValidTransaction() {
               {results.length > 0 ? (
                 results.map((item, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
-                    <td className="border px-3 py-2">{item.iu_ticket_no}</td>
-                    <td className="border px-3 py-2">{item.type}</td>
-                    <td className="border px-3 py-2">{item.exit_time}</td>
-                    <td className="border px-3 py-2">{item.parked_time}</td>
-                    <td className="border px-3 py-2">{item.parking_fee}</td>
+                    <td className="border px-3 py-2">{item.ticket_id}</td>
+                    <td className="border px-3 py-2">{item.vehicle_number}</td>
+                    <td className="border px-3 py-2">{item.exit_datetime}</td>
+                    <td className="border px-3 py-2">{item.entry_datetime}</td>
+                    <td className="border px-3 py-2">{item.parking_charges}</td>
                     <td className="border px-3 py-2">{item.card_type}</td>
-                    <td className="border px-3 py-2">{item.card_no}</td>
+                    <td className="border px-3 py-2">{item.card_number}</td>
                     <td className="border px-3 py-2">{item.status}</td>
                   </tr>
                 ))
