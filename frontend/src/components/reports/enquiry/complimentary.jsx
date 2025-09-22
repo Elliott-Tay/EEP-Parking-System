@@ -4,24 +4,21 @@ import { useNavigate } from "react-router-dom";
 export default function DailyComplimentaryEnquiry() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [serialFrom, setSerialFrom] = useState("");
-  const [serialTo, setSerialTo] = useState("");
   const [ticketNo, setTicketNo] = useState("");
   const [results, setResults] = useState([]);
   const navigate = useNavigate();
 
   const handleSearch = async () => {
+    if (!ticketNo) {
+      alert("Please enter a ticket number.");
+      return;
+    }
+
     try {
-      const queryParams = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate,
-        serial_from: serialFrom,
-        serial_to: serialTo,
-        ticket_no: ticketNo,
-      });
+      const queryParams = new URLSearchParams({ ticket_no: ticketNo });
 
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/complimentary?${queryParams.toString()}`,
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/complimentary?${queryParams.toString()}`,
         { method: "GET", headers: { "Content-Type": "application/json" } }
       );
 
@@ -30,7 +27,7 @@ export default function DailyComplimentaryEnquiry() {
       }
 
       const data = await response.json();
-      setResults(data); // assuming API returns an array of records
+      setResults(data); // assuming API returns an array
     } catch (error) {
       console.error(error);
       alert("Failed to fetch daily complimentary records.");
@@ -42,42 +39,6 @@ export default function DailyComplimentaryEnquiry() {
       <h1 className="text-2xl font-bold mb-6">Daily Complimentary Enquiry</h1>
 
       <div className="w-full max-w-6xl bg-white border rounded-lg shadow p-6 space-y-4">
-        {/* Report Period */}
-        <div className="flex flex-wrap gap-4 items-center">
-          <label className="font-medium text-gray-700 w-32">Report Period:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <span className="text-gray-500">to</span>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Serial No */}
-        <div className="flex flex-wrap gap-4 items-center">
-          <label className="font-medium text-gray-700 w-32">Serial No, From:</label>
-          <input
-            type="text"
-            value={serialFrom}
-            onChange={(e) => setSerialFrom(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <label className="font-medium text-gray-700">To:</label>
-          <input
-            type="text"
-            value={serialTo}
-            onChange={(e) => setSerialTo(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
         {/* Ticket No */}
         <div className="flex gap-4 items-center">
           <label className="font-medium text-gray-700 w-32">Ticket No:</label>

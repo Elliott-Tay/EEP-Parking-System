@@ -132,4 +132,37 @@ router.post("/system/restart-upos", authenticateToken, async (req, res) => {
   res.json({ success: true, message: "System restart-UPOS request received" });
 });
 
+router.post("/remote-control-logs", async (req, res) => {
+  const { event_time, action, user, device, status } = req.body;
+
+  if (!event_time || !action || !user || !device || !status) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      INSERT INTO RemoteControlHistory 
+        (event_time, action, [user], device, status, created_at, updated_at)
+      VALUES 
+        (@event_time, @action, @user, @device, @status, GETDATE(), GETDATE())
+    `;
+
+    const request = pool.request()
+      .input("event_time", sql.DateTime, event_time)
+      .input("action", sql.NVarChar, action)
+      .input("user", sql.NVarChar, user)
+      .input("device", sql.NVarChar, device)
+      .input("status", sql.NVarChar, status);
+
+    const result = await request.query(query);
+
+    res.json({ message: "Remote control log inserted successfully", rowsAffected: result.rowsAffected[0] });
+  } catch (err) {
+    console.error("Error inserting remote control log:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 module.exports = router;

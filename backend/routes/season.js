@@ -68,32 +68,47 @@ router.get("/to-be-expired", async (req, res) => {
   }
 });
 
-// Update a season by ID
-// Example: PUT /api/seasons/:season_id
-router.put("/:season_id", async (req, res) => {
-    const { season_id } = req.params;
-    const { name, start_date, end_date, price } = req.body; // adjust fields based on your schema
+// Change season no
+router.put("/change-season", async (req, res) => {
+  const { oldSeasonNo, newSeasonNo } = req.body;
 
-    try {
-        // Check if season exists
-        const [rows] = await db.query("SELECT * FROM seasons WHERE season_id = ?", [season_id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "Season not found" });
-        }
+  if (!oldSeasonNo || !newSeasonNo) {
+    return res.status(400).json({ error: "oldSeasonNo and newSeasonNo are required" });
+  }
 
-        // Update season
-        await db.query(
-            `UPDATE seasons 
-             SET name = ?, start_date = ?, end_date = ?, price = ?
-             WHERE season_id = ?`,
-            [name, start_date, end_date, price, season_id]
-        );
+  try {
+    const pool = await sql.connect(config);
 
-        res.json({ message: "Season updated successfully" });
-    } catch (err) {
-        console.error("Error updating season:", err);
-        res.status(500).json({ error: "Internal server error", details: err.message });
+    // Debug: log input values
+    console.log("Received payload:", { oldSeasonNo, newSeasonNo });
+
+    const query = `
+      UPDATE SeasonHolders
+      SET season_no = @newSeasonNo
+      WHERE season_no = @oldSeasonNo
+    `;
+
+    // Debug: log SQL query
+    console.log("Executing SQL:", query);
+
+    const request = pool.request()
+      .input("newSeasonNo", sql.NVarChar, newSeasonNo)
+      .input("oldSeasonNo", sql.NVarChar, oldSeasonNo);
+
+    const result = await request.query(query);
+
+    // Debug: log result
+    console.log("SQL Result:", result);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: "Old Season No not found" });
     }
+
+    res.json({ message: `Season No updated from ${oldSeasonNo} to ${newSeasonNo}` });
+  } catch (err) {
+    console.error("Error updating season:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 module.exports = router;

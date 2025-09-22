@@ -805,6 +805,88 @@ router.post("/exit", async (req, res) => {
   }
 });
 
+// GET /api/movement/outstanding?reportDate=YYYY-MM-DD&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+router.get("/outstanding", async (req, res) => {
+  const { reportDate } = req.query;
+
+  if (!reportDate) {
+    return res.status(400).json({ error: "reportDate is required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      SELECT *
+      FROM MovementTrans
+      WHERE CAST(entry_datetime AS DATE) = @reportDate
+        AND exit_datetime IS NULL
+      ORDER BY entry_datetime DESC
+    `;
+
+    const result = await pool.request()
+      .input("reportDate", sql.Date, reportDate)
+      .query(query);
+
+    res.json({ data: result.recordset || [] });
+  } catch (err) {
+    console.error("Error fetching outstanding movement transactions:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// GET Complimentary Movements by ticket
+router.get("/complimentary", async (req, res) => {
+  const { ticket_no } = req.query;
+
+  if (!ticket_no) {
+    return res.status(400).json({ error: "ticket_no is required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const request = pool.request();
+    request.input("ticket_no", sql.Int, parseInt(ticket_no, 10));
+
+    const query = `
+      SELECT *
+      FROM ComplimentaryTickets
+      WHERE ticket_id = @ticket_no
+    `;
+
+    const result = await request.query(query);
+    const tickets = result.recordset.map((t) => ({
+      serial_no: t.ticket_id,
+      complimentary_no: t.vehicle_id,
+      issue_time: t.issued_datetime
+        ? new Date(t.issued_datetime).toISOString().slice(0, 16).replace("T", " ")
+        : "-",
+      issue_by: t.issued_by || "-",
+      expire_time: t.update_datetime
+        ? new Date(t.update_datetime).toISOString().slice(0, 16).replace("T", " ")
+        : "-",
+      entry_time: t.entry_datetime
+        ? new Date(t.entry_datetime).toISOString().slice(0, 16).replace("T", " ")
+        : "-",
+      exit_time: t.exit_datetime
+        ? new Date(t.exit_datetime).toISOString().slice(0, 16).replace("T", " ")
+        : "-",
+      iu_card_no: t.vehicle_number || "-",
+      parked_time: t.entry_datetime && t.exit_datetime
+        ? Math.round((new Date(t.exit_datetime) - new Date(t.entry_datetime)) / 60000) + " min"
+        : "-",
+      parking_fee: t.ticket_type === 0 ? 0 : "-", // example, adjust if needed
+    }));
+
+    res.json(tickets);
+  } catch (err) {
+    console.error("Database error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+
 // --- GET Complimentary Tickets ---
 router.get("/complimentary-tickets", async (req, res) => {
   const { start_date, end_date, search } = req.query;

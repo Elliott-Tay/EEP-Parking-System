@@ -217,12 +217,38 @@ function StationControlModal({ onClose }) {
       return;
     }
 
+    // --- Check JWT expiration ---
+    let username;
     try {
+      const payloadBase64 = token.split(".")[1];
+      const payloadJson = atob(payloadBase64);
+      const payload = JSON.parse(payloadJson);
+
+      username = payload.username || payload.sub;
+
+      const now = Math.floor(Date.now() / 1000); // current timestamp in seconds
+      if (payload.exp && payload.exp < now) {
+        // Token expired
+        toast.error("Session expired. Please log in again.");
+        localStorage.removeItem("token");
+        onClose?.(); // close modal or navigate away
+        return; // stop further execution
+      }
+    } catch (err) {
+      console.error("Invalid token:", err);
+      toast.error("Invalid session. Please log in again.");
+      localStorage.removeItem("token");
+      onClose?.();
+      return;
+    }
+
+    try {
+      // Perform the main action
       const res = await fetch(config.url, {
         method: config.method,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`, // include JWT
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({ remarks }),
       });
@@ -230,7 +256,6 @@ function StationControlModal({ onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        // Handle authentication errors specifically
         if (res.status === 401 || res.status === 403) {
           toast.error("Session expired or unauthorized. Please log in again.");
           localStorage.removeItem("token");
@@ -238,16 +263,31 @@ function StationControlModal({ onClose }) {
         } else {
           toast.error(data.error || "Action failed");
         }
-      } else {
-        toast.success(`Action performed: ${action}`);
-        setRemarks("");
-        onClose?.();
+        return;
       }
+
+      toast.success(`Action performed: ${action}`);
+      setRemarks("");
+      onClose?.();
+
+      // Log the action
+      await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/remote-control-logs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_time: new Date().toISOString(),
+          action,
+          user: username,
+          device: "PMS",
+          status: "Successful",
+        }),
+      });
     } catch (err) {
       console.error(err);
       toast.error("Error performing action: " + err);
     }
   };
+
 
   return (
     <div className="p-6">
