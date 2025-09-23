@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function DailyComplimentaryEnquiry() {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [ticketNo, setTicketNo] = useState("");
   const [results, setResults] = useState([]);
   const navigate = useNavigate();

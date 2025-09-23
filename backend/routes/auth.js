@@ -248,6 +248,48 @@ router.post("/change-password", async (req, res) => {
   }
 });
 
+// ======== GET USERS ========
+router.get("/users", async (req, res) => {
+  try {
+    const pool = await getPool();
+    let { startDate, endDate } = req.query;
+
+    // Transform date-only strings to full datetime ranges
+    if (startDate) {
+      startDate = new Date(startDate + "T00:00:00");
+    }
+    if (endDate) {
+      endDate = new Date(endDate + "T23:59:59.999"); // include full day
+    }
+
+    let query = "SELECT username, email, last_login FROM users";
+    if (startDate && endDate) {
+      query += " WHERE last_login BETWEEN @startDate AND @endDate";
+    } else if (startDate) {
+      query += " WHERE last_login >= @startDate";
+    } else if (endDate) {
+      query += " WHERE last_login <= @endDate";
+    }
+
+    const request = pool.request();
+    if (startDate) request.input("startDate", sql.DateTime, startDate);
+    if (endDate) request.input("endDate", sql.DateTime, endDate);
+
+    const result = await request.query(query);
+    const users = result.recordset;
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: "No users found for the given period" });
+    }
+
+    res.json(users);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+});
+
+
 // ======== AUTH MIDDLEWARE ========
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];

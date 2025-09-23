@@ -33,7 +33,6 @@ router.get("/", async (req, res) => {
     // Map the recordset to DTOs
     const response = result.recordset.map(row => new MovementDTO(row));
 
-    console.log('response', response);
     res.json(response);
   } catch (err) {
     console.error("SQL error", err);

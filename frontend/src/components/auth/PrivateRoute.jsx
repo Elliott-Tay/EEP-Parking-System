@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute = ({ children, requiredRole }) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -20,10 +20,19 @@ const PrivateRoute = ({ children }) => {
       // Token expired → remove it and reload
       localStorage.removeItem("token");
       window.location.replace("/"); // full reload to ensure token is gone
-      return null; // prevent rendering anything
+      return null;
     }
 
-    // Token valid → render the page
+    // Check for role if required
+    if (requiredRole && payload.role !== requiredRole) {
+      // Show alert message
+      alert("Access denied: Admins only");
+
+      // User does not have required role → redirect
+      return <Navigate to="/" replace />;
+    }
+
+    // Token valid and role allowed → render page
     return children;
   } catch (err) {
     console.error("Invalid token:", err);

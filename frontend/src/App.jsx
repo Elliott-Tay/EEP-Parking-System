@@ -90,7 +90,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
   const protectedRoutes = [
-    { path: "/configuration", element: <ConfigurationPage /> },
+    { path: "/configuration", element: <ConfigurationPage />, requiredRole: "admin" },
     { path: "/reports", element: <ReportPage /> },
     { path: "/reports/daily-settlement", element: <DailySettlementReport /> },
     { path: "/reports/ack-sum-analysis", element: <AckSumAnalysis /> },
@@ -103,7 +103,7 @@ function App() {
     { path: "/reports/season-master", element: <SeasonCardMaster /> },
     { path: "/reports/season-transactions", element: <SeasonTransactionDetails /> },
     { path: "/reports/expiring-season", element: <ToBeExpiredSeason /> },
-    { path: "/reports/remote-control-history", element: <RemoteControlHistory /> },
+    { path: "/reports/remote-control-history", element: <RemoteControlHistory />, requiredRole: "admin" },
     { path: "/reports/station-errors", element: <StationErrorHistory /> },
     { path: "/reports/ticket-complimentary", element: <TicketComplimentary /> },
     { path: "/reports/nets-comparison", element: <NetsCollectionComparison /> },
@@ -145,7 +145,7 @@ function App() {
     { path: "/outstanding/lta-acknowledge-file", element: <OutstandingLTAAcknowledgeFile /> },
     { path: "/outstanding/lta-result-file", element: <OutstandingLTAResultFile /> },
     { path: "/outstanding/movement-transaction", element: <OutstandingMovementTransaction /> },
-    { path: "/maintenance/access-control", element: <AccessControl /> },
+    { path: "/maintenance/access-control", element: <AccessControl />, requiredRole: "admin" },
     { path: "/maintenance/change-password", element: <ChangePassword /> },
     { path: "/maintenance/function-audit", element: <SystemFunctionAudit /> },
     { path: "/maintenance/view-log", element: <ViewLogLogin /> },
@@ -183,11 +183,11 @@ function App() {
               <Route path="/login" element={<Login />} />
 
               {/* Protected routes */}
-              {protectedRoutes.map(({ path, element }) => (
+              {protectedRoutes.map(({ path, element, requiredRole }) => (
                 <Route
                   key={path}
                   path={path}
-                  element={<PrivateRoute>{element}</PrivateRoute>}
+                  element={<PrivateRoute requiredRole={requiredRole}>{element}</PrivateRoute>}
                 />
               ))}
 

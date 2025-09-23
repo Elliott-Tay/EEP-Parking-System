@@ -8,7 +8,7 @@ const configRouter = require("./routes/config");
 const seasonRouter = require("./routes/season");
 const reportsRouter = require("./routes/reports");
 const { authRouter } = require("./routes/auth");
-const systemConfigurationRoute = require("./routes/systemConfiguraiton")
+const systemConfigurationRoute = require("./routes/systemConfiguration")
 
 require("dotenv").config();
 

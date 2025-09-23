@@ -79,26 +79,17 @@ router.put("/change-season", async (req, res) => {
   try {
     const pool = await sql.connect(config);
 
-    // Debug: log input values
-    console.log("Received payload:", { oldSeasonNo, newSeasonNo });
-
     const query = `
       UPDATE SeasonHolders
       SET season_no = @newSeasonNo
       WHERE season_no = @oldSeasonNo
     `;
 
-    // Debug: log SQL query
-    console.log("Executing SQL:", query);
-
     const request = pool.request()
       .input("newSeasonNo", sql.NVarChar, newSeasonNo)
       .input("oldSeasonNo", sql.NVarChar, oldSeasonNo);
 
     const result = await request.query(query);
-
-    // Debug: log result
-    console.log("SQL Result:", result);
 
     if (result.rowsAffected[0] === 0) {
       return res.status(404).json({ error: "Old Season No not found" });
