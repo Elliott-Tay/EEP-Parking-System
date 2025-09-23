@@ -23,22 +23,27 @@ async function getPool() {
 }
 
 // ======== REGISTER ========
-router.post("/register", async (req, res) => {
-  const { username, email, password } = req.body;
 
+router.post("/register", async (req, res) => {
+  const { username, email, password, role } = req.body;
+
+  // Validate required fields
   if (!username || !email || !password) {
-    return res.status(400).json({ error: "Missing required fields" });
+    return res.status(400).json({ error: "Username, email, and password are required" });
   }
 
   try {
     const pool = await getPool();
 
-    // Check if user exists
+    // Check if username or email already exists
     const existingUser = await pool
       .request()
       .input("username", sql.VarChar, username)
       .input("email", sql.VarChar, email)
-      .execute("sp_GetUserByUsernameOrEmail");
+      .query(`
+        SELECT * FROM Users 
+        WHERE username = @username OR email = @email
+      `);
 
     if (existingUser.recordset.length > 0) {
       return res.status(400).json({ error: "Username or email already exists" });
@@ -47,13 +52,28 @@ router.post("/register", async (req, res) => {
     // Hash password
     const password_hash = await bcrypt.hash(password, 12);
 
+    // Default values
+    const is_active = true;
+    const email_verified = false;
+    const created_at = new Date();
+    const updated_at = new Date();
+
     // Insert user
     await pool
       .request()
       .input("username", sql.VarChar, username)
       .input("email", sql.VarChar, email)
       .input("password_hash", sql.VarChar, password_hash)
-      .execute("sp_InsertUser");
+      .input("role", sql.VarChar, role || "user")
+      .input("is_active", sql.Bit, is_active)
+      .input("email_verified", sql.Bit, email_verified)
+      .input("created_at", sql.DateTime, created_at)
+      .input("updated_at", sql.DateTime, updated_at)
+      .query(`
+        INSERT INTO users
+        (username, email, password_hash, role, is_active, email_verified, created_at, updated_at)
+        VALUES (@username, @email, @password_hash, @role, @is_active, @email_verified, @created_at, @updated_at)
+      `);
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {

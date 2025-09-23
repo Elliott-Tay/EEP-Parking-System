@@ -24,7 +24,6 @@ function NavBar() {
       ]
     : [
       { name: "Dashboard", href: "/", icon: <LayoutDashboard size={18} /> },
-      { name: "Register", href: "/register", icon: <Ticket size={18} /> },
     ];;
 
   const handleNavClick = (href) => {
@@ -42,7 +41,7 @@ function NavBar() {
     }
     setIsOpen(false);
   };
-  
+
   return (
     <nav className="bg-red-600 text-white shadow-lg border-b border-red-500/20 sticky top-0 z-50 backdrop-blur-sm">
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">

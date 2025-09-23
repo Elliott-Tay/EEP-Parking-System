@@ -83,7 +83,6 @@ import TariffSetupMotorcycleBView from './components/reports/systemConfiguration
 import TariffSetupDaySeasonBView from './components/reports/systemConfiguration/parkingTariff/view/daySeasonBView';
 import TariffSetupNightSeasonBView from './components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB';
 import PrivateRoute from './components/auth/PrivateRoute';
-import Register from "./components/auth/Register";
 import ReportPage from './components/Report';
 import Login from './components/auth/Login';
 
@@ -181,7 +180,6 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Home />} />
-              <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
 
               {/* Protected routes */}
