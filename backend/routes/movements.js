@@ -835,6 +835,45 @@ router.get("/outstanding", async (req, res) => {
   }
 });
 
+// Get IU Frequency
+// Get IU Frequency
+router.get("/iu-frequency", async (req, res) => {
+  const { startDate, endDate, iuNo } = req.query;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: "startDate and endDate are required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    let query = `
+      SELECT card_number AS iuNo, COUNT(*) AS frequency
+      FROM MovementTrans
+      WHERE CAST(entry_datetime AS DATE) BETWEEN @startDate AND @endDate
+    `;
+
+    if (iuNo) {
+      query += " AND card_number = @iuNo";
+    }
+
+    query += " GROUP BY card_number ORDER BY frequency DESC"; // <-- changed here
+
+    const request = pool.request();
+    request.input("startDate", sql.Date, startDate);
+    request.input("endDate", sql.Date, endDate);
+    if (iuNo) request.input("iuNo", sql.VarChar, iuNo);
+
+    const result = await request.query(query);
+
+    res.json({ data: result.recordset || [] });
+  } catch (err) {
+    console.error("Error fetching IU frequency:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+
 // GET Complimentary Movements by ticket
 router.get("/complimentary", async (req, res) => {
   const { ticket_no } = req.query;
@@ -942,6 +981,47 @@ router.get("/complimentary-tickets", async (req, res) => {
   } catch (err) {
     console.error("Database error:", err);
     res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// Get movement chart data for display
+router.get("/movement-chart", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().execute("dbo.uspGetMovementTrans");
+
+    const movements = result.recordset;
+
+    // Initialize an object to accumulate counts
+    const hourlyCounts = {};
+
+    movements.forEach((row) => {
+      // Format entry and exit hours as "HH:00"
+      const entryHour = row.entry_datetime
+        ? new Date(row.entry_datetime).getHours().toString().padStart(2, "0") + ":00"
+        : null;
+      const exitHour = row.exit_datetime
+        ? new Date(row.exit_datetime).getHours().toString().padStart(2, "0") + ":00"
+        : null;
+
+      if (entryHour) {
+        hourlyCounts[entryHour] = hourlyCounts[entryHour] || { hour: entryHour, entries: 0, exits: 0 };
+        hourlyCounts[entryHour].entries += 1;
+      }
+
+      if (exitHour) {
+        hourlyCounts[exitHour] = hourlyCounts[exitHour] || { hour: exitHour, entries: 0, exits: 0 };
+        hourlyCounts[exitHour].exits += 1;
+      }
+    });
+
+    // Convert the object into a sorted array
+    const response = Object.values(hourlyCounts).sort((a, b) => a.hour.localeCompare(b.hour));
+
+    res.json(response);
+  } catch (err) {
+    console.error("SQL error", err);
+    res.status(500).send("Database error: " + err.message);
   }
 });
 

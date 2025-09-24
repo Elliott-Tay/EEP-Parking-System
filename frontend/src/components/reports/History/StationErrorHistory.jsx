@@ -18,7 +18,15 @@ export default function StationErrorHistory() {
       const data = await res.json();
       setLogs(data.errors.map(err => ({
         id: err.id,
-        timestamp: err.error_timestamp,
+        timestamp: new Date(err.error_timestamp).toLocaleString("en-SG", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false
+        }),
         station: err.station_name,
         error: err.error_description,
         resolved: err.resolved,

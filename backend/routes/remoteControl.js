@@ -102,6 +102,62 @@ router.get("/lot-status", async (req, res) => {
   }
 });
 
+router.patch("/lot-status/:zone/:type", async (req, res) => {
+  const { zone, type } = req.params;
+  const { allocated, occupied } = req.body;
+
+  if (!zone || !type) {
+    return res.status(400).json({ error: "zone and type are required" });
+  }
+
+  if (
+    allocated === undefined ||
+    occupied === undefined ||
+    isNaN(allocated) ||
+    isNaN(occupied)
+  ) {
+    return res.status(400).json({ error: "allocated and occupied must be valid numbers" });
+  }
+
+  if (occupied > allocated) {
+    return res
+      .status(400)
+      .json({ error: "occupied slots cannot exceed allocated slots" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      UPDATE ParkingLotStatus
+      SET allocated = @allocated,
+          occupied = @occupied
+      WHERE zone = @zone AND type = @type;
+
+      SELECT allocated, occupied, available
+      FROM ParkingLotStatus
+      WHERE zone = @zone AND type = @type;
+    `;
+
+    const request = pool.request();
+    request.input("allocated", sql.Int, allocated);
+    request.input("occupied", sql.Int, occupied);
+    request.input("zone", sql.NVarChar, zone);
+    request.input("type", sql.NVarChar, type);
+
+    const result = await request.query(query);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ error: "Zone or type not found" });
+    }
+
+    res.json(result.recordset[0]);
+  } catch (err) {
+    console.error("Error updating lot status:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 router.post("/gate/open", authenticateToken, async (req, res) => {
   console.log("Gate open requested");
   res.json({ success: true, message: "Gate open request received" });
@@ -132,6 +188,7 @@ router.post("/system/restart-upos", authenticateToken, async (req, res) => {
   res.json({ success: true, message: "System restart-UPOS request received" });
 });
 
+// Log the remote control logs
 router.post("/remote-control-logs", async (req, res) => {
   const { event_time, action, user, device, status } = req.body;
 
@@ -161,6 +218,26 @@ router.post("/remote-control-logs", async (req, res) => {
     res.json({ message: "Remote control log inserted successfully", rowsAffected: result.rowsAffected[0] });
   } catch (err) {
     console.error("Error inserting remote control log:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+router.get("/remote-control-logs", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      SELECT 
+        *
+      FROM RemoteControlHistory
+      ORDER BY event_time DESC
+    `;
+
+    const result = await pool.request().query(query);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error fetching remote control logs:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });

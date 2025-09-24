@@ -3,35 +3,6 @@ import { Unlock, Settings, DollarSign, Power, ArrowRight, X, User, Lock, Shield,
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-// Mock lot status data
-const lotMockData = {
-  main: {
-    hourly: { allocated: 20, occupied: 20, available: 0 },
-    season: { allocated: 15, occupied: 15, available: 0 },
-    total: { allocated: 50, occupied: 45, available: 5 },
-  },
-  basement: {
-    hourly: { allocated: 10, occupied: 7, available: 3 },
-    season: { allocated: 10, occupied: 7, available: 3 },
-    total: { allocated: 30, occupied: 20, available: 10 },
-  },
-  roof: {
-    hourly: { allocated: 5, occupied: 2, available: 3 },
-    season: { allocated: 5, occupied: 1, available: 4 },
-    total: { allocated: 10, occupied: 3, available: 7 },
-  },
-  middle: {
-    hourly: { allocated: 5, occupied: 3, available: 2 },
-    season: { allocated: 5, occupied: 4, available: 1 },
-    total: { allocated: 10, occupied: 7, available: 3 },
-  },
-  zone_c: {
-    hourly: { allocated: 5, occupied: 3, available: 2 },
-    season: { allocated: 5, occupied: 5, available: 0 },
-    total: { allocated: 10, occupied: 3, available: 7 },
-  },
-};
-
 // Simple Login Modal
 function LoginModal({ onClose, onLoginSuccess }) {
   const [username, setUsername] = useState("");
@@ -347,6 +318,7 @@ function StationControlModal({ onClose }) {
   );
 }
 
+
 function LotAdjustmentModal({ onClose }) {
   const [zones, setZones] = useState([]);
   const [zone, setZone] = useState("");
@@ -354,15 +326,34 @@ function LotAdjustmentModal({ onClose }) {
   const [allocated, setAllocated] = useState("");
   const [occupied, setOccupied] = useState("");
 
-  const useMockData = true; // toggle this to switch between mock and real API
-
-  // Set zones dynamically from mock data for now
+  // Fetch zones from backend
   useEffect(() => {
-    const zoneList = Object.keys(lotMockData).map((z) => ({
-      name: z,
-      active: lotMockData[z].total.available > 0,
-    }));
-    setZones(zoneList);
+    const env_backend = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
+
+    const fetchZones = async () => {
+      try {
+        const response = await fetch(`${env_backend}/api/remote-control/lot-status`);
+        if (!response.ok) throw new Error("Failed to fetch lot data");
+        const data = await response.json();
+
+        const zoneList = Object.keys(data).map((z) => ({
+          name: z,
+          active: data[z].total?.available > 0, // adjust based on backend structure
+        }));
+
+        setZones(zoneList);
+
+        // Optionally set the first zone as selected if none chosen
+        if (!zone && zoneList.length > 0) {
+          setZone(zoneList[0].name);
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load zones");
+      }
+    };
+
+    fetchZones();
   }, []);
 
   const handleLotUpdate = async () => {
@@ -371,47 +362,31 @@ function LotAdjustmentModal({ onClose }) {
       return;
     }
 
-    if (useMockData) {
-      // Update mock data locally
-      lotMockData[zone][type].allocated = Number(allocated);
-      lotMockData[zone][type].occupied = Number(occupied);
-      lotMockData[zone][type].available =
-        lotMockData[zone][type].allocated - lotMockData[zone][type].occupied;
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/lot-status/${zone}/${type}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          allocated: Number(allocated),
+          occupied: Number(occupied),
+        }),
+      });
 
-      toast.success(
-        `Updated mock zone ${zone} (${type}) to ${allocated} allocated, ${occupied} occupied`
-      );
-      setAllocated("");
-      setOccupied("");
-      onClose?.();
-    } else {
-      // Call real API
-      try {
-        const res = await fetch(`/api/remote-control/lot-status/${zone}/${type}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            allocated: Number(allocated),
-            occupied: Number(occupied),
-          }),
-        });
+      const data = await res.json();
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          toast.error(data.error || "Failed to update lot");
-        } else {
-          toast.success(
-            `Updated zone ${zone} (${type}) to ${data.allocated} allocated, ${data.occupied} occupied`
-          );
-          setAllocated("");
-          setOccupied("");
-          onClose?.();
-        }
-      } catch (err) {
-        toast.error("Error updating lot" + err);
-        console.error(err);
+      if (!res.ok) {
+        toast.error(data.error || "Failed to update lot");
+      } else {
+        toast.success(
+          `Updated zone ${zone} (${type}) to ${data.allocated} allocated, ${data.occupied} occupied`
+        );
+        setAllocated("");
+        setOccupied("");
+        onClose?.();
       }
+    } catch (err) {
+      toast.error("Error updating lot: " + err.message);
+      console.error(err);
     }
   };
 
@@ -476,7 +451,6 @@ function LotAdjustmentModal({ onClose }) {
     </div>
   );
 }
-
 
 function ParkingTariffModal() {
   return (
