@@ -4,14 +4,29 @@ function HourlyMaxOccupancyReport() {
   const [zone, setZone] = useState("Main");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = () => {
-    // TODO: call API here with { zone, startDate, endDate }
-    console.log("Searching Hourly Max Occupancy Report", {
-      zone,
-      startDate,
-      endDate,
-    });
+  const handleSearch = async () => {
+    if (!zone || !startDate || !endDate) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ zone, startDate, endDate });
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/hourly-max-occupancy?${params}`);
+      if (!response.ok) throw new Error("Failed to fetch data");
+      const data = await response.json();
+      setRecords(data);
+    } catch (err) {
+      console.error(err);
+      alert("Error fetching report: " + err.message);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -19,11 +34,6 @@ function HourlyMaxOccupancyReport() {
       <h1 className="text-2xl font-bold mb-6">
         Counter Daily Statistic with Hourly/Season Maximum Occupancy
       </h1>
-
-      {/* Date Display */}
-      <div className="mb-4 text-gray-600">
-        Date: <span className="font-medium">18/09/2025 (D/M/Y)</span>
-      </div>
 
       {/* Form Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -60,7 +70,7 @@ function HourlyMaxOccupancyReport() {
         onClick={handleSearch}
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
-        Search
+        {loading ? "Loading..." : "Search"}
       </button>
 
       {/* Table Results */}
@@ -76,16 +86,28 @@ function HourlyMaxOccupancyReport() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td colSpan={5} className="text-center py-4 text-gray-500">
-                No record found!
-              </td>
-            </tr>
+            {records.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-500">
+                  No record found!
+                </td>
+              </tr>
+            ) : (
+              records.map((r, idx) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="border px-3 py-2">{r.hour}</td>
+                  <td className="border px-3 py-2">{r.zone}</td>
+                  <td className="border px-3 py-2">{r.occupancy}</td>
+                  <td className="border px-3 py-2">{r.seasonMax}</td>
+                  <td className="border px-3 py-2">{r.remarks}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
-};
+}
 
 export default HourlyMaxOccupancyReport;

@@ -1025,6 +1025,72 @@ router.get("/movement-chart", async (req, res) => {
   }
 });
 
+// get hourly-max-occupancy
+router.get("/hourly-max-occupancy", async (req, res) => {
+  const { zone, startDate, endDate } = req.query;
+
+  if (!zone || !startDate || !endDate) {
+    return res.status(400).json({ error: "zone, startDate, and endDate are required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    // Make sure endDate is inclusive
+    const endDateInclusive = new Date(endDate);
+    endDateInclusive.setDate(endDateInclusive.getDate() + 1);
+
+    const request = pool.request()
+      .input("zone", sql.NVarChar, zone)
+      .input("startDate", sql.DateTime, new Date(startDate))
+      .input("endDate", sql.DateTime, endDateInclusive);
+
+    const query = `
+      ;WITH HourlyCounts AS (
+        SELECT 
+          DATEPART(HOUR, entry_datetime) AS [hour],
+          COUNT(*) AS entries
+        FROM MovementTrans
+        WHERE entry_station_id = @zone
+          AND entry_datetime >= @startDate AND entry_datetime < @endDate
+        GROUP BY DATEPART(HOUR, entry_datetime)
+      ),
+      HourlyExits AS (
+        SELECT 
+          DATEPART(HOUR, exit_datetime) AS [hour],
+          COUNT(*) AS exits
+        FROM MovementTrans
+        WHERE exit_station_id = @zone
+          AND exit_datetime >= @startDate AND exit_datetime < @endDate
+        GROUP BY DATEPART(HOUR, exit_datetime)
+      ),
+      HourlyOccupancy AS (
+        SELECT
+          hc.hour,
+          @zone AS zone,
+          ISNULL(hc.entries,0) - ISNULL(he.exits,0) AS occupancy
+        FROM HourlyCounts hc
+        FULL OUTER JOIN HourlyExits he ON hc.hour = he.hour
+      )
+      SELECT
+        ho.hour,
+        ho.zone,
+        ho.occupancy,
+        MAX(ho.occupancy) OVER() AS season_max,
+        '' AS remarks
+      FROM HourlyOccupancy ho
+      ORDER BY ho.hour
+    `;
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("SQL error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+
 // SSE for entry stations
 router.get("/stream/entries", (req, res) => {
   res.set({

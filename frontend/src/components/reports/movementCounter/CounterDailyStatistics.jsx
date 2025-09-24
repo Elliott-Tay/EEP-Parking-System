@@ -394,69 +394,78 @@ function CounterDailyStatistics() {
       </div>
 
       {/* Enhanced Modal */}
-      {previewRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            <div className="rounded-lg border bg-card text-card-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-300">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between p-6 border-b">
+        {previewRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Dimmed backdrop */}
+            <div
+            className="absolute inset-0 bg-black bg-opacity-30"
+            onClick={closeModal} // close modal if you click outside
+            />
+
+            {/* Modal container */}
+            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="rounded-lg border bg-white text-card-foreground shadow-lg animate-in fade-in-0 zoom-in-95 duration-300">
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-6 border-b">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100 border border-blue-200">
+                    <div className="p-2 rounded-lg bg-blue-100 border border-blue-200">
                     <Eye className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl leading-none tracking-tight">Transaction Record Preview</h2>
+                    </div>
+                    <div>
+                    <h2 className="text-xl leading-none tracking-tight">
+                        Transaction Record Preview
+                    </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Log ID: {previewRecord.log_id || 'N/A'}
+                        Log ID: {previewRecord.log_id || 'N/A'}
                     </p>
-                  </div>
+                    </div>
                 </div>
                 <button
-                  onClick={closeModal}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                  title="Close Preview"
+                    onClick={closeModal}
+                    className="p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    title="Close Preview"
                 >
-                  <X className="h-5 w-5 text-muted-foreground" />
+                    <X className="h-5 w-5 text-muted-foreground" />
                 </button>
-              </div>
+                </div>
 
-              {/* Modal Content */}
-              <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                {/* Modal Content */}
+                <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(previewRecord).map(([key, value]) => (
-                    <div key={key} className="rounded-lg border bg-muted/25 p-4">
-                      <div className="space-y-1">
+                    {Object.entries(previewRecord).map(([key, value]) => (
+                    <div key={key} className="rounded-lg border bg-gray-50 p-4">
+                        <div className="space-y-1">
                         <label className="text-sm font-medium text-muted-foreground">
-                          {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </label>
                         <p className="text-sm font-mono break-all">
-                          {value?.toString() || "-"}
+                            {value?.toString() || "-"}
                         </p>
-                      </div>
+                        </div>
                     </div>
-                  ))}
+                    ))}
                 </div>
-              </div>
+                </div>
 
-              {/* Modal Footer */}
-              <div className="flex items-center justify-between p-6 border-t bg-muted/25">
+                {/* Modal Footer */}
+                <div className="flex items-center justify-between p-8 border-t bg-gray-50">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <span>Last updated: {previewRecord.update_datetime || 'N/A'}</span>
+                    <Clock className="h-4 w-4" />
+                    <span>Last updated: {previewRecord.update_datetime || 'N/A'}</span>
                 </div>
                 <div className="flex gap-3">
-                  <button
+                    <button
                     onClick={closeModal}
-                    className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
-                  >
+                    className="inline-flex items-center gap-2 rounded-md border border-input bg-white px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
+                    >
                     Close
-                  </button>
+                    </button>
                 </div>
-              </div>
+                </div>
             </div>
-          </div>
+            </div>
         </div>
-      )}
+        )}
     </div>
   );
 }

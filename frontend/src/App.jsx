@@ -100,7 +100,7 @@ function App() {
     { path: "/reports/counter-monthly", element: <CounterMonthlyStatistics /> },
     { path: "/reports/movement-details", element: <DailyMovementDetails /> },
     { path: "/reports/parking-duration", element: <DailyParkingDuration /> },
-    { path: "/reports/season-master", element: <SeasonCardMaster /> },
+    { path: "/reports/season-master", element: <SeasonCardMaster />, requiredRole: "admin"},
     { path: "/reports/season-transactions", element: <SeasonTransactionDetails /> },
     { path: "/reports/expiring-season", element: <ToBeExpiredSeason /> },
     { path: "/reports/remote-control-history", element: <RemoteControlHistory />, requiredRole: "admin" },
