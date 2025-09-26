@@ -68,30 +68,36 @@ export default function TariffSetupLorry() {
 
   const validatePayload = () => {
     if (!effectiveStart || !effectiveEnd) {
-      alert("Please select both effective start and end dates.");
-      return false;
+        alert("Please select both effective start and end dates.");
+        return false;
     }
     if (effectiveStart > effectiveEnd) {
-      alert("Effective start date cannot be after effective end date.");
-      return false;
+        alert("Effective start date cannot be after effective end date.");
+        return false;
     }
 
     for (const [day, slots] of Object.entries(rates)) {
-      for (const slot of slots) {
+        for (const slot of slots) {
         if (!slot.from || !slot.to) {
-          alert(`Please provide both 'from' and 'to' times for ${day}.`);
-          return false;
+            alert(`Please provide both 'from' and 'to' times for ${day}.`);
+            return false;
         }
-      }
 
-      if (isOverlapping(slots)) {
+        // Check that start time < end time
+        if (slot.from >= slot.to) {
+            alert(`For ${day}, the 'From' time must be earlier than the 'To' time.`);
+            return false;
+        }
+        }
+
+        if (isOverlapping(slots)) {
         alert(`Time slots overlap for ${day}. Please adjust the times.`);
         return false;
-      }
+        }
     }
 
     return true;
-  };
+    };
 
   const handleSave = async () => {
     if (!validatePayload()) return;
