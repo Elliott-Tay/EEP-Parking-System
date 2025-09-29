@@ -1,20 +1,18 @@
-# Use official Node.js LTS image
+# Use Node.js 20 LTS
 FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json first for caching
+# Copy package files and install dependencies
 COPY package*.json ./
+RUN npm install
 
-# Install dependencies
-RUN npm ci --production
-
-# Copy the rest of the backend source code
+# Copy rest of the code
 COPY . .
 
-# Expose backend port (adjust if needed)
+# Expose the port your app runs on
 EXPOSE 8000
 
-# Default command to start backend
-CMD ["node", "index.js"]
+# Start the server
+CMD ["npm", "run", "dev"]  # Replace with your start script if different

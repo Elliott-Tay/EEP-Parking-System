@@ -81,7 +81,7 @@ import TariffSetupCarVanBView from './components/reports/systemConfiguration/par
 import TariffSetupLorryBView from './components/reports/systemConfiguration/parkingTariff/view/LorryTariffBView';
 import TariffSetupMotorcycleBView from './components/reports/systemConfiguration/parkingTariff/view/MCycleBView';
 import TariffSetupDaySeasonBView from './components/reports/systemConfiguration/parkingTariff/view/daySeasonBView';
-import TariffSetupNightSeasonBView from './components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB';
+import TariffSetupNightSeasonBView from './components/reports/systemConfiguration/parkingTariff/view/nightSeasonBView';
 import PrivateRoute from './components/auth/PrivateRoute';
 import ReportPage from './components/Report';
 import Login from './components/auth/Login';
