@@ -1,6 +1,7 @@
 const express = require("express");
 const { sql, config } = require("../database/db"); // your MSSQL config
 const router = express.Router();
+const { DateTime } = require("luxon")
 
 function parseTime(str) {
   // str = "08:00" or "08:00:00"
@@ -23,19 +24,23 @@ router.post("/tariff-setup", async (req, res) => {
 
     for (const [day, slots] of Object.entries(rates)) {
       for (const slot of slots) {
-        const fromTime = parseTime(slot.from || "00:00");
-        const toTime = parseTime(slot.to || "23:59");
+        // Convert times to Singapore Time
+        const effectiveStartSG = DateTime.fromISO(effectiveStart, { zone: "Asia/Singapore" }).startOf("day").toJSDate();
+        const effectiveEndSG = DateTime.fromISO(effectiveEnd, { zone: "Asia/Singapore" }).endOf("day").toJSDate();
 
-        // Check for overlapping time slots
-        const overlapCheck = await new sql.Request(transaction)
+        const fromTimeSG = DateTime.fromISO(slot.from, { zone: "Asia/Singapore" }).toJSDate();
+        const toTimeSG = DateTime.fromISO(slot.to, { zone: "Asia/Singapore" }).toJSDate();
+
+        // 1️⃣ Delete overlapping slots first
+        await new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.Time, fromTime)
-          .input("to_time", sql.Time, toTime)
-          .input("effective_start", sql.DateTime2, effectiveStart)
-          .input("effective_end", sql.DateTime2, effectiveEnd)
+          .input("from_time", sql.Time, fromTimeSG)
+          .input("to_time", sql.Time, toTimeSG)
+          .input("effective_start", sql.DateTime2, effectiveStartSG)
+          .input("effective_end", sql.DateTime2, effectiveEndSG)
           .query(`
-            SELECT 1 FROM TariffRates
+            DELETE FROM TariffRates
             WHERE vehicle_type = @vehicle_type
               AND day_of_week = @day_of_week
               AND effective_start <= @effective_end
@@ -43,19 +48,12 @@ router.post("/tariff-setup", async (req, res) => {
               AND (from_time < @to_time AND to_time > @from_time)
           `);
 
-        if (overlapCheck.recordset.length > 0) {
-          await transaction.rollback();
-          return res.status(400).json({
-            error: `Time slot overlaps with an existing slot on ${day} for ${vehicleType}`
-          });
-        }
-
-        // Insert or update
+        // 2️⃣ Insert the new slot
         await new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.Time, fromTime)
-          .input("to_time", sql.Time, toTime)
+          .input("from_time", sql.Time, fromTimeSG)
+          .input("to_time", sql.Time, toTimeSG)
           .input("rate_type", sql.NVarChar, slot.rateType || "Hourly")
           .input("every", sql.Int, slot.every || null)
           .input("min_fee", sql.Money, slot.minFee || null)
@@ -63,40 +61,14 @@ router.post("/tariff-setup", async (req, res) => {
           .input("first_min_fee", sql.Money, slot.firstMinFee || null)
           .input("min_charge", sql.Money, slot.min || null)
           .input("max_charge", sql.Money, slot.max || null)
-          .input("effective_start", sql.DateTime2, effectiveStart)
-          .input("effective_end", sql.DateTime2, effectiveEnd)
+          .input("effective_start", sql.DateTime2, effectiveStartSG)
+          .input("effective_end", sql.DateTime2, effectiveEndSG)
           .query(`
-            IF EXISTS (
-              SELECT 1
-              FROM TariffRates
-              WHERE vehicle_type = @vehicle_type
-                AND day_of_week = @day_of_week
-                AND from_time = @from_time
-                AND to_time = @to_time
-                AND effective_start = @effective_start
-                AND effective_end = @effective_end
-            )
-              UPDATE TariffRates
-              SET rate_type = @rate_type,
-                  every = @every,
-                  min_fee = @min_fee,
-                  grace_time = @grace_time,
-                  first_min_fee = @first_min_fee,
-                  min_charge = @min_charge,
-                  max_charge = @max_charge
-              WHERE vehicle_type = @vehicle_type
-                AND day_of_week = @day_of_week
-                AND from_time = @from_time
-                AND to_time = @to_time
-                AND effective_start = @effective_start
-                AND effective_end = @effective_end
-            ELSE
-              INSERT INTO TariffRates (
-                vehicle_type, day_of_week, from_time, to_time, rate_type, every, min_fee, grace_time, first_min_fee, min_charge, max_charge, effective_start, effective_end
-              )
-              VALUES (
-                @vehicle_type, @day_of_week, @from_time, @to_time, @rate_type, @every, @min_fee, @grace_time, @first_min_fee, @min_charge, @max_charge, @effective_start, @effective_end
-              );
+            INSERT INTO TariffRates (
+              vehicle_type, day_of_week, from_time, to_time, rate_type, every, min_fee, grace_time, first_min_fee, min_charge, max_charge, effective_start, effective_end
+            ) VALUES (
+              @vehicle_type, @day_of_week, @from_time, @to_time, @rate_type, @every, @min_fee, @grace_time, @first_min_fee, @min_charge, @max_charge, @effective_start, @effective_end
+            );
           `);
       }
     }
@@ -108,7 +80,6 @@ router.post("/tariff-setup", async (req, res) => {
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
-
 
 // GET Tariff setup (view)
 router.get("/tariff-setup", async (req, res) => {

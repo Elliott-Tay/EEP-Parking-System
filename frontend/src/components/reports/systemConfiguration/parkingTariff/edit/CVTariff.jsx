@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
 
@@ -6,32 +6,82 @@ export default function TariffSetupCarVan() {
   const navigate = useNavigate();
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
-  const initialSlot = {
-    from: "08:00",
-    to: "18:00",
-    rateType: "Hourly",
-    every: 60,
-    minFee: 200,
-    graceTime: 15,
-    firstMinFee: 100,
-    min: 200,
-    max: 2000,
-  };
 
-  const [rates, setRates] = useState(
+  const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
+
+  const [rates, setRates] = useState(() =>
     daysOfWeek.reduce((acc, day) => {
-      acc[day] = [{ ...initialSlot }];
+      acc[day] = []; // start with empty slots
       return acc;
     }, {})
   );
 
   const [effectiveStart, setEffectiveStart] = useState("");
   const [effectiveEnd, setEffectiveEnd] = useState("");
+  const [overlaps, setOverlaps] = useState({}); // { day: [[i,j], ...] }
 
+  // Fetch existing tariff data
+  useEffect(() => {
+    const fetchTariff = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`
+        );
+        if (!response.ok) throw new Error("Failed to fetch tariff");
+        const data = await response.json();
+        if (!data || Object.keys(data).length === 0) return;
+
+        setEffectiveStart(data.effectiveStartDate);
+        setEffectiveEnd(data.effectiveEndDate);
+
+        const newRates = {};
+        daysOfWeek.forEach(day => {
+          newRates[day] = data[day] || [];
+        });
+        setRates(newRates);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load existing tariff data");
+      }
+    };
+
+    fetchTariff();
+  }, []);
+
+  // Overlap detection
+  const getOverlaps = (slots) => {
+    const result = [];
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        if (slots[i].from < slots[j].to && slots[i].to > slots[j].from) {
+          result.push([i, j]);
+        }
+      }
+    }
+    return result;
+  };
+
+  const checkAllOverlaps = () => {
+    const allOverlaps = {};
+    let hasOverlap = false;
+
+    for (const [day, slots] of Object.entries(rates)) {
+      const dayOverlaps = getOverlaps(slots);
+      if (dayOverlaps.length) {
+        allOverlaps[day] = dayOverlaps;
+        hasOverlap = true;
+      }
+    }
+
+    setOverlaps(allOverlaps);
+    return hasOverlap;
+  };
+
+  // Input change
   const handleInputChange = (day, index, field, value) => {
     setRates(prev => {
       const updatedDay = [...prev[day]];
-      updatedDay[index][field] = value;
+      updatedDay[index][field] = numericFields.includes(field) ? Number(value) : value;
       return { ...prev, [day]: updatedDay };
     });
   };
@@ -39,87 +89,67 @@ export default function TariffSetupCarVan() {
   const addTimeSlot = (day) => {
     setRates(prev => ({
       ...prev,
-      [day]: [...prev[day], { ...initialSlot }],
+      [day]: [...prev[day], {
+        from: "08:00",
+        to: "18:00",
+        rateType: "Hourly",
+        every: 60,
+        minFee: 200,
+        graceTime: 15,
+        firstMinFee: 100,
+        min: 200,
+        max: 2000
+      }],
     }));
   };
 
   const removeTimeSlot = (day, index) => {
     setRates(prev => {
       const updatedDay = prev[day].filter((_, i) => i !== index);
-      return { ...prev, [day]: updatedDay.length ? updatedDay : [{ ...initialSlot }] };
+      return { ...prev, [day]: updatedDay };
     });
   };
 
-  // Check if time slots overlap
-  const isOverlapping = (slots) => {
-    for (let i = 0; i < slots.length; i++) {
-      const fromI = slots[i].from;
-      const toI = slots[i].to;
-      for (let j = i + 1; j < slots.length; j++) {
-        const fromJ = slots[j].from;
-        const toJ = slots[j].to;
-        if (fromI < toJ && toI > fromJ) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
+  // Validate payload before saving
   const validatePayload = () => {
     if (!effectiveStart || !effectiveEnd) {
-        alert("Please select both effective start and end dates.");
-        return false;
+      alert("Please select both effective start and end dates.");
+      return false;
     }
     if (effectiveStart > effectiveEnd) {
-        alert("Effective start date cannot be after effective end date.");
-        return false;
+      alert("Effective start date cannot be after effective end date.");
+      return false;
     }
 
     for (const [day, slots] of Object.entries(rates)) {
-        for (const slot of slots) {
+      for (const slot of slots) {
         if (!slot.from || !slot.to) {
-            alert(`Please provide both 'from' and 'to' times for ${day}.`);
-            return false;
+          alert(`Please provide both 'from' and 'to' times for ${day}.`);
+          return false;
         }
-
-        // Check that start time < end time
         if (slot.from >= slot.to) {
-            alert(`For ${day}, the 'From' time must be earlier than the 'To' time.`);
-            return false;
+          alert(`For ${day}, the 'From' time must be earlier than the 'To' time.`);
+          return false;
         }
-        }
+      }
+    }
 
-        if (isOverlapping(slots)) {
-        alert(`Time slots overlap for ${day}. Please adjust the times.`);
-        return false;
-        }
+    if (checkAllOverlaps()) {
+      alert("Some slots are overlapping! Please fix them before saving.");
+      return false;
     }
 
     return true;
-    };
+  };
 
   const handleSave = async () => {
     if (!validatePayload()) return;
 
-    const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
-    const sanitizedRates = {};
-
-    for (const [day, slots] of Object.entries(rates)) {
-      sanitizedRates[day] = slots.map(slot => {
-        const newSlot = { ...slot };
-        numericFields.forEach(field => {
-          newSlot[field] = newSlot[field] !== "" ? Number(newSlot[field]) : null;
-        });
-        return newSlot;
-      });
-    }
-
     const payload = {
       vehicleType: "Car/Van",
-      effectiveStart: effectiveStart ? effectiveStart + "T00:00:00" : null,
-      effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59" : null,
-      rates: sanitizedRates,
+      effectiveStart: effectiveStart + "T00:00:00",
+      effectiveEnd: effectiveEnd + "T23:59:59",
+      rates,
     };
 
     try {
@@ -142,11 +172,16 @@ export default function TariffSetupCarVan() {
     }
   };
 
+  const isSlotOverlapping = (day, index) => {
+    if (!overlaps[day]) return false;
+    return overlaps[day].some(([i, j]) => i === index || j === index);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <h1 className="text-2xl font-bold mb-4">Tariff Setup for Car/Van</h1>
 
-      {/* Effective Date */}
+      {/* Effective Dates */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
           <label>Effective Start Date</label>
@@ -168,22 +203,22 @@ export default function TariffSetupCarVan() {
         </div>
       </div>
 
-      {/* Table per day */}
-      {daysOfWeek.map((day) => (
+      {/* Time slots per day */}
+      {daysOfWeek.map(day => (
         <div key={day} className="mb-6">
           <h2 className="text-lg font-semibold mb-2">{day}</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-300">
               <thead className="bg-gray-200">
                 <tr>
-                  {["From", "To", "Rate Type", "Every", "Min Fee", "Grace Time", "First Min Fee", "Min", "Max", "Actions"].map((th) => (
+                  {["From", "To", "Rate Type", "Every", "Min Fee", "Grace Time", "First Min Fee", "Min", "Max", "Actions"].map(th => (
                     <th key={th} className="border px-2 py-1">{th}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rates[day].map((slot, index) => (
-                  <tr key={index} className="text-center">
+                  <tr key={index} className={`text-center ${isSlotOverlapping(day, index) ? 'bg-red-100' : ''}`}>
                     {Object.entries(slot).map(([field, value]) => (
                       <td key={field} className="border px-2 py-1">
                         <input
@@ -206,11 +241,17 @@ export default function TariffSetupCarVan() {
                 ))}
               </tbody>
             </table>
+            <button
+              onClick={() => addTimeSlot(day)}
+              className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Add Slot
+            </button>
           </div>
         </div>
       ))}
 
-      {/* Buttons */}
+      {/* Save / Home */}
       <div className="mt-6 flex justify-center gap-4">
         <button onClick={handleSave} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
           Save

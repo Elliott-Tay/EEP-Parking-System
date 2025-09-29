@@ -261,60 +261,69 @@ function StationControlModal({ onClose }) {
 
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-3">Station Control</h2>
-      <p className="text-sm text-gray-700 dark:text-gray-300">
-        Here you can control entry and exit gates remotely.
+    <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm">
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+        Station Control
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Manage entry and exit gates remotely with quick actions.
       </p>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      {/* Action buttons */}
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
           onClick={() => handleAction("Open Gate")}
-          className="px-4 py-2 bg-green-500 text-white rounded-md"
+          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
         >
           Open Gate
         </button>
         <button
           onClick={() => handleAction("Open and Hold")}
-          className="px-4 py-2 bg-blue-500 text-white rounded-md"
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
-          Open and Hold
+          Open & Hold
         </button>
         <button
           onClick={() => handleAction("Close Gate")}
-          className="px-4 py-2 bg-red-500 text-white rounded-md"
+          className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
         >
           Close Gate
         </button>
         <button
           onClick={() => handleAction("Restart App")}
-          className="px-4 py-2 bg-red-500 text-white rounded-md"
+          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
         >
           Restart App
         </button>
         <button
           onClick={() => handleAction("Eject Card")}
-          className="px-4 py-2 bg-red-500 text-white rounded-md"
+          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
         >
           Eject Card
         </button>
         <button
           onClick={() => handleAction("Restart UPOS")}
-          className="px-4 py-2 bg-red-500 text-white rounded-md"
+          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
         >
           Restart UPOS
         </button>
       </div>
 
-      {/* Remarks box */}
-      <textarea
-        value={remarks}
-        onChange={(e) => setRemarks(e.target.value)}
-        placeholder="Add remarks"
-        className="mt-6 w-full border rounded-md px-3 py-2 text-sm"
-        rows={3}
-      />
+      {/* Remarks */}
+      <div className="mt-6">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Remarks
+        </label>
+        <textarea
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+          placeholder="Add remarks..."
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+          rows={3}
+        />
+      </div>
     </div>
+
   );
 }
 
@@ -391,79 +400,111 @@ function LotAdjustmentModal({ onClose }) {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-semibold mb-3">Lot Adjustment</h2>
-      <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-        Adjust the parking allocations and occupied slots for different zones.
+    <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-md">
+      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+        Lot Adjustment
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        Adjust the allocated and occupied parking slots for each zone.
       </p>
 
-      <div className="flex flex-col gap-3">
-        {/* Dynamic Zone selector */}
-        <select
-          value={zone}
-          onChange={(e) => setZone(e.target.value)}
-          className="border rounded-md px-3 py-2"
-        >
-          <option value="">Select zone</option>
-          {zones.map((z) => (
-            <option key={z.name} value={z.name} disabled={!z.active}>
-              {z.name} {z.active ? "" : "(full)"}
-            </option>
-          ))}
-        </select>
+      <div className="flex flex-col gap-4">
+        {/* Zone selector */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Zone
+          </label>
+          <select
+            value={zone}
+            onChange={(e) => setZone(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+          >
+            <option value="">Select zone</option>
+            {zones.map((z) => (
+              <option key={z.name} value={z.name} disabled={!z.active}>
+                {z.name} {z.active ? "" : "(full)"}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Type selector */}
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          className="border rounded-md px-3 py-2"
-        >
-          <option value="hourly">Hourly</option>
-          <option value="season">Season</option>
-        </select>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Type
+          </label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+          >
+            <option value="hourly">Hourly</option>
+            <option value="season">Season</option>
+          </select>
+        </div>
 
         {/* Allocated input */}
-        <input
-          type="number"
-          placeholder="Enter new allocated slots"
-          value={allocated}
-          onChange={(e) => setAllocated(e.target.value)}
-          className="border rounded-md px-3 py-2"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Allocated Slots
+          </label>
+          <input
+            type="number"
+            placeholder="e.g. 50"
+            value={allocated}
+            onChange={(e) => setAllocated(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+          />
+        </div>
 
         {/* Occupied input */}
-        <input
-          type="number"
-          placeholder="Enter new occupied slots"
-          value={occupied}
-          onChange={(e) => setOccupied(e.target.value)}
-          className="border rounded-md px-3 py-2"
-        />
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Occupied Slots
+          </label>
+          <input
+            type="number"
+            placeholder="e.g. 20"
+            value={occupied}
+            onChange={(e) => setOccupied(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+          />
+        </div>
 
         {/* Submit button */}
         <button
           onClick={handleLotUpdate}
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
+          disabled={!zone || !allocated || !occupied}
+          className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Update Lot
         </button>
       </div>
     </div>
+
   );
 }
 
 function ParkingTariffModal() {
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-3">Parking Tariff</h2>
-      <p className="text-sm text-gray-700 dark:text-gray-300">
+    <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm">
+      <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+        Parking Tariff
+      </h2>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Set or update parking tariffs for hourly or season passes.
       </p>
-      <input
-        type="text"
-        placeholder="e.g., $2/hr"
-        className="mt-2 w-full border rounded-md px-3 py-2 text-sm"
-      />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Tariff Rate
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., $2/hr"
+          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+        />
+      </div>
     </div>
   );
 }
