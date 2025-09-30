@@ -152,4 +152,129 @@ router.get("/tariff-setup", async (req, res) => {
   }
 });
 
+// Get all registrations
+router.get("/multiple-season", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool.request().query("SELECT * FROM MultipleSeasonRegistrations");
+    res.json({ success: true, data: result.recordset });
+  } catch (err) {
+    console.error("Error fetching registrations:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch registrations" });
+  }
+});
+
+// Get a single registration by serialNo
+router.get("/multiple-season/:serialNo", async (req, res) => {
+  const { serialNo } = req.params;
+
+  try {
+    const pool = await sql.connect(config);
+    const result = await pool
+      .request()
+      .input("serialNo", sql.NVarChar, serialNo)
+      .query("SELECT * FROM MultipleSeasonRegistrations WHERE serialNo = @serialNo");
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ success: false, error: "Registration not found" });
+    }
+
+    res.json({ success: true, data: result.recordset[0] });
+  } catch (err) {
+    console.error("Error fetching registration:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch registration" });
+  }
+});
+
+// Create a new registration
+router.post("/multiple-season", async (req, res) => {
+  const {
+    serialNo,
+    company,
+    seasonStatus,
+    address,
+    validFrom,
+    validTo,
+    telephone,
+    numIU,
+    zoneAllowed,
+    numSeasonPurchased,
+    iuList,
+  } = req.body;
+
+  let pool;
+
+  try {
+    // Connect pool
+    pool = await sql.connect(config);
+
+    // Create transaction tied to the pool
+    const transaction = new sql.Transaction(pool);
+    await transaction.begin();
+
+    // Insert parent record
+    const request = new sql.Request(transaction);
+    request.input("SerialNo", sql.NVarChar, serialNo);
+    request.input("Company", sql.NVarChar, company);
+    request.input("SeasonStatus", sql.NVarChar, seasonStatus);
+    request.input("Address", sql.NVarChar, address);
+    request.input("ValidFrom", sql.Date, validFrom);
+    request.input("ValidTo", sql.Date, validTo);
+    request.input("Telephone", sql.NVarChar, telephone);
+    request.input("NumIU", sql.Int, numIU);
+    request.input("ZoneAllowed", sql.NVarChar, zoneAllowed);
+    request.input("NumSeasonPurchased", sql.Int, numSeasonPurchased);
+
+    const result = await request.query(`
+      INSERT INTO MultipleSeasonRegistrations
+      (SerialNo, Company, SeasonStatus, Address,
+       ValidFrom, ValidTo, Telephone, NumIU,
+       ZoneAllowed, NumSeasonPurchased)
+      OUTPUT INSERTED.Id
+      VALUES (@SerialNo, @Company, @SeasonStatus, @Address,
+              @ValidFrom, @ValidTo, @Telephone, @NumIU,
+              @ZoneAllowed, @NumSeasonPurchased)
+    `);
+
+    const registrationId = result.recordset[0].Id;
+
+    // Insert IU records
+    for (const iu of iuList || []) {
+      const iuReq = new sql.Request(transaction);
+      iuReq.input("RegistrationId", sql.UniqueIdentifier, registrationId);
+      iuReq.input("IUNo", sql.NVarChar, iu.iuNo);
+      iuReq.input("IUType", sql.NVarChar, iu.type);
+
+      await iuReq.query(`
+        INSERT INTO IURegistrations (RegistrationId, IUNo, IUType)
+        VALUES (@RegistrationId, @IUNo, @IUType)
+      `);
+    }
+
+    await transaction.commit();
+    res.json({ message: "Registration successful", serialNo, registrationId });
+  } catch (err) {
+    console.error("Error inserting registration:", err);
+    try {
+      if (pool) {
+        const transaction = new sql.Transaction(pool);
+        if (!transaction._aborted) await transaction.rollback();
+      }
+    } catch (_) {}
+    res.status(500).json({ error: "Failed to register multiple season", details: err.message });
+  } finally {
+    if (pool) pool.close();
+  }
+});
+
+// Delete a registration by serialNo
+router.delete("/multiple-season/:serialNo", (req, res) => {
+  const { serialNo } = req.params;
+  const index = multipleSeasonRegisters.findIndex(r => r.serialNo === serialNo);
+  if (index === -1) return res.status(404).json({ error: "Registration not found" });
+
+  multipleSeasonRegisters.splice(index, 1);
+  res.json({ message: "Registration deleted successfully" });
+});
+
 module.exports = router; 

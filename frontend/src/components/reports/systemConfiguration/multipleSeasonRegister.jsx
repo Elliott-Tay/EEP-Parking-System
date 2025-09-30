@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 
 function MultipleSeasonRegister() {
   const [serialNo, setSerialNo] = useState("");
@@ -16,6 +18,8 @@ function MultipleSeasonRegister() {
   const [iuInput, setIUInput] = useState("");
   const [iuType, setIUType] = useState("Season"); // Season or Hourly
 
+  const navigate = useNavigate();
+
   const handleAddIU = () => {
     if (!iuInput) return;
     setIUList([
@@ -32,7 +36,7 @@ function MultipleSeasonRegister() {
   const countInSeason = iuList.filter(iu => iu.type === "Season").length;
   const countInHourly = iuList.filter(iu => iu.type === "Hourly").length;
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     const data = {
       serialNo,
       company,
@@ -45,12 +49,46 @@ function MultipleSeasonRegister() {
       zoneAllowed,
       numSeasonPurchased,
       iuList,
-      totalIURegistered: iuList.length,
-      inSeason: countInSeason,
-      inHourly: countInHourly,
     };
-    console.log("Registering Multiple Season:", data);
-    alert("Multiple Season Registered! Check console for details.");
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/multiple-season`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to register");
+      }
+
+      const result = await response.json();
+      alert(`Registration successful! Serial No: ${result.serialNo}`);
+
+      //Reset the form
+      setSerialNo("");
+      setCompany("");
+      setSeasonStatus("Valid");
+      setAddress("");
+      setValidFrom("");
+      setValidTo("");
+      setTelephone("");
+      setNumIU(0);
+      setZoneAllowed("All");
+      setNumSeasonPurchased(0);
+      setIUList([]);
+      setIUInput("");
+      setIUType("Season");
+
+      // Route back to dashboard if successful registration
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert("Error registering season: " + error.message);
+    }
   };
 
   return (
@@ -73,16 +111,13 @@ function MultipleSeasonRegister() {
 
           <div>
             <label className="block font-medium text-gray-700 mb-1">Company Name:</label>
-            <select
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-              className="w-full border rounded p-2"
-            >
-              <option value="">Select Company Name</option>
-              <option>Company A</option>
-              <option>Company B</option>
-              <option>Company C</option>
-            </select>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="w-full border rounded p-2"
+                placeholder="Enter company name"
+              />
           </div>
         </div>
 
