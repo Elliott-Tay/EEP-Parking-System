@@ -162,6 +162,7 @@ function LoginModal({ onClose, onLoginSuccess }) {
 
 function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
+  const [station, setStation] = useState("");
 
   // Generic handler for actions
   const actionMap = {
@@ -174,6 +175,11 @@ function StationControlModal({ onClose }) {
   };
 
   const handleAction = async (action) => {
+    if (!station) {
+      toast.error("Please select a station first.");
+      return;
+    }
+
     if (!remarks.trim()) {
       toast.error("Remarks are required before performing this action.");
       return;
@@ -323,7 +329,6 @@ function StationControlModal({ onClose }) {
         />
       </div>
     </div>
-
   );
 }
 
