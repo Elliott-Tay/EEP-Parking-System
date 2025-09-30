@@ -7,7 +7,8 @@ const remoteControlRouter = require("./routes/remoteControl");
 const configRouter = require("./routes/config");
 const seasonRouter = require("./routes/season");
 const reportsRouter = require("./routes/reports");
-const tariffRouter = require('./routes/tariffSetup')
+const tariffRouter = require('./routes/tariffSetup');
+const outstandingRouter = require('./routes/outstanding');
 const { authRouter } = require("./routes/auth");
 const systemConfigurationRoute = require("./routes/systemConfiguration")
 
@@ -53,7 +54,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/system-configuration", systemConfigurationRoute)
 
 // Tariff route
-app.use('/api/tariff', tariffRouter);
+app.use("/api/tariff", tariffRouter);
+
+// Outstanding route
+app.use("/api/outstanding", outstandingRouter);
 
 // 404 handler for undefined routes
 app.use((req, res) => {

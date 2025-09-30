@@ -1149,7 +1149,24 @@ async function logStationError(stationName, errorDescription) {
   }
 }
 
+router.get('/tailgating', async (req, res) => {
+  const { iuNo, startDate, endDate } = req.query;
 
+  try {
+    await sql.connect(config);
+    let query = `SELECT * FROM TailgatingReport WHERE 1=1`;
+
+    if (iuNo) query += ` AND iu_no = '${iuNo}'`;
+    if (startDate) query += ` AND occurrence_datetime >= '${startDate}'`;
+    if (endDate) query += ` AND occurrence_datetime <= '${endDate}'`;
+
+    const result = await sql.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch reports' });
+  }
+});
 
 /**
  * @swagger
