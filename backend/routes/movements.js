@@ -7,7 +7,7 @@ const TransactionCheckerDTO = require("../DTO/transactionCheckerDTO");
 const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
 const entryStationDTO = require("../DTO/entryStationDTO");
 const cors = require('cors');
-const authenticateJWT = require("/Users/User/work/EEP-Parking-System/middleware/auth");
+const authenticateJWT = require("../../middleware/auth");
 const auth = require("./auth");
 
 let entryClients = [];

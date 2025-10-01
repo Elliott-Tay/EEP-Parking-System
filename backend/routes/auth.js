@@ -3,7 +3,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sql, config } = require("../database/db");
-const authenticateJWT = require("/Users/User/work/EEP-Parking-System/middleware/auth");
+const authenticateJWT = require("../../middleware/auth");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
