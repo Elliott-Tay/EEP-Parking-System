@@ -10,8 +10,15 @@ function OutstandingSettlementFile() {
     try {
       let url = `${process.env.REACT_APP_BACKEND_API_URL}/api/outstanding/settlement`;
       if (fileDate) url += `?fileDate=${fileDate}`;
-
-      const res = await fetch(url);
+      
+      const token = localStorage.getItem("token");
+      const res = await fetch(url, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
       if (!res.ok) throw new Error("Failed to fetch data");
 
       const data = await res.json();

@@ -25,7 +25,7 @@ async function getPool() {
 
 // ======== REGISTER ========
 
-router.post("/register", async (req, res) => {
+router.post("/register", authenticateJWT, async (req, res) => {
   const { username, email, password, role } = req.body;
 
   // Validate required fields
@@ -290,7 +290,7 @@ router.post("/change-password", authenticateJWT, async (req, res) => {
 });
 
 // ======== GET USERS ========
-router.get("/users", async (req, res) => {
+router.get("/users", authenticateJWT, async (req, res) => {
   try {
     const pool = await getPool();
     let { startDate, endDate } = req.query;

@@ -40,6 +40,21 @@ jobs:
             - frontend/node_modules
           key: frontend-deps-{{ checksum "frontend/package-lock.json" }}
 
+      # Install middle dependencies
+      - restore_cache:
+          keys:
+            - middleware-deps-{{ checksum "middleware/package-lock.json" }}
+            - middleware-deps-
+      - run:
+          name: Install middleware dependencies
+          command: |
+            cd middleware
+            npm ci
+      - save_cache:
+          paths:
+            - middleware/node_modules
+          key: middleware-deps-{{ checksum "middleware/package-lock.json" }}
+
   test_backend:
     docker:
       - image: cimg/node:20.5

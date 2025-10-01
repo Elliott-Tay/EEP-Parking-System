@@ -808,7 +808,7 @@ router.post("/exit", async (req, res) => {
 });
 
 // GET /api/movement/outstanding?reportDate=YYYY-MM-DD&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-router.get("/outstanding", async (req, res) => {
+router.get("/outstanding", authenticateJWT, async (req, res) => {
   const { reportDate } = req.query;
 
   if (!reportDate) {

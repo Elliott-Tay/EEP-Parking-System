@@ -38,12 +38,19 @@ function AccessControl() {
 
     try {
       // Example API call
+      const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/register`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
         body: JSON.stringify({ username, email, password, role }),
       });
 
       const data = await response.json();
+
+      console.log('data', data);
       
       if (response.ok) {
         console.log(data);
@@ -55,7 +62,7 @@ function AccessControl() {
         setPassword("");
         setRole("");
       } else {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(data.msg || "Registration failed");
       }
     } catch (err) {
       console.error(err);

@@ -21,16 +21,18 @@ const PrivateRoute = ({ children, requiredRole }) => {
         const now = Math.floor(Date.now() / 1000);
 
         if (payload.exp && payload.exp < now) {
-          // Token expired → try refresh
           const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
             method: "POST",
-            credentials: "include", // send HttpOnly cookie
+            credentials: "include",
           });
           if (!res.ok) throw new Error("Refresh failed");
 
           const data = await res.json();
           localStorage.setItem("token", data.token);
           token = data.token;
+
+          // decode the new token
+          payload = JSON.parse(atob(token.split(".")[1]));
         }
 
         // Check role if required

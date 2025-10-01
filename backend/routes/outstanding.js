@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const { sql, config } = require("../database/db");
+const authenticateJWT = require("../../middleware/auth");
 
 // Get outstanding settlement
-router.get("/settlement", async (req, res) => {
+router.get("/settlement", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query; // optional filter by date
 
   try {
@@ -27,7 +28,7 @@ router.get("/settlement", async (req, res) => {
 });
 
 // Get outstanding acknowledgement
-router.get("/acknowledgement", async (req, res) => {
+router.get("/acknowledgement", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query;
 
   try {
@@ -51,7 +52,7 @@ router.get("/acknowledgement", async (req, res) => {
 });
 
 // Get outstanding summary
-router.get("/summary", async (req, res) => {
+router.get("/summary", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query;
 
   try {
@@ -75,7 +76,7 @@ router.get("/summary", async (req, res) => {
 });
 
 // Get lta-collection files
-router.get("/lta-collection", async (req, res) => {
+router.get("/lta-collection", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query;
 
   try {
@@ -100,7 +101,7 @@ router.get("/lta-collection", async (req, res) => {
 });
 
 // Get LTA Acknowledgement
-router.get("/lta-acknowledge", async (req, res) => {
+router.get("/lta-acknowledge", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query; // optional filter
 
   try {
@@ -125,7 +126,7 @@ router.get("/lta-acknowledge", async (req, res) => {
 });
 
 // Get LTA Result
-router.get("/lta-result", async (req, res) => {
+router.get("/lta-result", authenticateJWT, async (req, res) => {
   const { fileDate } = req.query; // optional filter
 
   try {

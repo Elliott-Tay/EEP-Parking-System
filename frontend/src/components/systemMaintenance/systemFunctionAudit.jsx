@@ -38,8 +38,15 @@ function SystemFunctionAudit() {
     setHasSearched(true);
 
     try {
+      const token = localStorage.getItem("token");
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/auth/users?startDate=${startDate}&endDate=${endDate}`
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/auth/users?startDate=${startDate}&endDate=${endDate}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
       );
 
       if (!response.ok) {

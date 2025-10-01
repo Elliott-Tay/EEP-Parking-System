@@ -8,8 +8,15 @@ function OutstandingMovementTransaction() {
   const handleSearch = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem("token");
       const res = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/outstanding?reportDate=${reportDate}`
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/outstanding?reportDate=${reportDate}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          }
+        }
       );
       const json = await res.json();
 
