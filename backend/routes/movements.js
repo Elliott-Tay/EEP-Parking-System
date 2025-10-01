@@ -925,6 +925,50 @@ router.get("/complimentary", async (req, res) => {
   }
 });
 
+// Get redemption enquiry
+router.get("/redemption-enquiry", async (req, res) => {
+  const { fromDate, toDate, serialFrom, serialTo, ticketNo } = req.query;
+
+  try {
+    await sql.connect(config);
+    let query = "SELECT * FROM DailyRedemptionEnquiry WHERE 1=1";
+
+    const request = new sql.Request();
+
+    if (fromDate) {
+      query += " AND report_period_start >= @fromDate";
+      request.input("fromDate", sql.Date, fromDate);
+    }
+
+    if (toDate) {
+      query += " AND report_period_end <= @toDate";
+      request.input("toDate", sql.Date, toDate);
+    }
+
+    if (serialFrom) {
+      query += " AND serial_no >= @serialFrom";
+      request.input("serialFrom", sql.VarChar, serialFrom);
+    }
+
+    if (serialTo) {
+      query += " AND serial_no <= @serialTo";
+      request.input("serialTo", sql.VarChar, serialTo);
+    }
+
+    if (ticketNo) {
+      query += " AND redemption_no = @ticketNo";
+      request.input("ticketNo", sql.VarChar, ticketNo);
+    }
+
+    const result = await request.query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error fetching Daily Redemption Enquiry:", err);
+    res.status(500).json({ error: "Failed to fetch data" });
+  } finally {
+    await sql.close();
+  }
+});
 
 // --- GET Complimentary Tickets ---
 router.get("/complimentary-tickets", async (req, res) => {
