@@ -13,7 +13,15 @@ export default function RemoteControlHistory() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/remote-control-logs`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/remote-control-logs`, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       // Assuming your API returns an array of logs

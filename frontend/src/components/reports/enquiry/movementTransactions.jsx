@@ -17,10 +17,19 @@ export default function MovementTransaction() {
         iu_ticket_no: iuTicketNo,
         vehicle_no: vehicleNo
       });
+      
+      const token = localStorage.getItem("token");
 
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_API_URL}/api/movements?${queryParams.toString()}`,
-        { method: "GET", headers: { "Content-Type": "application/json" } }
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // Send the token as a Bearer token
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
       );
 
       if (!response.ok) throw new Error(`Error: ${response.status}`);

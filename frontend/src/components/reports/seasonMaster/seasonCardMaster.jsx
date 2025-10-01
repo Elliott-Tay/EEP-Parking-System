@@ -10,7 +10,14 @@ export default function SeasonCardMaster() {
   useEffect(() => {
     const fetchCards = async () => {
       try {
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/seasons`);
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/seasons`, 
+          {
+            headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
         if (!response.ok) throw new Error(`Error: ${response.status}`);
         const data = await response.json();
         setCards(data);

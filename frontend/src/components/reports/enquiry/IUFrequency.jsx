@@ -24,9 +24,18 @@ function IUFrequencyReport() {
     setIsLoading(true);
     setHasSearched(false);
 
+    const token = localStorage.getItem("token");
+
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/iu-frequency?startDate=${startDate}&endDate=${endDate}&iuNo=${iuNo}`
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/iu-frequency?startDate=${startDate}&endDate=${endDate}&iuNo=${iuNo}`,
+        {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+      }
       );
 
       if (!response.ok) {

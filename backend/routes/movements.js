@@ -7,6 +7,8 @@ const TransactionCheckerDTO = require("../DTO/transactionCheckerDTO");
 const SeasonCheckerDTO = require("../DTO/seasonCheckerDTO");
 const entryStationDTO = require("../DTO/entryStationDTO");
 const cors = require('cors');
+const authenticateJWT = require("/Users/User/work/EEP-Parking-System/middleware/auth");
+const auth = require("./auth");
 
 let entryClients = [];
 let exitClients = [];
@@ -25,7 +27,7 @@ carsInLot = 0
 // In-memory lot status
 let lotStatus = {};
 
-router.get("/", async (req, res) => {
+router.get("/", authenticateJWT, async (req, res) => {
   try {
     let pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetMovementTrans");
@@ -240,7 +242,7 @@ router.get("/season-checker", async (req, res) => {
  *       500:
  *         description: Database error
  */
-router.get("/day/:date", async (req, res) => {
+router.get("/day/:date", authenticateJWT, async (req, res) => {
   try {
     const { date } = req.params;
 
@@ -274,7 +276,7 @@ router.get("/day/:date", async (req, res) => {
   }
 });
 
-router.get("/monthly/:month", async (req, res) => {
+router.get("/monthly/:month", authenticateJWT, async (req, res) => {
   try {
     const { month } = req.params;
     if (!month) return res.status(400).json({ error: "Missing month parameter" });
@@ -310,7 +312,7 @@ router.get("/monthly/:month", async (req, res) => {
   }
 });
 
-router.get("/overstayed", async (req, res) => {
+router.get("/overstayed", authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config);
 
@@ -336,7 +338,7 @@ router.get("/overstayed", async (req, res) => {
 });
 
 // --- GET entry transactions ---
-router.get("/entry-transactions", async (req, res) => {
+router.get("/entry-transactions", authenticateJWT, async (req, res) => {
   const { start_date, end_date, ticket_search } = req.query;
 
   try {
@@ -375,7 +377,7 @@ router.get("/entry-transactions", async (req, res) => {
 });
 
 // --- GET exit transactions with flexible filters ---
-router.get("/exit-valid-transactions", async (req, res) => {
+router.get("/exit-valid-transactions", authenticateJWT, async (req, res) => {
   const { start_date, end_date, ticket_id, vehicle_number, card_number } = req.query;
 
   try {
@@ -421,7 +423,7 @@ router.get("/exit-valid-transactions", async (req, res) => {
 });
 
 // --- GET exit invalid transactions ---
-router.get("/exit-invalid-transactions", async (req, res) => {
+router.get("/exit-invalid-transactions", authenticateJWT, async (req, res) => {
   const { start_date, end_date, ticket_id, vehicle_number, card_number } = req.query;
 
   try {
@@ -468,7 +470,7 @@ router.get("/exit-invalid-transactions", async (req, res) => {
 
 
 // --- GET daily consolidated summary ---
-router.get("/daily-consolidated-summary", async (req, res) => {
+router.get("/daily-consolidated-summary", authenticateJWT, async (req, res) => {
   const { start_date, end_date, search } = req.query;
 
   try {
@@ -836,8 +838,7 @@ router.get("/outstanding", async (req, res) => {
 });
 
 // Get IU Frequency
-// Get IU Frequency
-router.get("/iu-frequency", async (req, res) => {
+router.get("/iu-frequency", authenticateJWT, async (req, res) => {
   const { startDate, endDate, iuNo } = req.query;
 
   if (!startDate || !endDate) {
@@ -875,7 +876,7 @@ router.get("/iu-frequency", async (req, res) => {
 
 
 // GET Complimentary Movements by ticket
-router.get("/complimentary", async (req, res) => {
+router.get("/complimentary", authenticateJWT, async (req, res) => {
   const { ticket_no } = req.query;
 
   if (!ticket_no) {
@@ -926,7 +927,7 @@ router.get("/complimentary", async (req, res) => {
 });
 
 // Get redemption enquiry
-router.get("/redemption-enquiry", async (req, res) => {
+router.get("/redemption-enquiry", authenticateJWT, async (req, res) => {
   const { fromDate, toDate, serialFrom, serialTo, ticketNo } = req.query;
 
   try {
@@ -971,7 +972,7 @@ router.get("/redemption-enquiry", async (req, res) => {
 });
 
 // --- GET Complimentary Tickets ---
-router.get("/complimentary-tickets", async (req, res) => {
+router.get("/complimentary-tickets", authenticateJWT, async (req, res) => {
   const { start_date, end_date, search } = req.query;
 
   try {
@@ -1193,7 +1194,7 @@ async function logStationError(stationName, errorDescription) {
   }
 }
 
-router.get('/tailgating', async (req, res) => {
+router.get('/tailgating', authenticateJWT, async (req, res) => {
   const { iuNo, startDate, endDate } = req.query;
 
   try {

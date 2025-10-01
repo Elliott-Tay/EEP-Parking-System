@@ -12,8 +12,15 @@ function DailyConsolidatedSummary() {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/daily-consolidated-summary`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/daily-consolidated-summary`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         if (!response.ok) throw new Error("Failed to fetch data");
         const data = await response.json();

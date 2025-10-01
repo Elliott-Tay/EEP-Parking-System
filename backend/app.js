@@ -11,6 +11,7 @@ const tariffRouter = require('./routes/tariffSetup');
 const outstandingRouter = require('./routes/outstanding');
 const { authRouter } = require("./routes/auth");
 const systemConfigurationRoute = require("./routes/systemConfiguration")
+const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
 
@@ -18,6 +19,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 // Welcome route
 app.get("/", (req, res) => {

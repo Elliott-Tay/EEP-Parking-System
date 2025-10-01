@@ -4,6 +4,7 @@ const db = require("../database/db");
 const { sql, config } = require("../database/db"); 
 const parkingLotDTO = require("../DTO/parkingLotDTO");
 const { authenticateToken } = require("./auth");
+const authenticateJWT = require("../../middleware/auth");
 
 // Keep track of all connected SSE clients
 let lotStatusClients = [];
@@ -189,7 +190,7 @@ router.post("/system/restart-upos", authenticateToken, async (req, res) => {
 });
 
 // Log the remote control logs
-router.post("/remote-control-logs", async (req, res) => {
+router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
   const { event_time, action, user, device, status } = req.body;
 
   if (!event_time || !action || !user || !device || !status) {
@@ -222,7 +223,7 @@ router.post("/remote-control-logs", async (req, res) => {
   }
 });
 
-router.get("/remote-control-logs", async (req, res) => {
+router.get("/remote-control-logs", authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config);
 

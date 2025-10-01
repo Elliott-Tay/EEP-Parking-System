@@ -1,7 +1,6 @@
 // src/components/reports/ToBeExpiredSeason.js
 import React, { useState, useEffect } from "react";
 import { Search, Calendar, Bell, RefreshCw } from "lucide-react";
-import axios from "axios";
 
 export default function ToBeExpiredSeason() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -13,7 +12,14 @@ export default function ToBeExpiredSeason() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("http://localhost:5000/api/seasons/to-be-expired");
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/seasons/to-be-expired`, 
+          {
+            headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
         // Map API data to your table format
         const mappedCards = res.data.map((item) => {
           const expiryDate = new Date(item.valid_to);

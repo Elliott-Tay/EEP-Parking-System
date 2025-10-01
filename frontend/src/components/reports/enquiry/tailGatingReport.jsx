@@ -10,14 +10,26 @@ function TailgatingReport() {
   const handleSearch = async () => {
     try {
       setLoading(true);
+
+      const token = localStorage.getItem("token"); // get token from localStorage
       const params = new URLSearchParams();
       if (iuNo) params.append("iuNo", iuNo);
       if (startDate) params.append("startDate", startDate);
       if (endDate) params.append("endDate", endDate);
 
       const res = await fetch(
-        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/tailgating?${params.toString()}`
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/tailgating?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
       );
+
+      if (!res.ok) throw new Error("Failed to fetch reports");
+
       const data = await res.json();
       setReports(data);
     } catch (err) {

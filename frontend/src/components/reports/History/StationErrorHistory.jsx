@@ -13,7 +13,15 @@ export default function StationErrorHistory() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/station-error-history`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/station-error-history`, 
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setLogs(data.errors.map(err => ({

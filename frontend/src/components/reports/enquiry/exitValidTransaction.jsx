@@ -16,9 +16,16 @@ export default function ExitValidTransaction() {
         iu_ticket_no: iuTicketNo,
       });
 
+      const token = localStorage.getItem("token");
+
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/exit-valid-transactions?${queryParams.toString()}`,
-        { method: "GET", headers: { "Content-Type": "application/json" } }
+        { method: "GET", headers: {
+            "Content-Type": "application/json",
+            // Send the token as a Bearer token
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        }
       );
 
       console.log('response', response);

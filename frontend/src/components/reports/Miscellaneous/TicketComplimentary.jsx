@@ -10,8 +10,15 @@ export default function TicketComplimentary() {
     const fetchTickets = async () => {
       setLoading(true);
       try {
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/complimentary-tickets`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/complimentary-tickets`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         if (!response.ok) throw new Error("Failed to fetch tickets");
 

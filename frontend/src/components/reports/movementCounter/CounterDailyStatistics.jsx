@@ -33,9 +33,16 @@ function CounterDailyStatistics() {
 
     const fetchData = async () => {
       setLoading(true);
+      const token = localStorage.getItem("token");
       try {
         const response = await fetch(
-          `${env_backend}/api/movements/day/${selectedDate}`
+          `${env_backend}/api/movements/day/${selectedDate}`,
+          {
+            headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         const result = await response.json();
         const mappedRecords = result.data.map((r) => ({ ...r }));

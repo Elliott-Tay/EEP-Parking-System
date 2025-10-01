@@ -17,7 +17,14 @@ export default function DailyParkingDuration() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${env_backend}/api/movements/day/${selectedDay}`);
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${env_backend}/api/movements/day/${selectedDay}`,
+          {
+            headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          },
+        });
         const result = await response.json();
 
         const mappedRecords = result.data.map((r) => {

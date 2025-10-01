@@ -12,28 +12,38 @@ function DailyRedemptionEnquiry() {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      let url = `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/redemption-enquiry?`;
-      const params = new URLSearchParams();
-      if (fromDate) params.append("fromDate", fromDate);
-      if (toDate) params.append("toDate", toDate);
-      if (serialFrom) params.append("serialFrom", serialFrom);
-      if (serialTo) params.append("serialTo", serialTo);
-      if (ticketNo) params.append("ticketNo", ticketNo);
+        const token = localStorage.getItem("token");
 
-      url += params.toString();
+        let url = `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/redemption-enquiry?`;
+        const params = new URLSearchParams();
+        if (fromDate) params.append("fromDate", fromDate);
+        if (toDate) params.append("toDate", toDate);
+        if (serialFrom) params.append("serialFrom", serialFrom);
+        if (serialTo) params.append("serialTo", serialTo);
+        if (ticketNo) params.append("ticketNo", ticketNo);
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch data");
+        url += params.toString();
 
-      const data = await res.json();
-      setRecords(data);
+        const res = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            // Send the token for authentication
+            "Authorization": token ? `Bearer ${token}` : "",
+        },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch data");
+
+        const data = await res.json();
+        setRecords(data);
     } catch (err) {
-      console.error(err);
-      setRecords([]);
+        console.error(err);
+        setRecords([]);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+    };
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

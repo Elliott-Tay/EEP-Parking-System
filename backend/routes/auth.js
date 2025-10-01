@@ -3,6 +3,7 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sql, config } = require("../database/db");
+const authenticateJWT = require("/Users/User/work/EEP-Parking-System/middleware/auth");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -164,20 +165,60 @@ router.post("/login", async (req, res) => {
       .query(
         "INSERT INTO UserLoginLog (user_id, username, login_time, ip_address, device_info) VALUES (@user_id, @username, @login_time, @ip_address, @device_info)"
     );
-    // Generate JWT
-    const token = jwt.sign(
+    // After generating the access token
+    const accessToken = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: "15m" }
     );
 
-    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+    // Create refresh token
+    const refreshToken = jwt.sign(
+      { id: user.id, username: user.username },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: "7d" } // Longer life
+    );
+
+    // Send refresh token in HttpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Send access token in response body
+    res.json({ token: accessToken, user: { id: user.id, username: user.username, role: user.role } });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
+// Refresh token endpoint
+router.post("/refresh", async (req, res) => {
+  const token = req.cookies.refreshToken;
+
+  if (!token) return res.status(401).json({ error: "No refresh token provided" });
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+    const accessToken = jwt.sign(
+      { id: payload.id, username: payload.username },
+      JWT_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.json({ token: accessToken });
+  } catch (err) {
+    console.error("Refresh token error:", err);
+    res.status(403).json({ error: "Invalid or expired refresh token" });
+  }
+});
+
+// Logout endpoint
 router.post("/logout", async (req, res) => {
   const { userId } = req.body; // Pass the user's ID from frontend or decoded JWT
   if (!userId) return res.status(400).json({ error: "Missing userId" });
@@ -204,7 +245,7 @@ router.post("/logout", async (req, res) => {
 });
 
 // ======== CHANGE PASSWORD ========
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", authenticateJWT, async (req, res) => {
   const { username, old_password, new_password } = req.body;
 
   if (!username || !old_password || !new_password) {

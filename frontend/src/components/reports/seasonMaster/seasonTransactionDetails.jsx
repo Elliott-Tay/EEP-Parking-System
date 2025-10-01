@@ -11,9 +11,15 @@ export default function SeasonTransactionDetails({ defaultSeasonId }) {
     if (!id) return;
     try {
       setLoading(true);
+      const token = localStorage.getItem("token");
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_API_URL}/api/seasons/${id}/transactions`,
-        { headers: { "Content-Type": "application/json" } }
+          { 
+            headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+          }, 
+        }
       );
       const data = await response.json();
       setTransactions(data);

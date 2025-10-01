@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db");
 const { sql, config } = require("../database/db");
+const authenticateJWT = require("../../middleware/auth");
 
 // Get all seasons
 // This route fetches all seasons from the database
 // Example: GET /api/seasons
-router.get("/", async (req, res) => {
+router.get("/", authenticateJWT, async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM SeasonHolders"); // no destructuring
         res.json(result.recordset); // use recordset to get rows
@@ -17,7 +18,7 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/seasons/:season_id/transactions?search=term
-router.get("/:season_id/transactions", async (req, res) => {
+router.get("/:season_id/transactions", authenticateJWT, async (req, res) => {
   const { season_id } = req.params;
   const { search } = req.query; // <-- get search query
 
@@ -47,7 +48,7 @@ router.get("/:season_id/transactions", async (req, res) => {
 });
 
 // GET /api/seasons/to-be-expired
-router.get("/to-be-expired", async (req, res) => {
+router.get("/to-be-expired", authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config);
     const query = `

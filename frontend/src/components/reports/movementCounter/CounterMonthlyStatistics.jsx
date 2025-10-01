@@ -16,8 +16,16 @@ export default function CounterMonthlyStatistics() {
 
     const fetchData = async () => {
       setLoading(true);
+      const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`${env_backend}/api/movements/monthly/${selectedMonth}`);
+        const res = await fetch(`${env_backend}/api/movements/monthly/${selectedMonth}`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
+        );
         const data = await res.json();
         setRecords(data.data || []);
       } catch (err) {
