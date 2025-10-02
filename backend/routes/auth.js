@@ -168,7 +168,7 @@ router.post("/login", async (req, res) => {
     // After generating the access token
     const accessToken = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
 
@@ -207,7 +207,7 @@ router.post("/refresh", async (req, res) => {
 
     const accessToken = jwt.sign(
       { id: payload.id, username: payload.username },
-      JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
 

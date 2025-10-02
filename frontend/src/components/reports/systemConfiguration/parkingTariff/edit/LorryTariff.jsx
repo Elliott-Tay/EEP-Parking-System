@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
 
-export default function TariffSetupDaySeason() {
+export default function TariffSetupLorrySeason() {
   const navigate = useNavigate();
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
 
@@ -32,8 +32,15 @@ export default function TariffSetupDaySeason() {
   useEffect(() => {
     const fetchRates = async () => {
       try {
+        const token = localStorage.getItem("token");
         const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=DaySeason`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Lorry`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+          }
         );
         if (!res.ok) throw new Error("Failed to fetch tariff");
         const data = await res.json();

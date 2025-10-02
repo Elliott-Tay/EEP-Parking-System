@@ -33,8 +33,15 @@ export default function TariffSetupMotorcycle() {
   useEffect(() => {
     const fetchRates = async () => {
       try {
+        const token = localStorage.getItem("token");
         const res = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Motorcycle`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Motorcycle`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         if (!res.ok) throw new Error("Failed to fetch tariff");
         const data = await res.json();

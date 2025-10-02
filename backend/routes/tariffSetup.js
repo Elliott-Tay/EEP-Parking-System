@@ -2,6 +2,7 @@ const express = require("express");
 const { sql, config } = require("../database/db"); // your MSSQL config
 const router = express.Router();
 const { DateTime } = require("luxon")
+const authenticateJWT = require("../../middleware/auth");
 
 function parseTime(str) {
   // str = "08:00" or "08:00:00"
@@ -82,7 +83,7 @@ router.post("/tariff-setup", async (req, res) => {
 });
 
 // GET Tariff setup (view)
-router.get("/tariff-setup", async (req, res) => {
+router.get("/tariff-setup", authenticateJWT, async (req, res) => {
   const { vehicleType } = req.query;
 
   if (!vehicleType) {

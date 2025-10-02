@@ -5,6 +5,34 @@ const PrivateRoute = ({ children, requiredRole }) => {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
+  // Decode JWT safely
+  const decodeToken = (token) => {
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch {
+      return null;
+    }
+  };
+
+  // Refresh token using your refresh endpoint
+  const refreshToken = async () => {
+    try {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include", // send cookies
+      });
+      if (!res.ok) throw new Error("Refresh failed");
+      const data = await res.json();
+      localStorage.setItem("token", data.token);
+      return data.token;
+    } catch (err) {
+      console.error("Token refresh error:", err);
+      localStorage.removeItem("token");
+      return null;
+    }
+  };
+
+  // Check auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
       let token = localStorage.getItem("token");
@@ -15,49 +43,45 @@ const PrivateRoute = ({ children, requiredRole }) => {
         return;
       }
 
-      try {
-        // Decode JWT
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const now = Math.floor(Date.now() / 1000);
+      let payload = decodeToken(token);
+      const now = Math.floor(Date.now() / 1000);
 
-        if (payload.exp && payload.exp < now) {
-          const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
-            method: "POST",
-            credentials: "include",
-          });
-          if (!res.ok) throw new Error("Refresh failed");
-
-          const data = await res.json();
-          localStorage.setItem("token", data.token);
-          token = data.token;
-
-          // decode the new token
-          payload = JSON.parse(atob(token.split(".")[1]));
-        }
-
-        // Check role if required
-        if (requiredRole && payload.role !== requiredRole) {
-          alert("Access denied: insufficient role");
+      if (!payload || (payload.exp && payload.exp < now)) {
+        token = await refreshToken();
+        if (!token) {
           setAuthorized(false);
-        } else {
-          setAuthorized(true);
+          setLoading(false);
+          return;
         }
-      } catch (err) {
-        console.error("Auth error:", err);
-        localStorage.removeItem("token");
-        setAuthorized(false);
-      } finally {
-        setLoading(false);
+        payload = decodeToken(token);
       }
+
+      if (requiredRole && payload.role !== requiredRole) {
+        alert("Access denied: insufficient role");
+        setAuthorized(false);
+      } else {
+        setAuthorized(true);
+      }
+
+      setLoading(false);
     };
 
     checkAuth();
   }, [requiredRole]);
 
+  // Wrapper for fetch that automatically includes Authorization header
+  const authFetch = async (url, options = {}) => {
+    const token = localStorage.getItem("token");
+    if (!options.headers) options.headers = {};
+    options.headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url, options);
+  };
+
   if (loading) return <div>Loading...</div>;
   if (!authorized) return <Navigate to="/" replace />;
 
-  return children;
+  // Provide authFetch to child via prop
+  return React.cloneElement(children, { authFetch });
 };
 
 export default PrivateRoute;

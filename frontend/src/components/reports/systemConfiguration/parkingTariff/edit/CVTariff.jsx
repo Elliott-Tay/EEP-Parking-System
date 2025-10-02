@@ -24,9 +24,20 @@ export default function TariffSetupCarVan() {
   useEffect(() => {
     const fetchTariff = async () => {
       try {
+        const token = localStorage.getItem('token');
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+            credentials: "include"
+          }
         );
+
+        console.log("Sending Authorization header:", token ? `Bearer ${token}` : "NO TOKEN");
+
         if (!response.ok) throw new Error("Failed to fetch tariff");
         const data = await response.json();
         if (!data || Object.keys(data).length === 0) return;

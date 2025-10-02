@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Home, Car, Calendar, Clock, Eye, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "react-toastify";
 
-export default function TariffSetupCarVanView() {
+export default function TariffSetupCarVanBView() {
   const navigate = useNavigate();
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
   const [rates, setRates] = useState(null);
@@ -12,8 +12,15 @@ export default function TariffSetupCarVanView() {
   useEffect(() => {
     const fetchRates = async () => {
       try {
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/VanB`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         const data = await response.json();
         if (response.ok) {

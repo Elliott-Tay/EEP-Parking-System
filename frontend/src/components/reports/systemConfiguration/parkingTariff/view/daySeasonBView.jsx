@@ -12,8 +12,15 @@ export default function TariffSetupDaySeasonBView() {
   useEffect(() => {
     const fetchRates = async () => {
       try {
+        const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=DaySeasonB`
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=DaySeasonB`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": token ? `Bearer ${token}` : "",
+            },
+          }
         );
         const data = await response.json();
         if (response.ok) {
