@@ -162,5 +162,110 @@ router.post("/season-holder", async (req, res) => {
   }
 });
 
+// Update season holder
+router.put("/update", authenticateJWT, async (req, res) => {
+  const {
+    serial_no,
+    valid_to,       // maps to expireDate from frontend
+    company,
+    holder_type,
+    season_status,
+    vehicle_no,
+    holder_name,
+    season_no,
+    season_type,
+    address,
+    valid_from,
+    employee_no,
+    telephone,
+    // Add any other fields you want to allow updating
+  } = req.body;
+
+  if (!serial_no) {
+    return res.status(400).json({ error: "serial_no is required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    // Build dynamic update query
+    const fields = [];
+
+    if (valid_to) {
+      fields.push("valid_to = @valid_to");
+      request.input("valid_to", sql.Date, valid_to);
+    }
+    if (valid_from) {
+      fields.push("valid_from = @valid_from");
+      request.input("valid_from", sql.Date, valid_from);
+    }
+    if (company) {
+      fields.push("company = @company");
+      request.input("company", sql.NVarChar, company);
+    }
+    if (holder_type) {
+      fields.push("holder_type = @holder_type");
+      request.input("holder_type", sql.NVarChar, holder_type);
+    }
+    if (season_status) {
+      fields.push("season_status = @season_status");
+      request.input("season_status", sql.NVarChar, season_status);
+    }
+    if (vehicle_no) {
+      fields.push("vehicle_no = @vehicle_no");
+      request.input("vehicle_no", sql.NVarChar, vehicle_no);
+    }
+    if (holder_name) {
+      fields.push("holder_name = @holder_name");
+      request.input("holder_name", sql.NVarChar, holder_name);
+    }
+    if (season_no) {
+      fields.push("season_no = @season_no");
+      request.input("season_no", sql.NVarChar, season_no);
+    }
+    if (season_type) {
+      fields.push("season_type = @season_type");
+      request.input("season_type", sql.NVarChar, season_type);
+    }
+    if (address) {
+      fields.push("address = @address");
+      request.input("address", sql.NVarChar, address);
+    }
+    if (employee_no) {
+      fields.push("employee_no = @employee_no");
+      request.input("employee_no", sql.NVarChar, employee_no);
+    }
+    if (telephone) {
+      fields.push("telephone = @telephone");
+      request.input("telephone", sql.NVarChar, telephone);
+    }
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    // Always update updated_at
+    fields.push("updated_at = GETDATE()");
+
+    const query = `
+      UPDATE SeasonHolders
+      SET ${fields.join(", ")}
+      WHERE serial_no = @serial_no
+    `;
+
+    request.input("serial_no", sql.NVarChar, serial_no);
+    const result = await request.query(query);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: "Record not found" });
+    }
+
+    res.json({ message: "Season holder updated successfully!" });
+  } catch (err) {
+    console.error("Error updating season holder:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
 
 module.exports = router;

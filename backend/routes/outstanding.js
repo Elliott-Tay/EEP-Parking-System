@@ -60,7 +60,7 @@ router.get("/summary", authenticateJWT, async (req, res) => {
 
     let query = "SELECT * FROM OutstandingSummary";
     if (fileDate) {
-      query += " WHERE CONVERT(date, created_at) = @fileDate";
+      query += " WHERE CONVERT(date, create_time) = @fileDate";
     }
 
     const request = new sql.Request();

@@ -36,8 +36,6 @@ export default function TariffSetupCarVan() {
           }
         );
 
-        console.log("Sending Authorization header:", token ? `Bearer ${token}` : "NO TOKEN");
-
         if (!response.ok) throw new Error("Failed to fetch tariff");
         const data = await response.json();
         if (!data || Object.keys(data).length === 0) return;
