@@ -68,7 +68,7 @@ jobs:
           command: chmod +x ./backend/node_modules/.bin/jest
       - run:
           name: Run backend tests
-          command: cd backend && npx jest --ci --coverage
+          command: cd backend && npm test
 
   test_frontend:
     docker:

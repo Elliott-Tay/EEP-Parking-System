@@ -14,7 +14,7 @@ app.use("/api/remote-control", remoteControlRouter);
 // ---- Create a mock token ----
 const JWT_SECRET = process.env.JWT_SECRET || "test-secret"; // match your app secret
 const mockUser = { id: 1, username: "testuser", role: "admin" };
-const token = jwt.sign(mockUser, JWT_SECRET, { expiresIn: "1h" });
+const token = jwt.sign(mockUser, JWT_SECRET, { expiresIn: "15m" });
 
 const authHeader = `Bearer ${token}`;
 
