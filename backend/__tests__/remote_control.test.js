@@ -4,7 +4,6 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const db = require("../database/db");
 const remoteControlRouter = require("../routes/remoteControl"); // adjust path
-const authenticateJWT = require('../../middleware/auth');
 
 jest.mock("../database/db"); // Mock the db module
 
