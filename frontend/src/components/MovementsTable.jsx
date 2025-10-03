@@ -13,7 +13,8 @@ function MovementsTable() {
 
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements`);
+        const response = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/call-center-movement`,
+        );
         if (isMounted) setMovementData(response.data);
       } catch (error) {
         console.error('Error fetching movements:', error);

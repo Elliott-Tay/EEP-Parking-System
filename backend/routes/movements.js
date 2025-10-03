@@ -42,6 +42,22 @@ router.get("/", authenticateJWT, async (req, res) => {
   }
 });
 
+// Unauthorised route for call-centre which do not require login
+router.get("/call-center-movement", async (req, res) => {
+  try {
+    let pool = await sql.connect(config);
+    const result = await pool.request().execute("dbo.uspGetMovementTrans");
+
+    // Map the recordset to DTOs
+    const response = result.recordset.map(row => new MovementDTO(row));
+
+    res.json(response);
+  } catch (err) {
+    console.error("SQL error", err);
+    res.status(500).send("Database error: " + err.message);
+  }
+});
+
 /**
  * @swagger
  * /api/movements/entry-movements:
