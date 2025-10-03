@@ -10,7 +10,9 @@ jobs:
     steps:
       - checkout
 
+      # -------------------------
       # Backend dependencies cache
+      # -------------------------
       - restore_cache:
           keys:
             - backend-deps-{{ checksum "backend/package-lock.json" }}
@@ -25,22 +27,9 @@ jobs:
             - backend/node_modules
           key: backend-deps-{{ checksum "backend/package-lock.json" }}
 
-      # Frontend dependencies cache
-      - restore_cache:
-          keys:
-            - frontend-deps-{{ checksum "frontend/package-lock.json" }}
-            - frontend-deps-
-      - run:
-          name: Install frontend dependencies
-          command: |
-            cd frontend
-            npm ci
-      - save_cache:
-          paths:
-            - frontend/node_modules
-          key: frontend-deps-{{ checksum "frontend/package-lock.json" }}
-
-      # Install middle dependencies
+      # -------------------------
+      # Middleware dependencies cache
+      # -------------------------
       - restore_cache:
           keys:
             - middleware-deps-{{ checksum "middleware/package-lock.json" }}
@@ -55,20 +44,45 @@ jobs:
             - middleware/node_modules
           key: middleware-deps-{{ checksum "middleware/package-lock.json" }}
 
+      # -------------------------
+      # Frontend dependencies cache
+      # -------------------------
+      - restore_cache:
+          keys:
+            - frontend-deps-{{ checksum "frontend/package-lock.json" }}
+            - frontend-deps-
+      - run:
+          name: Install frontend dependencies
+          command: |
+            cd frontend
+            npm ci
+      - save_cache:
+          paths:
+            - frontend/node_modules
+          key: frontend-deps-{{ checksum "frontend/package-lock.json" }}
+
   test_backend:
     docker:
       - image: cimg/node:20.5
     steps:
       - checkout
+
+      # Install backend and middleware dependencies
       - run:
-          name: Install backend dependencies
-          command: cd backend && npm ci
+          name: Install backend and middleware dependencies
+          command: |
+            cd backend && npm ci
+            cd ../middleware && npm ci
+
+      # Make Jest executable
       - run:
           name: Make Jest executable
           command: chmod +x ./backend/node_modules/.bin/jest
+
+      # Run backend tests
       - run:
           name: Run backend tests
-          command: cd backend && npm test
+          command: cd backend && npx jest --ci --coverage
 
   test_frontend:
     docker:
