@@ -203,10 +203,11 @@ router.post("/refresh", async (req, res) => {
   if (!token) return res.status(401).json({ error: "No refresh token provided" });
 
   try {
+    // Use JWT_REFRESH_SECRET here
     const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 
     const accessToken = jwt.sign(
-      { id: payload.id, username: payload.username },
+      { id: payload.id, username: payload.username, role: payload.role }, // optional: include role
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );

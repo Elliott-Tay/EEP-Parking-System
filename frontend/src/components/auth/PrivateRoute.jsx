@@ -5,7 +5,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
 
-  // Decode JWT safely
+  // Helper: decode JWT
   const decodeToken = (token) => {
     try {
       return JSON.parse(atob(token.split(".")[1]));
@@ -14,7 +14,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
     }
   };
 
-  // Refresh token using your refresh endpoint
+  // Helper: refresh token
   const refreshToken = async () => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
@@ -32,7 +32,6 @@ const PrivateRoute = ({ children, requiredRole }) => {
     }
   };
 
-  // Check auth status on mount
   useEffect(() => {
     const checkAuth = async () => {
       let token = localStorage.getItem("token");
@@ -69,9 +68,9 @@ const PrivateRoute = ({ children, requiredRole }) => {
     checkAuth();
   }, [requiredRole]);
 
-  // Wrapper for fetch that automatically includes Authorization header
+  // Attach token to fetch wrapper for protected API calls
   const authFetch = async (url, options = {}) => {
-    const token = localStorage.getItem("token");
+    let token = localStorage.getItem("token");
     if (!options.headers) options.headers = {};
     options.headers["Authorization"] = `Bearer ${token}`;
     return fetch(url, options);
@@ -80,7 +79,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
   if (loading) return <div>Loading...</div>;
   if (!authorized) return <Navigate to="/" replace />;
 
-  // Provide authFetch to child via prop
+  // Pass authFetch to children as a prop if needed
   return React.cloneElement(children, { authFetch });
 };
 
