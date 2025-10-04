@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash, Save, Home, Calendar, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Trash, Save, Home, Calendar, ArrowLeft, CheckCircle } from "lucide-react";
 
 export default function PublicHolidaySetup() {
   const navigate = useNavigate();
@@ -11,11 +11,17 @@ export default function PublicHolidaySetup() {
   const env_backend = process.env.REACT_APP_BACKEND_API_URL;
   const baseURL = `${env_backend}/api/system-configuration/holidays`;
 
+  const token = localStorage.getItem("token");
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+
   // ================= FETCH HOLIDAYS BY YEAR =================
   const fetchHolidays = async (year) => {
     setLoading(true);
     try {
-      const res = await fetch(`${baseURL}/${year}`);
+      const res = await fetch(`${baseURL}/${year}`, { headers });
       const data = await res.json();
       if (res.ok) {
         setHolidays(
@@ -43,28 +49,28 @@ export default function PublicHolidaySetup() {
 
   // ================= HOLIDAY STATE HANDLERS =================
   const handleAddHoliday = () => setHolidays([...holidays, { date: "", description: "", remarks: "" }]);
+
   const handleDeleteHoliday = async (id) => {
     if (!window.confirm("Are you sure you want to delete this holiday?")) return;
 
     setLoading(true);
     try {
-        const res = await fetch(`${baseURL}/${id}`, { method: "DELETE" });
-        const data = await res.json();
+      const res = await fetch(`${baseURL}/${id}`, { method: "DELETE", headers });
+      const data = await res.json();
 
-        if (res.ok) {
+      if (res.ok) {
         alert(data.message || "Holiday deleted");
-        // Refresh list after delete
         fetchHolidays(year);
-        } else {
+      } else {
         alert(data.error || "Failed to delete holiday");
-        }
+      }
     } catch (err) {
-        console.error(err);
-        alert("Server error while deleting holiday");
+      console.error(err);
+      alert("Server error while deleting holiday");
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-    };
+  };
 
   const handleChangeHoliday = (index, field, value) => {
     const updated = [...holidays];
@@ -77,18 +83,18 @@ export default function PublicHolidaySetup() {
     setLoading(true);
     try {
       const formattedHolidays = holidays.map(h => ({
-        date: h.date.split("/").reverse().join("-"), // convert DD/MM/YYYY → YYYY-MM-DD
+        date: h.date.split("/").reverse().join("-"), // DD/MM/YYYY → YYYY-MM-DD
         description: h.description,
         remarks: h.remarks
       }));
 
       const res = await fetch(baseURL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ year, holidays: formattedHolidays })
       });
-      const data = await res.json();
 
+      const data = await res.json();
       if (res.ok) {
         alert(data.message || "Holidays saved successfully!");
         fetchHolidays(year);
