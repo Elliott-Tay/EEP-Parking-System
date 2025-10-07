@@ -8,23 +8,31 @@ function MovementsTable() {
   const [search, setSearch] = useState("");
   const rowsPerPage = 10;
 
+  // Define fetchData outside of useEffect so we can call it on refresh
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/movements/call-center-movement`
+      );
+      setMovementData(response.data);
+    } catch (error) {
+      console.error('Error fetching movements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/call-center-movement`,
-        );
-        if (isMounted) setMovementData(response.data);
-      } catch (error) {
-        console.error('Error fetching movements:', error);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
+    if (isMounted) {
+      fetchData();
+    }
 
-    // Initial fetch
-    fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Filtered data based on search
@@ -45,20 +53,25 @@ function MovementsTable() {
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
-      <div className="flex justify-start mt-1 ml-1">
+      {/* Search Bar & Refresh Button */}
+      <div className="flex justify-between mt-1 ml-1 mr-1">
         <input
           type="text"
           placeholder="Search movements..."
           value={search}
           onChange={(e) => {
-            // Remove any non-alphanumeric characters
             const alphanumericValue = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
             setSearch(alphanumericValue);
             setCurrentPage(1); // reset to first page on new search
           }}
           className="border px-3 py-2 rounded w-1/3 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
+        <button
+          onClick={fetchData}
+          className="px-4 py-2 bg-blue-500 text-white rounded shadow hover:bg-blue-600"
+        >
+          Refresh
+        </button>
       </div>
 
       <div className="overflow-x-auto">

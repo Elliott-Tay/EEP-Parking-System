@@ -156,62 +156,62 @@ export default function ReportPage() {
   const reportCategories = [
     {
       id: 1,
-      title: "Payment Collection",
+      title: "Payments & Settlements",
       icon: DollarSign,
       color: "bg-green-100 text-green-600 border-green-200",
       description: "Financial reports and payment analysis",
       reports: [
-        { id: 1, name: "Daily Settlement File", description: "Complete daily payment settlement", icon: FileText, route: "/reports/daily-settlement" },
-        { id: 2, name: "Analysis of Ack/Sum File", description: "Payment acknowledgment analysis", icon: BarChart3, route: "/reports/ack-sum-analysis" },
-        { id: 3, name: "Daily Consolidated Summary", description: "Consolidated daily payment report", icon: TrendingUp, route: "/reports/daily-summary" },
-        { id: 4, name: "Daily Cashcard Collection", description: "Cashcard transaction summary", icon: CreditCard, route: "/reports/cashcard-collection" }
+        { id: 1, name: "Daily Settlements", description: "Complete daily payment settlement", icon: FileText, route: "/reports/daily-settlement" },
+        { id: 2, name: "Acknowledgment Analysis", description: "Payment acknowledgment analysis", icon: BarChart3, route: "/reports/ack-sum-analysis" },
+        { id: 3, name: "Daily Summary", description: "Consolidated daily payment report", icon: TrendingUp, route: "/reports/daily-summary" },
+        { id: 4, name: "Cashcard Collections", description: "Cashcard transaction summary", icon: CreditCard, route: "/reports/cashcard-collection" }
       ]
     },
     {
       id: 2,
-      title: "Movement Counter & Transactions",
+      title: "Traffic & Transactions",
       icon: Activity,
       color: "bg-blue-100 text-blue-600 border-blue-200",
       description: "Traffic flow and transaction monitoring",
       reports: [
-        { id: 5, name: "Counter Daily Statistics", description: "Daily vehicle movement statistics", icon: BarChart3, route: "/reports/counter-daily" },
-        { id: 6, name: "Counter Monthly Statistics", description: "Monthly traffic analysis", icon: Calendar, route: "/reports/counter-monthly" },
-        { id: 7, name: "Daily Movement Details", description: "Detailed vehicle movement logs", icon: Activity, route: "/reports/movement-details" },
-        { id: 8, name: "Daily Parking Duration", description: "Average parking duration analysis", icon: Clock, route: "/reports/parking-duration" }
+        { id: 5, name: "Daily Counter Stats", description: "Daily vehicle movement statistics", icon: BarChart3, route: "/reports/counter-daily" },
+        { id: 6, name: "Monthly Counter Stats", description: "Monthly traffic analysis", icon: Calendar, route: "/reports/counter-monthly" },
+        { id: 7, name: "Movement Logs", description: "Detailed vehicle movement logs", icon: Activity, route: "/reports/movement-details" },
+        { id: 8, name: "Parking Duration Analysis", description: "Average parking duration analysis", icon: Clock, route: "/reports/parking-duration" }
       ]
     },
     {
       id: 3,
-      title: "History & Audit",
+      title: "Audit & History",
       icon: Shield,
       color: "bg-purple-100 text-purple-600 border-purple-200",
       description: "System audit trails and historical data",
       reports: [
-        { id: 9, name: "Remote Control History", description: "System control operation logs", icon: History, route: "/reports/remote-control-history" },
-        { id: 10, name: "Station Error History", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" }
+        { id: 9, name: "Remote Control Logs", description: "System control operation logs", icon: History, route: "/reports/remote-control-history" },
+        { id: 10, name: "Station Error Logs", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" }
       ]
     },
     {
       id: 4,
-      title: "Season Master & Details",
+      title: "Season Parking Reports",
       icon: Car,
       color: "bg-orange-100 text-orange-600 border-orange-200",
       description: "Season parking management reports",
       reports: [
-        { id: 11, name: "Season Card Master", description: "Season card holder database", icon: CreditCard, route: "/reports/season-master" },
-        { id: 12, name: "Season Transaction Details", description: "Season parking transaction logs", icon: FileText, route: "/reports/season-transactions" },
-        { id: 13, name: "To Be Expired Season", description: "Expiring season card alerts", icon: Calendar, route: "/reports/expiring-season" }
+        { id: 11, name: "Season Card Database", description: "Season card holder database", icon: CreditCard, route: "/reports/season-master" },
+        { id: 12, name: "Season Transactions", description: "Season parking transaction logs", icon: FileText, route: "/reports/season-transactions" },
+        { id: 13, name: "Expiring Seasons", description: "Expiring season card alerts", icon: Calendar, route: "/reports/expiring-season" }
       ]
     },
     {
       id: 5,
-      title: "Miscellaneous Reports",
+      title: "Other Reports",
       icon: FileText,
       color: "bg-gray-100 text-gray-600 border-gray-200",
       description: "Additional system reports",
       reports: [
-        { id: 14, name: "Ticket Complimentary", description: "Complimentary ticket usage report", icon: FileText, route: "/reports/ticket-complimentary" },
-        { id: 15, name: "NETS Collection Comparison", description: "NETS payment comparison analysis", icon: BarChart3, route: "/reports/nets-comparison" }
+        { id: 14, name: "Complimentary Tickets", description: "Complimentary ticket usage report", icon: FileText, route: "/reports/ticket-complimentary" },
+        { id: 15, name: "NETS Comparison", description: "NETS payment comparison analysis", icon: BarChart3, route: "/reports/nets-comparison" }
       ]
     }
   ];
