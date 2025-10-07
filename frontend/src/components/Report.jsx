@@ -41,85 +41,107 @@ export default function ReportPage() {
 
 
   const dropdownMenus = [
+    // 1️⃣ System Setup
     {
-      name: "System Configuration",
+      name: "System Setup",
       icon: Settings,
       color: "bg-blue-100 text-blue-600 border-blue-200",
       items: [
-        { name: "Holiday Setup", href: "/config/holiday-setup" },
-        { name: "Parking Tariff Setup", href: "/config/parking-tariff" },
-        { name: "Season Master", href: "/config/season-master" },
-        { name: "Season Update", href: "/config/season-update" },
-        { name: "Change Season No", href: "/config/change-season-no" },
-        { name: "Multiple Season Register", href: "/config/multiple-season-register" },
-        { name: "Check/Search Season", href: "/config/check-search-season" }
+        { name: "Public Holidays", href: "/config/holiday-setup" },
+        { name: "Parking Tariffs", href: "/config/parking-tariff" }
       ]
     },
+
+    // 2️⃣ Season Management
     {
-      name: "Enquiry",
+      name: "Season Management",
+      icon: Calendar,
+      color: "bg-indigo-100 text-indigo-600 border-indigo-200",
+      items: [
+        { name: "Season Pass Master", href: "/config/season-master" },
+        { name: "Update Season Pass", href: "/config/season-update" },
+        { name: "Change Season Number", href: "/config/change-season-no" },
+        { name: "Register Multiple Seasons", href: "/config/multiple-season-register" },
+        { name: "Search Season Pass", href: "/config/check-search-season" },
+        { name: "Season Master History", href: "/enquiry/season-master-history" }
+      ]
+    },
+
+    // 3️⃣ Transactions & Enquiry
+    {
+      name: "Transactions & Enquiry",
       icon: Search,
       color: "bg-green-100 text-green-600 border-green-200",
       items: [
-        { name: "Movement Transaction", href: "/enquiry/movement-transaction" },
-        { name: "Entry Transaction", href: "/enquiry/entry-transaction" },
-        { name: "Exit Valid Transaction", href: "/enquiry/exit-valid-transaction" },
-        { name: "Exit Invalid Transaction Detail", href: "/enquiry/exit-invalid-detail" },
-        { name: "Complimentary", href: "/enquiry/complimentary" },
-        { name: "Redemption", href: "/enquiry/redemption"},
-        { name: "Season Master History", href: "/enquiry/season-master-history" },
-        { name: "Collection File Report", href: "/enquiry/collection-file-report" },
-        { name: "Collection File Ack/Sum", href: "/enquiry/collection-file-ack-sum" },
-        { name: "LCSC Collection Comparison", href: "/enquiry/lcsc-collection-comparison" },
-        { name: "Hourly Max Occupancy Report", href: "/enquiry/hourly-max-occupancy" },
-        { name: "Tailgate Report", href: "/enquiry/tailgate-report" },
-        { name: "IU Frequency Report", href: "/enquiry/iu-frequency-report" },
-        { name: "Vehicles Parked More Than 72 Hours", href: "/enquiry/vehicles-72-hours" },
-        { name: "EPS Performance Report", href: "/enquiry/eps-performance" },
-        { name: "UPOS Collection File Report", href: "/enquiry/upos-collection-file" },
-        { name: "UPOS Collection Report", href: "/enquiry/upos-collection-report" }
+        { name: "Vehicle Movement Log", href: "/enquiry/movement-transaction" },
+        { name: "Entry Records", href: "/enquiry/entry-transaction" },
+        { name: "Valid Exit Transactions", href: "/enquiry/exit-valid-transaction" },
+        { name: "Invalid Exit Details", href: "/enquiry/exit-invalid-detail" },
+        { name: "Complimentary Passes", href: "/enquiry/complimentary" },
+        { name: "Redemption Records", href: "/enquiry/redemption" },
+        { name: "Vehicles Parked >72 Hours", href: "/enquiry/vehicles-72-hours" }
       ]
     },
+
+    // 4️⃣ Payments & Settlement
     {
-      name: "VCC/EZPay",
+      name: "Payments & Settlement",
       icon: CreditCard,
       color: "bg-purple-100 text-purple-600 border-purple-200",
       items: [
+        // --- VCC / EZPay ---
         { name: "VCC Whitelist", href: "/vcc-ezpay/vcc-whitelist" },
-        { name: "VCC Exit Transaction", href: "/vcc-ezpay/vcc-exit-transaction" },
-        { name: "VCC Settlement File Report", href: "/vcc-ezpay/vcc-settlement-file" },
+        { name: "VCC Exit Transactions", href: "/vcc-ezpay/vcc-exit-transaction" },
+        { name: "VCC Settlement Report", href: "/vcc-ezpay/vcc-settlement-file" },
         { name: "VCC Collection Comparison", href: "/vcc-ezpay/vcc-collection-comparison" },
-        { name: "EZP Whitelist", href: "/vcc-ezpay/ezp-whitelist" },
-        { name: "EZP Exit Transaction", href: "/vcc-ezpay/ezp-exit-transaction" },
-        { name: "EZP Settlement File Report", href: "/vcc-ezpay/ezp-settlement-file" },
-        { name: "EZP Collection Comparison", href: "/vcc-ezpay/ezp-collection-comparison" }
+        { name: "EZPay Whitelist", href: "/vcc-ezpay/ezp-whitelist" },
+        { name: "EZPay Exit Transactions", href: "/vcc-ezpay/ezp-exit-transaction" },
+        { name: "EZPay Settlement Report", href: "/vcc-ezpay/ezp-settlement-file" },
+        { name: "EZPay Collection Comparison", href: "/vcc-ezpay/ezp-collection-comparison" },
+
+        // --- Outstanding ---
+        { name: "Settlement Files", href: "/outstanding/settlement-file" },
+        { name: "Acknowledgement Files", href: "/outstanding/acknowledge-file" },
+        { name: "Summary Files", href: "/outstanding/summary-file" },
+        { name: "LTA Collection Files", href: "/outstanding/lta-collection-file" },
+        { name: "LTA Acknowledge Files", href: "/outstanding/lta-acknowledge-file" },
+        { name: "LTA Result Files", href: "/outstanding/lta-result-file" },
+        { name: "Outstanding Movement Transactions", href: "/outstanding/movement-transaction" }
       ]
     },
+
+    // 5️⃣ Reports & Analytics
     {
-      name: "Outstanding",
-      icon: FileText,
-      color: "bg-orange-100 text-orange-600 border-orange-200",
+      name: "Reports & Analytics",
+      icon: BarChart3,
+      color: "bg-yellow-100 text-yellow-600 border-yellow-200",
       items: [
-        { name: "Settlement File", href: "/outstanding/settlement-file" },
-        { name: "Acknowledge File", href: "/outstanding/acknowledge-file" },
-        { name: "Summary File", href: "/outstanding/summary-file" },
-        { name: "LTA Collection File", href: "/outstanding/lta-collection-file" },
-        { name: "LTA Acknowledge File", href: "/outstanding/lta-acknowledge-file" },
-        { name: "LTA Result File", href: "/outstanding/lta-result-file" },
-        { name: "Movement Transaction", href: "/outstanding/movement-transaction" }
+        { name: "Collection File Report", href: "/enquiry/collection-file-report" },
+        { name: "Collection Acknowledgement Summary", href: "/enquiry/collection-file-ack-sum" },
+        { name: "LCSC Collection Comparison", href: "/enquiry/lcsc-collection-comparison" },
+        { name: "Hourly Occupancy Report", href: "/enquiry/hourly-max-occupancy" },
+        { name: "Tailgate Incidents", href: "/enquiry/tailgate-report" },
+        { name: "IU Frequency Report", href: "/enquiry/iu-frequency-report" },
+        { name: "EPS Performance Report", href: "/enquiry/eps-performance" },
+        { name: "UPOS Collection File Report", href: "/enquiry/upos-collection-file" },
+        { name: "UPOS Collection Summary", href: "/enquiry/upos-collection-report" }
       ]
     },
+
+    // 6️⃣ Maintenance & Security
     {
-      name: "System Maintenance",
+      name: "Maintenance & Security",
       icon: Wrench,
       color: "bg-red-100 text-red-600 border-red-200",
       items: [
-        { name: "Access Control", href: "/maintenance/access-control" },
+        { name: "User Access Control", href: "/maintenance/access-control" },
         { name: "Change Password", href: "/maintenance/change-password" },
-        { name: "Function Audit", href: "/maintenance/function-audit" },
-        { name: "View Log", href: "/maintenance/view-log" }
+        { name: "Function Audit Log", href: "/maintenance/function-audit" },
+        { name: "System Logs", href: "/maintenance/view-log" }
       ]
     }
   ];
+
 
   const handleDropdownClick = (e, dropdownName) => {
     e.stopPropagation();
