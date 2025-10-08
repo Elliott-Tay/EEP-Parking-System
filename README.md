@@ -11,9 +11,11 @@ The purpose of this project is to be the software side that manages the carpark 
 
 - Devops: Circle CI for CI/CD and Docker if there is a need for package management. 
 
+This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system. 
+
 ## Setup of repo
 
-We need to install the necessary packages for the frontend and the backend separately. So cd into the frontend and the backend folder individually and run this command
+We need to install the necessary packages for the frontend and the backend separately. So cd into the frontend, the backend and the middleware folder individually and run this command
 ```
 npm install
 ```
@@ -23,7 +25,7 @@ This will install the necessary packages into your system for you to run the bac
 The backend comprises of the database that is using MySQL and three backend modules that is movement_transactions, config and season parking. This is for us to track car movements through our carparks, to CRUD any details in our carpark and to check seasonality parking or CRUD it as well. 
 
 ## Overview of frontend
-It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark. 
+It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark like lot status, entry and exit movement transactions and season holders.  
 
 ## Database
 Database is hosted on MSSQL and on the cloud so you need the credentials to login which will be given to you when required for cybersecurity purposes if you need it for maintenance or altering some stored procedures in there for instance. Generally it should be able to connect to the database pretty fast, however if there are any issues with connecting with the database, it is possible to check the logs as to what the issue was or check the credentials to see if it was typed wrongly. 
