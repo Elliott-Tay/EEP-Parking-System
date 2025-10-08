@@ -75,6 +75,12 @@ export default function ExitValidTransaction() {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleString();
+  };
+
+
   const getFilterCount = () => {
     let count = 0;
     if (startDate) count++;
@@ -319,10 +325,10 @@ export default function ExitValidTransaction() {
                             <span className="font-mono text-sm text-gray-900">{item.vehicle_number || "-"}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm text-gray-700">{item.exit_datetime || "-"}</span>
+                            <span className="text-sm text-gray-700">{formatDate(item.exit_datetime) || "-"}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="text-sm text-gray-700">{item.entry_datetime || "-"}</span>
+                            <span className="text-sm text-gray-700">{formatDate(item.entry_datetime) || "-"}</span>
                           </td>
                           <td className="px-4 py-3">
                             <span className="font-mono font-semibold text-sm text-gray-900">
@@ -376,13 +382,13 @@ export default function ExitValidTransaction() {
                         {/* Exit Time */}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-600">Exit Time</span>
-                          <span className="text-sm text-gray-700">{item.exit_datetime || "-"}</span>
+                          <span className="text-sm text-gray-700">{formatDate(item.exit_datetime) || "-"}</span>
                         </div>
 
                         {/* Parked Time */}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-600">Parked Time</span>
-                          <span className="text-sm text-gray-700">{item.entry_datetime || "-"}</span>
+                          <span className="text-sm text-gray-700">{formatDate(item.entry_datetime) || "-"}</span>
                         </div>
 
                         {/* Card Info */}

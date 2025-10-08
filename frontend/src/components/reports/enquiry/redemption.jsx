@@ -74,6 +74,11 @@ function DailyRedemptionEnquiry() {
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "-";
+    return new Date(dateString).toLocaleString();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 relative overflow-hidden">
       {/* Background Pattern */}
@@ -406,19 +411,19 @@ function DailyRedemptionEnquiry() {
                               <span className="text-sm text-gray-900">{r.merchant_name}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.issue_time}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.issue_time)}</span>
                             </td>
                             <td className="px-3 py-3">
                               <span className="text-sm text-gray-700">{r.issue_by}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.valid_to}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.valid_to)}</span>
                             </td>
                             <td className="px-3 py-3">
                               <span className="text-sm text-gray-700">{r.entry_station}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.entry_time}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.entry_time)}</span>
                             </td>
                             <td className="px-3 py-3">
                               <span className="text-sm font-mono text-gray-900">{r.redeem_card_no}</span>
@@ -427,16 +432,16 @@ function DailyRedemptionEnquiry() {
                               <span className="text-sm font-semibold text-gray-900">{r.redeem_amount}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.redeem_time}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.redeem_time)}</span>
                             </td>
                             <td className="px-3 py-3">
                               <span className="text-sm text-gray-700">{r.exit_station}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.exit_time}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.exit_time)}</span>
                             </td>
                             <td className="px-3 py-3">
-                              <span className="text-sm text-gray-700">{r.parked_time}</span>
+                              <span className="text-sm text-gray-700">{formatDate(r.parked_time)}</span>
                             </td>
                             <td className="px-3 py-3">
                               <span className="text-sm text-gray-900">{r.parking}</span>
@@ -481,7 +486,7 @@ function DailyRedemptionEnquiry() {
                                 </div>
                                 <div>
                                   <span className="text-xs text-blue-700">Issue Time</span>
-                                  <p className="text-sm text-gray-900">{r.issue_time}</p>
+                                  <p className="text-sm text-gray-900">{formatDate(r.issue_time)}</p>
                                 </div>
                               </div>
                             </div>
@@ -491,11 +496,11 @@ function DailyRedemptionEnquiry() {
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <span className="text-xs text-gray-600">Valid To</span>
-                              <p className="text-sm font-medium text-gray-900">{r.valid_to}</p>
+                              <p className="text-sm font-medium text-gray-900">{formatDate(r.valid_to)}</p>
                             </div>
                             <div>
                               <span className="text-xs text-gray-600">Redeem Time</span>
-                              <p className="text-sm font-medium text-gray-900">{r.redeem_time}</p>
+                              <p className="text-sm font-medium text-gray-900">{formatDate(r.redeem_time)}</p>
                             </div>
                           </div>
 
@@ -521,7 +526,7 @@ function DailyRedemptionEnquiry() {
                                 <span className="text-xs text-green-700">Entry</span>
                               </div>
                               <p className="text-xs font-medium text-gray-900">{r.entry_station}</p>
-                              <p className="text-xs text-gray-600">{r.entry_time}</p>
+                              <p className="text-xs text-gray-600">{formatDate(r.entry_time)}</p>
                             </div>
                             <div className="p-2 bg-gray-50 rounded border border-gray-200">
                               <div className="flex items-center gap-1 mb-1">
@@ -529,7 +534,7 @@ function DailyRedemptionEnquiry() {
                                 <span className="text-xs text-red-700">Exit</span>
                               </div>
                               <p className="text-xs font-medium text-gray-900">{r.exit_station}</p>
-                              <p className="text-xs text-gray-600">{r.exit_time}</p>
+                              <p className="text-xs text-gray-600">{formatDate(r.exit_time)}</p>
                             </div>
                           </div>
 
@@ -537,7 +542,7 @@ function DailyRedemptionEnquiry() {
                           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                             <div>
                               <span className="text-xs text-gray-600">Parked Time</span>
-                              <p className="text-sm font-medium text-gray-900">{r.parked_time}</p>
+                              <p className="text-sm font-medium text-gray-900">{formatDate(r.parked_time)}</p>
                             </div>
                             <div className="text-right">
                               <span className="text-xs text-gray-600">Parking Fee</span>
