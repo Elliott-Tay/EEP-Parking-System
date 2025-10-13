@@ -21,90 +21,93 @@ export default function FeeCalculator() {
 
   const calculateFee = () => {
     if (!entryTime || !exitTime) {
-      alert("Please enter both entry and payment times");
-      return;
+        alert("Please enter both entry and exit times");
+        return;
     }
 
     const entryDate = new Date(entryTime);
     const exitDate = new Date(exitTime);
 
     if (exitDate < entryDate) {
-      alert("Payment time cannot be before entry time");
-      return;
+        alert("Exit time cannot be before entry time");
+        return;
     }
 
     let totalFee = 0;
     let totalMinutes = (exitDate - entryDate) / (1000 * 60);
+    const summary = [];
 
     let current = new Date(entryDate);
 
-    while (current < exitDate) {
-      const dayStr = current.toLocaleString("en-US", { weekday: "short" });
-
-      // Filter tariffs for this vehicle and day
-      const dayTariffs = tariffs.filter(
+    while (current <= exitDate) {
+        const dayStr = current.toLocaleString("en-US", { weekday: "short" });
+        const dayTariffs = tariffs.filter(
         (t) => t.vehicle_type === vehicleType && (t.day_of_week === dayStr || t.day_of_week === "PH")
-      );
+        );
 
-      let dailyFee = 0;
-
-      for (let t of dayTariffs) {
-        const startParts = t.from_time.split("T")[1].split(":");
-        const endParts = t.to_time.split("T")[1].split(":");
-        const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
-        const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
-
-        // Interval for this tariff
+        // Determine the start and end for this day
         const dayStart = new Date(current);
         dayStart.setHours(0, 0, 0, 0);
-        const intervalStart = new Date(dayStart);
-        intervalStart.setMinutes(startMinutes);
-        const intervalEnd = new Date(dayStart);
-        intervalEnd.setMinutes(endMinutes);
 
-        // Overlap of parking with this interval
-        const overlapStart = entryDate > intervalStart ? entryDate : intervalStart;
-        const overlapEnd = exitDate < intervalEnd ? exitDate : intervalEnd;
+        const dayEnd = new Date(dayStart);
+        dayEnd.setHours(23, 59, 59, 999);
+
+        const startTime = current > dayStart ? current : dayStart;
+        const endTime = exitDate < dayEnd ? exitDate : dayEnd;
+
+        let dailyFee = 0;
+
+        for (let t of dayTariffs) {
+        const [startHour, startMinute] = t.from_time.split("T")[1].split(":").map(Number);
+        const [endHour, endMinute] = t.to_time.split("T")[1].split(":").map(Number);
+
+        const intervalStart = new Date(dayStart);
+        intervalStart.setHours(startHour, startMinute, 0, 0);
+
+        const intervalEnd = new Date(dayStart);
+        intervalEnd.setHours(endHour, endMinute, 0, 0);
+
+        // Calculate overlap with this interval
+        const overlapStart = startTime > intervalStart ? startTime : intervalStart;
+        const overlapEnd = endTime < intervalEnd ? endTime : intervalEnd;
         const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60));
 
         if (overlapMinutes > 0) {
-          const billingUnits = Math.ceil(overlapMinutes / t.every);
-          let feeForInterval =
+            const billingUnits = Math.ceil(overlapMinutes / t.every);
+            let feeForInterval =
             (t.first_min_fee || 0) + (billingUnits > 1 ? (billingUnits - 1) * (t.min_fee || 0) : 0);
 
-          if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
-          if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
+            if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
+            if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
 
-          dailyFee += feeForInterval;
+            dailyFee += feeForInterval;
+            summary.push(`${current.toDateString()} ${t.from_time.split("T")[1]}-${t.to_time.split("T")[1]}: $${feeForInterval}`);
         }
-      }
+        }
 
-      // Cap daily fee to the maximum across intervals
-      const maxDailyCharge = Math.max(...dayTariffs.map((t) => t.max_charge || 0));
-      if (dailyFee > maxDailyCharge) dailyFee = maxDailyCharge;
+        totalFee += dailyFee;
 
-      totalFee += dailyFee;
-
-      // Move to next day
-      current.setDate(current.getDate() + 1);
-      current.setHours(0, 0, 0, 0);
+        // Move to next day
+        current.setDate(current.getDate() + 1);
+        current.setHours(0, 0, 0, 0);
     }
 
     setFee(totalFee);
     setHoursParked(totalMinutes / 60);
 
     setHistory((prev) => [
-      {
+        {
         entryTime: entryDate.toLocaleString(),
         exitTime: exitDate.toLocaleString(),
         vehicleType,
         hours: (totalMinutes / 60).toFixed(2),
         fee: totalFee,
-        tariffSummary: "Multiple tariffs applied",
-      },
-      ...prev,
+        tariffSummary: summary.length ? summary.join(", ") : "No tariffs applied",
+        },
+        ...prev,
     ]);
-  };
+    };
+
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-50 rounded-xl shadow-lg font-sans">
