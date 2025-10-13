@@ -21,93 +21,102 @@ export default function FeeCalculator() {
 
   const calculateFee = () => {
     if (!entryTime || !exitTime) {
-        alert("Please enter both entry and exit times");
-        return;
+      alert("Please enter both entry and exit times");
+      return;
     }
 
     const entryDate = new Date(entryTime);
     const exitDate = new Date(exitTime);
 
     if (exitDate < entryDate) {
-        alert("Exit time cannot be before entry time");
-        return;
+      alert("Exit time cannot be before entry time");
+      return;
     }
 
     let totalFee = 0;
-    let totalMinutes = (exitDate - entryDate) / (1000 * 60);
-    const summary = [];
+    const totalMinutes = (exitDate - entryDate) / (1000 * 60);
+    const totalHours = totalMinutes / 60;
 
+    const daySummaries = [];
     let current = new Date(entryDate);
 
+    // Multi-day calculation
     while (current <= exitDate) {
-        const dayStr = current.toLocaleString("en-US", { weekday: "short" });
-        const dayTariffs = tariffs.filter(
-        (t) => t.vehicle_type === vehicleType && (t.day_of_week === dayStr || t.day_of_week === "PH")
-        );
+      const dayStr = current.toLocaleString("en-US", { weekday: "short" });
 
-        // Determine the start and end for this day
+      // Filter tariffs for this vehicle & day (or PH)
+      const dayTariffs = tariffs.filter(
+        (t) =>
+          t.vehicle_type === vehicleType &&
+          (t.day_of_week === dayStr || t.day_of_week === "PH")
+      );
+
+      if (dayTariffs.length === 0) {
+        current.setDate(current.getDate() + 1);
+        current.setHours(0, 0, 0, 0);
+        continue;
+      }
+
+      let dailyFee = 0;
+
+      for (let t of dayTariffs) {
+        // Parse start/end times
+        const [startH, startM] = t.from_time.split("T")[1].split(":").map(Number);
+        const [endH, endM] = t.to_time.split("T")[1].split(":").map(Number);
+
         const dayStart = new Date(current);
         dayStart.setHours(0, 0, 0, 0);
 
-        const dayEnd = new Date(dayStart);
-        dayEnd.setHours(23, 59, 59, 999);
-
-        const startTime = current > dayStart ? current : dayStart;
-        const endTime = exitDate < dayEnd ? exitDate : dayEnd;
-
-        let dailyFee = 0;
-
-        for (let t of dayTariffs) {
-        const [startHour, startMinute] = t.from_time.split("T")[1].split(":").map(Number);
-        const [endHour, endMinute] = t.to_time.split("T")[1].split(":").map(Number);
-
         const intervalStart = new Date(dayStart);
-        intervalStart.setHours(startHour, startMinute, 0, 0);
-
+        intervalStart.setHours(startH, startM, 0, 0);
         const intervalEnd = new Date(dayStart);
-        intervalEnd.setHours(endHour, endMinute, 0, 0);
+        intervalEnd.setHours(endH, endM, 0, 0);
 
-        // Calculate overlap with this interval
-        const overlapStart = startTime > intervalStart ? startTime : intervalStart;
-        const overlapEnd = endTime < intervalEnd ? endTime : intervalEnd;
+        // Overlap with parking
+        const overlapStart = entryDate > intervalStart ? entryDate : intervalStart;
+        const overlapEnd = exitDate < intervalEnd ? exitDate : intervalEnd;
         const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60));
 
         if (overlapMinutes > 0) {
-            const billingUnits = Math.ceil(overlapMinutes / t.every);
-            let feeForInterval =
-            (t.first_min_fee || 0) + (billingUnits > 1 ? (billingUnits - 1) * (t.min_fee || 0) : 0);
+          const billingUnits = Math.ceil(overlapMinutes / t.every);
+          let feeForInterval =
+            (t.first_min_fee || 0) +
+            (billingUnits > 1 ? (billingUnits - 1) * (t.min_fee || 0) : 0);
 
-            if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
-            if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
+          if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
+          if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
 
-            dailyFee += feeForInterval;
-            summary.push(`${current.toDateString()} ${t.from_time.split("T")[1]}-${t.to_time.split("T")[1]}: $${feeForInterval}`);
+          dailyFee += feeForInterval;
         }
-        }
+      }
 
-        totalFee += dailyFee;
+      totalFee += dailyFee;
 
-        // Move to next day
-        current.setDate(current.getDate() + 1);
-        current.setHours(0, 0, 0, 0);
+      daySummaries.push({
+        day: current.toDateString(),
+        fee: dailyFee.toFixed(2),
+      });
+
+      // Move to next day
+      current.setDate(current.getDate() + 1);
+      current.setHours(0, 0, 0, 0);
     }
 
     setFee(totalFee);
-    setHoursParked(totalMinutes / 60);
+    setHoursParked(totalHours);
 
     setHistory((prev) => [
-        {
+      {
         entryTime: entryDate.toLocaleString(),
         exitTime: exitDate.toLocaleString(),
         vehicleType,
-        hours: (totalMinutes / 60).toFixed(2),
-        fee: totalFee,
-        tariffSummary: summary.length ? summary.join(", ") : "No tariffs applied",
-        },
-        ...prev,
+        hours: totalHours.toFixed(2),
+        fee: totalFee.toFixed(2),
+        tariffSummary: daySummaries,
+      },
+      ...prev,
     ]);
-    };
-
+  };
 
   return (
     <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-50 rounded-xl shadow-lg font-sans">
@@ -178,7 +187,13 @@ export default function FeeCalculator() {
                 <div className="flex justify-between text-gray-700 font-medium">
                   <span>Fee:</span> <span className="text-blue-600 font-bold">${h.fee}</span>
                 </div>
-                <div className="mt-2 text-sm text-gray-500">{h.tariffSummary}</div>
+                <div className="mt-2 text-sm text-gray-500">
+                  {h.tariffSummary.map((t, i) => (
+                    <div key={i}>
+                      {t.day}: ${t.fee}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
