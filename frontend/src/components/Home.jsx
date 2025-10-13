@@ -5,6 +5,7 @@ import MovementsTable from './MovementsTable';
 import Overview from './Overview';
 import Operations from './Operations';
 import DashboardCharts from './DashboardCharts';
+import FeeCalculator from './FeeTest';
 
 const occupancyData = [
   { zone: 'Zone A', total: 25, occupied: 18, available: 7 },
@@ -41,7 +42,6 @@ function Home() {
   const [activeTab, setActiveTab] = useState('overview');
   const [entryEvents, setEntryEvents] = useState([]);
   const [exitEvents, setExitEvents] = useState([]);
-
 
   // Simulate backend events for entry and exit
   useEffect(() => {
@@ -113,14 +113,9 @@ function Home() {
               onClick={() => setActiveTab('overview')}
               className={`
                 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
-                duration-200 transform 
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                duration-200 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
                 disabled:pointer-events-none disabled:opacity-50
-                ${
-                  activeTab === 'overview'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
-                }
+                ${activeTab === 'overview' ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'}
               `}
             >
               Overview
@@ -129,14 +124,9 @@ function Home() {
               onClick={() => setActiveTab('movements')}
               className={`
                 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
-                duration-200 transform 
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                duration-200 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
                 disabled:pointer-events-none disabled:opacity-50
-                ${
-                  activeTab === 'movements'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
-                }
+                ${activeTab === 'movements' ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'}
               `}
             >
               Movements
@@ -145,30 +135,31 @@ function Home() {
               onClick={() => setActiveTab('operations')}
               className={`
                 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
-                duration-200 transform 
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                duration-200 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
                 disabled:pointer-events-none disabled:opacity-50
-                ${
-                  activeTab === 'operations'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
-                }
+                ${activeTab === 'operations' ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'}
               `}
             >
               Operations
             </button>
             <button
+              onClick={() => setActiveTab('fee')}
+              className={`
+                inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
+                duration-200 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                disabled:pointer-events-none disabled:opacity-50
+                ${activeTab === 'fee' ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'}
+              `}
+            >
+              Fee Test
+            </button>
+            <button
               onClick={() => setActiveTab('analytics')}
               className={`
                 inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 transition-all 
-                duration-200 transform 
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+                duration-200 transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
                 disabled:pointer-events-none disabled:opacity-50
-                ${
-                  activeTab === 'analytics'
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'
-                }
+                ${activeTab === 'analytics' ? 'bg-blue-500 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200 hover:translate-y-[-2px]'}
               `}
             >
               Analytics
@@ -192,6 +183,11 @@ function Home() {
           {/* Operations Tab */}
           <div className={activeTab === 'operations' ? '' : 'hidden'}>
             <Operations />
+          </div>
+
+          {/* Fee Test Tab */}
+          <div className={activeTab === 'fee' ? '' : 'hidden'}>
+            <FeeCalculator />
           </div>
 
           {/* Analytics Tab */}

@@ -7,7 +7,6 @@ import {
   X,
   Home,
   Info,
-  Loader2,
   Calendar,
   Car,
   Clock,

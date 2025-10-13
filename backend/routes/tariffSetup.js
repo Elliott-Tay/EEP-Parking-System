@@ -10,6 +10,19 @@ function parseTime(str) {
   return new Date(1970, 0, 1, h, m, s || 0);
 }
 
+// Get all parking tariffs
+router.get("/tariff-rates", async (req, res) => {
+  try {
+    const pool = await sql.connect(config); 
+    const result = await pool.request().query("SELECT * FROM TariffRates ORDER BY vehicle_type, day_of_week, from_time");
+    res.json({ success: true, data: result.recordset });
+  } 
+  catch (err) {     
+    console.error("Error fetching tariffs:", err);
+    res.status(500).json({ success: false, error: "Failed to fetch tariffs" }); 
+  }
+});
+
 // setup the new tariff
 router.post("/tariff-setup", async (req, res) => {
   const { vehicleType, effectiveStart, effectiveEnd, rates } = req.body;
@@ -152,6 +165,7 @@ router.get("/tariff-setup", authenticateJWT, async (req, res) => {
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
+
 
 // Get all registrations
 router.get("/multiple-season", async (req, res) => {

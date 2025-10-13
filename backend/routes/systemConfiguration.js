@@ -31,7 +31,13 @@ router.get("/holidays/:year", async (req, res) => {
         ORDER BY holiday_date ASC
       `);
 
-    res.json({ year, count: result.recordset.length, holidays: result.recordset });
+    res.json({
+      status: "success",
+      message: `Holidays for year ${year} fetched successfully`,
+      year,
+      count: result.recordset.length,
+      holidays: result.recordset
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error fetching holidays", details: err.message });
