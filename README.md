@@ -21,6 +21,32 @@ npm install
 ```
 This will install the necessary packages into your system for you to run the backend and the frontend.
 
+Run the backend and the frontend separately by opening two terminals
+
+```
+cd backend
+```
+
+```
+cd frontend
+```
+
+then on the backend run
+
+```
+nodemon server.js
+```
+if nodemon is installed or if it is not installed,
+
+``` 
+node server.js
+```
+
+For the frontend, you can run 
+```
+npm start
+``` 
+
 ## Overview of backend
 The backend comprises of the database that is using MySQL and three backend modules that is movement_transactions, config and season parking. This is for us to track car movements through our carparks, to CRUD any details in our carpark and to check seasonality parking or CRUD it as well. 
 
