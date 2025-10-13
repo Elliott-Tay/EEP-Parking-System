@@ -63,33 +63,40 @@ import AccessControl from './components/systemMaintenance/accessControl';
 import ChangePassword from './components/systemMaintenance/changePassword';
 import SystemFunctionAudit from './components/systemMaintenance/systemFunctionAudit';
 import ViewLogLogin from './components/systemMaintenance/viewLog';
-import TariffSetupCarVan from './components/reports/systemConfiguration/parkingTariff/edit/CVTariff';
-import TariffSetupLorry from './components/reports/systemConfiguration/parkingTariff/edit/LorryTariff';
-import TariffSetupMotorcycle from './components/reports/systemConfiguration/parkingTariff/edit/MCycleTariff';
-import TariffSetupDaySeason from './components/reports/systemConfiguration/parkingTariff/edit/daySeason';
-import TariffSetupNightSeason from './components/reports/systemConfiguration/parkingTariff/edit/nightSeason';
-import TariffSetupCarVanB from './components/reports/systemConfiguration/parkingTariff/edit/CVTariffB';
-import TariffSetupLorryB from './components/reports/systemConfiguration/parkingTariff/edit/LorryTariffB';
-import TariffSetupMotorcycleB from './components/reports/systemConfiguration/parkingTariff/edit/MCycleTariffB';
-import TariffSetupDaySeasonB from './components/reports/systemConfiguration/parkingTariff/edit/daySeasonB';
-import TariffSetupNightSeasonB from './components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB';
-import TariffSetupCarVanView from './components/reports/systemConfiguration/parkingTariff/view/CVTariffView';
-import TariffSetupLorryView from './components/reports/systemConfiguration/parkingTariff/view/LorryTariffView';
-import TariffSetupMotorcycleView from './components/reports/systemConfiguration/parkingTariff/view/MCycleView';
-import TariffSetupDaySeasonView from './components/reports/systemConfiguration/parkingTariff/view/daySeasonView';
-import TariffSetupNightSeasonView from './components/reports/systemConfiguration/parkingTariff/view/nightSeasonView';
-import TariffSetupCarVanBView from './components/reports/systemConfiguration/parkingTariff/view/CVTariffBView';
-import TariffSetupLorryBView from './components/reports/systemConfiguration/parkingTariff/view/LorryTariffBView';
-import TariffSetupMotorcycleBView from './components/reports/systemConfiguration/parkingTariff/view/MCycleBView';
-import TariffSetupDaySeasonBView from './components/reports/systemConfiguration/parkingTariff/view/daySeasonBView';
-import TariffSetupNightSeasonBView from './components/reports/systemConfiguration/parkingTariff/view/nightSeasonBView';
 import PrivateRoute from './components/auth/PrivateRoute';
 import ReportPage from './components/Report';
 import Login from './components/auth/Login';
+import { lazy, Suspense } from 'react';
+import Skeleton from './components/Skeleton';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function App() {
+
+  // Edit Tariff
+  const TariffSetupCarVan = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariff'));
+  const TariffSetupLorry = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariff'));
+  const TariffSetupMotorcycle = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariff'));
+  const TariffSetupDaySeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeason'));
+  const TariffSetupNightSeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeason'));
+  const TariffSetupCarVanB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariffB'));
+  const TariffSetupLorryB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariffB'));
+  const TariffSetupMotorcycleB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariffB'));
+  const TariffSetupDaySeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeasonB'));
+  const TariffSetupNightSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB'));
+
+  // View Tariff
+  const TariffSetupCarVanView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffView'));
+  const TariffSetupLorryView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/LorryTariffView'));
+  const TariffSetupMotorcycleView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/MCycleView'));
+  const TariffSetupDaySeasonView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/daySeasonView'));
+  const TariffSetupNightSeasonView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/nightSeasonView'));
+  const TariffSetupCarVanBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffBView'));
+  const TariffSetupLorryBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/LorryTariffBView'));
+  const TariffSetupMotorcycleBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/MCycleBView'));
+  const TariffSetupDaySeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/daySeasonBView'));
+  const TariffSetupNightSeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/nightSeasonBView'));
+
   const protectedRoutes = [
     { path: "/configuration", element: <ConfigurationPage />, requiredRole: "admin" },
     { path: "/reports", element: <ReportPage /> },
@@ -176,6 +183,15 @@ function App() {
   return (
     <Router>
       <ErrorBoundary>
+        <Suspense
+          fallback={
+            <div className="p-4 space-y-4">
+              <Skeleton height="40px" width="60%" />
+              <Skeleton height="30px" width="80%" />
+              <Skeleton height="200px" width="100%" />
+            </div>
+          }
+        >
         <div className="flex flex-col min-h-screen">
           <NavBar />
           <main className="flex-grow">
@@ -200,6 +216,7 @@ function App() {
 
           <Footer />
         </div>
+        </Suspense>
       </ErrorBoundary>
     </Router>
   );
