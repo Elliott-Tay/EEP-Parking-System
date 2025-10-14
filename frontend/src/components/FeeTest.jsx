@@ -5,6 +5,7 @@ export default function FeeCalculator() {
   const [entryTime, setEntryTime] = useState("");
   const [exitTime, setExitTime] = useState("");
   const [vehicleType, setVehicleType] = useState("Car/Van");
+  const [billingInterval, setBillingInterval] = useState(60); // in minutes
   const [fee, setFee] = useState(null);
   const [hoursParked, setHoursParked] = useState(null);
   const [tariffs, setTariffs] = useState([]);
@@ -40,11 +41,9 @@ export default function FeeCalculator() {
     const daySummaries = [];
     let current = new Date(entryDate);
 
-    // Multi-day calculation
     while (current <= exitDate) {
       const dayStr = current.toLocaleString("en-US", { weekday: "short" });
 
-      // Filter tariffs for this vehicle & day (or PH)
       const dayTariffs = tariffs.filter(
         (t) =>
           t.vehicle_type === vehicleType &&
@@ -60,7 +59,6 @@ export default function FeeCalculator() {
       let dailyFee = 0;
 
       for (let t of dayTariffs) {
-        // Parse start/end times
         const [startH, startM] = t.from_time.split("T")[1].split(":").map(Number);
         const [endH, endM] = t.to_time.split("T")[1].split(":").map(Number);
 
@@ -72,16 +70,15 @@ export default function FeeCalculator() {
         const intervalEnd = new Date(dayStart);
         intervalEnd.setHours(endH, endM, 0, 0);
 
-        // Overlap with parking
         const overlapStart = entryDate > intervalStart ? entryDate : intervalStart;
         const overlapEnd = exitDate < intervalEnd ? exitDate : intervalEnd;
         const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60));
 
         if (overlapMinutes > 0) {
-          const billingUnits = Math.ceil(overlapMinutes / t.every);
+          const units = Math.ceil(overlapMinutes / billingInterval); // <-- use custom interval
           let feeForInterval =
             (t.first_min_fee || 0) +
-            (billingUnits > 1 ? (billingUnits - 1) * (t.min_fee || 0) : 0);
+            (units > 1 ? (units - 1) * (t.min_fee || 0) : 0);
 
           if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
           if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
@@ -97,7 +94,6 @@ export default function FeeCalculator() {
         fee: dailyFee.toFixed(2),
       });
 
-      // Move to next day
       current.setDate(current.getDate() + 1);
       current.setHours(0, 0, 0, 0);
     }
@@ -110,6 +106,7 @@ export default function FeeCalculator() {
         entryTime: entryDate.toLocaleString(),
         exitTime: exitDate.toLocaleString(),
         vehicleType,
+        billingInterval,
         hours: totalHours.toFixed(2),
         fee: totalFee.toFixed(2),
         tariffSummary: daySummaries,
@@ -122,30 +119,40 @@ export default function FeeCalculator() {
     <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-50 rounded-xl shadow-lg font-sans">
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Parking Fee Calculator</h2>
 
-      <div className="space-y-4 mb-6">
+     <div className="space-y-4 mb-6">
         <input
-          type="datetime-local"
-          value={entryTime}
-          onChange={(e) => setEntryTime(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            type="datetime-local"
+            value={entryTime}
+            onChange={(e) => setEntryTime(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
-          type="datetime-local"
-          value={exitTime}
-          onChange={(e) => setExitTime(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            type="datetime-local"
+            value={exitTime}
+            onChange={(e) => setExitTime(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <select
-          value={vehicleType}
-          onChange={(e) => setVehicleType(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            value={vehicleType}
+            onChange={(e) => setVehicleType(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
-          <option>Car/Van</option>
-          <option>Lorry</option>
-          <option>M/cycle</option>
-          <option>Bus</option>
+            <option>Car/Van</option>
+            <option>Lorry</option>
+            <option>M/cycle</option>
+            <option>Bus</option>
         </select>
-      </div>
+
+        {/* Editable billing interval */}
+        <input
+            type="number"
+            min={1}
+            value={billingInterval}
+            onChange={(e) => setBillingInterval(Number(e.target.value))}
+            placeholder="Billing interval in minutes"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        />
+        </div>
 
       <button
         onClick={calculateFee}
@@ -158,6 +165,9 @@ export default function FeeCalculator() {
         <div className="mt-6 p-4 bg-white rounded-lg shadow-md text-center">
           <div className="text-lg font-semibold text-gray-700">
             Total Time Parked: {hoursParked.toFixed(2)} hours
+          </div>
+          <div className="text-lg font-semibold text-gray-700">
+            Billing Interval: {billingInterval} minutes
           </div>
           <div className="text-2xl font-bold text-blue-600 mt-2">Total Fee: ${fee}</div>
         </div>

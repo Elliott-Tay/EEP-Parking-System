@@ -53,6 +53,8 @@ The backend comprises of the database that is using MySQL and three backend modu
 ## Overview of frontend
 It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark like lot status, entry and exit movement transactions and season holders.  
 
+There are also reports for us to track movements and to see what is going on in the car park through logs and data. This is also important for admin office as they need it for their own reporting and work. 
+
 ## Database
 Database is hosted on MSSQL and on the cloud so you need the credentials to login which will be given to you when required for cybersecurity purposes if you need it for maintenance or altering some stored procedures in there for instance. Generally it should be able to connect to the database pretty fast, however if there are any issues with connecting with the database, it is possible to check the logs as to what the issue was or check the credentials to see if it was typed wrongly. 
 
@@ -72,4 +74,4 @@ To ensure that everything is working correctly, ensure that you create test case
 npm test
 ```
 
-Ensure that the test cases pass first before pushing into the repo and into CI/CD configurations.
+Ensure that the test cases pass first before pushing into the repo and into CI/CD configurations or merging it into master if we are working with various software engineers. Please use feature branching method when 
