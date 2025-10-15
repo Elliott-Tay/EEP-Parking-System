@@ -367,7 +367,7 @@ export default function ReportPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Season Reports</p>
-                <p className="text-lg font-semibold">5</p>
+                <p className="text-lg font-semibold">3</p>
               </div>
             </div>
           </div>
