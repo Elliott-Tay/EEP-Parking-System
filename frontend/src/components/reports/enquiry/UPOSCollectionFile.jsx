@@ -9,6 +9,8 @@ export default function UPOSCollectionFileReport() {
   const [loading, setLoading] = useState(false);
 
   const pageSize = 10;
+  const inputClass =
+    "px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   const fetchReport = async () => {
     if (!startDate || !endDate) {
@@ -24,7 +26,7 @@ export default function UPOSCollectionFileReport() {
         {
           headers: {
             "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : "",
+            Authorization: token ? `Bearer ${token}` : "",
           },
         }
       );
@@ -39,72 +41,100 @@ export default function UPOSCollectionFileReport() {
     }
   };
 
-  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
-  const handleNextPage = () => setCurrentPage((prev) => prev + 1);
-
-  const inputClass = "px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
-
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-8">UPOS Collection File Report</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">UPOS Collection File Report</h1>
 
-      <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg p-6">
+      <div className="w-full max-w-6xl bg-white rounded-xl shadow-lg p-6 space-y-6">
         {/* Date Selection */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <label className="text-gray-700 font-medium">Report Date:</label>
-          <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className={inputClass} />
-        </div>
+        <section className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <label className="text-gray-700 font-medium w-36">Report Date:</label>
+          <input
+            type="date"
+            value={reportDate}
+            onChange={(e) => setReportDate(e.target.value)}
+            className={inputClass}
+          />
+        </section>
 
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <label className="text-gray-700 font-medium">Report Period:</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-          <span className="mx-2">~</span>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
-          <button onClick={fetchReport} className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        {/* Report Period */}
+        <section className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <label className="text-gray-700 font-medium w-36">Report Period:</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={inputClass}
+          />
+          <span className="mx-2 font-semibold text-gray-600">~</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={inputClass}
+          />
+          <button
+            onClick={fetchReport}
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             Search
           </button>
-        </div>
+        </section>
 
         {/* Report Table */}
-        <div className="overflow-x-auto border border-gray-300 rounded">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
+        <section className="overflow-x-auto border border-gray-300 rounded">
+          <table className="min-w-full text-sm divide-y divide-gray-200">
+            <thead className="bg-gray-100 text-gray-700">
               <tr>
-                <th className="border px-3 py-2">Send Date/Time</th>
-                <th className="border px-3 py-2">File Name</th>
-                <th className="border px-3 py-2">Total Trans</th>
-                <th className="border px-3 py-2">Last Total Trans</th>
+                <th className="px-4 py-2 text-left">Send Date/Time</th>
+                <th className="px-4 py-2 text-left">File Name</th>
+                <th className="px-4 py-2 text-left">Total Trans</th>
+                <th className="px-4 py-2 text-left">Last Total Trans</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-4 text-gray-500">Loading...</td>
+                  <td colSpan={4} className="text-center py-6 text-gray-500">
+                    Loading...
+                  </td>
                 </tr>
               ) : reportData.length > 0 ? (
-                reportData.map((row, index) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    <td className="border px-3 py-1">{new Date(row.send_datetime).toLocaleString()}</td>
-                    <td className="border px-3 py-1">{row.file_name}</td>
-                    <td className="border px-3 py-1">{row.total_trans}</td>
-                    <td className="border px-3 py-1">{row.last_total_trans}</td>
+                reportData.map((row) => (
+                  <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-2">{new Date(row.send_datetime).toLocaleString()}</td>
+                    <td className="px-4 py-2">{row.file_name}</td>
+                    <td className="px-4 py-2">{row.total_trans}</td>
+                    <td className="px-4 py-2">{row.last_total_trans}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="text-center py-4 text-gray-500">No record found!</td>
+                  <td colSpan={4} className="text-center py-6 text-gray-500">
+                    No records found!
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
+        </section>
 
         {/* Pagination */}
-        <div className="mt-4 flex justify-end gap-2">
-          <button onClick={handlePrevPage} className="px-3 py-1 border rounded hover:bg-gray-100">Previous</button>
+        <section className="flex justify-end items-center gap-3 mt-2">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            className="px-3 py-1 border rounded hover:bg-gray-100"
+          >
+            Previous
+          </button>
           <span className="px-2 py-1">Page {currentPage}</span>
-          <button onClick={handleNextPage} className="px-3 py-1 border rounded hover:bg-gray-100">Next</button>
-        </div>
+          <button
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+            className="px-3 py-1 border rounded hover:bg-gray-100"
+          >
+            Next
+          </button>
+        </section>
       </div>
     </div>
   );

@@ -186,6 +186,41 @@ router.get("/cepas_collection", authenticateJWT, async (req, res) => {
 });
 
 // Get UPOS Collection Report with pagination
+router.get("/upos_collection_report", authenticateJWT, async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, pageSize = 10 } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required" });
+    }
+
+    const pool = await sql.connect(config);
+    const offset = (page - 1) * pageSize;
+
+    const result = await pool
+      .request()
+      .input("startDate", sql.Date, startDate)
+      .input("endDate", sql.Date, endDate)
+      .input("offset", sql.Int, offset)
+      .input("pageSize", sql.Int, pageSize)
+      .query(`
+        SELECT *
+        FROM UPOSCollectionReport
+        WHERE report_date BETWEEN @startDate AND @endDate
+        ORDER BY report_date DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error fetching UPOS reports" });
+  }
+});
+
+
+// Get UPOS Collection Report with pagination
 router.get("/upos_collection_file", authenticateJWT, async (req, res) => {
   try {
     const { startDate, endDate, page = 1, pageSize = 10 } = req.query;
