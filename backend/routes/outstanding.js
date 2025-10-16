@@ -150,7 +150,8 @@ router.get("/lta-result", authenticateJWT, async (req, res) => {
   }
 });
 
-router.get("/cepas_collection", async (req, res) => {
+// Get CEPAS Collection Report with pagination
+router.get("/cepas_collection", authenticateJWT, async (req, res) => {
   try {
     const { startDate, endDate, page = 1, pageSize = 10 } = req.query;
 
@@ -181,6 +182,40 @@ router.get("/cepas_collection", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error fetching CEPAS reports" });
+  }
+});
+
+// Get UPOS Collection Report with pagination
+router.get("/upos_collection_file", authenticateJWT, async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, pageSize = 10 } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required" });
+    }
+
+    const pool = await sql.connect(config);
+    const offset = (page - 1) * pageSize;
+
+    const result = await pool
+      .request()
+      .input("startDate", sql.Date, startDate)
+      .input("endDate", sql.Date, endDate)
+      .input("offset", sql.Int, offset)
+      .input("pageSize", sql.Int, pageSize)
+      .query(`
+        SELECT *
+        FROM UposCollectionFileReport
+        WHERE CAST(send_datetime AS DATE) BETWEEN @startDate AND @endDate
+        ORDER BY send_datetime DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error fetching UPOS reports" });
   }
 });
 
