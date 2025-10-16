@@ -10,7 +10,7 @@ const authenticateJWT = require("../../middleware/auth");
 router.get("/", authenticateJWT, async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM SeasonHolders"); // no destructuring
-        res.json(result.recordset); // use recordset to get rows
+        res.json(result.recordset); 
     } catch (err) {
         console.error("Error fetching seasons:", err);
         res.status(500).json({ error: "Internal server error", err: err.message });
@@ -166,7 +166,7 @@ router.post("/season-holder", async (req, res) => {
 router.put("/update", authenticateJWT, async (req, res) => {
   const {
     serial_no,
-    valid_to,       // maps to expireDate from frontend
+    valid_to,       
     company,
     holder_type,
     season_status,
@@ -178,7 +178,6 @@ router.put("/update", authenticateJWT, async (req, res) => {
     valid_from,
     employee_no,
     telephone,
-    // Add any other fields you want to allow updating
   } = req.body;
 
   if (!serial_no) {
@@ -245,7 +244,6 @@ router.put("/update", authenticateJWT, async (req, res) => {
       return res.status(400).json({ error: "No fields to update" });
     }
 
-    // Always update updated_at
     fields.push("updated_at = GETDATE()");
 
     const query = `

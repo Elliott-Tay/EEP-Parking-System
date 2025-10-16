@@ -5,7 +5,7 @@ const authenticateJWT = require("../../middleware/auth");
 
 // Get outstanding settlement
 router.get("/settlement", authenticateJWT, async (req, res) => {
-  const { fileDate } = req.query; // optional filter by date
+  const { fileDate } = req.query; 
 
   try {
     await sql.connect(config);
@@ -102,7 +102,7 @@ router.get("/lta-collection", authenticateJWT, async (req, res) => {
 
 // Get LTA Acknowledgement
 router.get("/lta-acknowledge", authenticateJWT, async (req, res) => {
-  const { fileDate } = req.query; // optional filter
+  const { fileDate } = req.query; 
 
   try {
     await sql.connect(config);
@@ -127,7 +127,7 @@ router.get("/lta-acknowledge", authenticateJWT, async (req, res) => {
 
 // Get LTA Result
 router.get("/lta-result", authenticateJWT, async (req, res) => {
-  const { fileDate } = req.query; // optional filter
+  const { fileDate } = req.query; 
 
   try {
     await sql.connect(config);

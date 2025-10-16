@@ -68,7 +68,7 @@ router.post("/holidays", async (req, res) => {
 
     // Insert new holidays
     for (const h of holidays) {
-        const insertRequest = new sql.Request(transaction); // new Request per row
+        const insertRequest = new sql.Request(transaction); 
         await insertRequest
             .input("date", sql.Date, new Date(h.date))
             .input("description", sql.NVarChar(255), h.description)
@@ -118,7 +118,7 @@ router.get("/season-holder", async (req, res) => {
     let query = "SELECT * FROM SeasonHolders WHERE 1=1";
     const request = pool.request();
 
-    const { searchTerm } = req.query; // frontend sends 'searchTerm'
+    const { searchTerm } = req.query; 
 
     if (seasonNo) {
         query += " AND season_no = @seasonNo";
