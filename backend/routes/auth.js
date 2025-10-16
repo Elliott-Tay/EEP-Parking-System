@@ -158,13 +158,14 @@ router.post("/login", async (req, res) => {
     await pool
       .request()
       .input("user_id", sql.Int, user.id)
-      .input("username", sql.VarChar, user.username) // <-- add this
+      .input("username", sql.VarChar, user.username) 
       .input("login_time", sql.DateTime, new Date())
       .input("ip_address", sql.VarChar, req.ip)
       .input("device_info", sql.VarChar, req.headers["user-agent"])
       .query(
         "INSERT INTO UserLoginLog (user_id, username, login_time, ip_address, device_info) VALUES (@user_id, @username, @login_time, @ip_address, @device_info)"
     );
+    
     // After generating the access token
     const accessToken = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
@@ -220,7 +221,7 @@ router.post("/refresh", async (req, res) => {
 });
 
 // Logout endpoint
-router.post("/logout", async (req, res) => {
+router.post("/logout", authenticateJWT, async (req, res) => {
   const { userId } = req.body; // Pass the user's ID from frontend or decoded JWT
   if (!userId) return res.status(400).json({ error: "Missing userId" });
 
@@ -260,7 +261,7 @@ router.post("/change-password", authenticateJWT, async (req, res) => {
     const result = await pool
       .request()
       .input("username", sql.VarChar, username)
-      .execute("sp_GetUserByUsername"); // make sure this SP exists
+      .execute("sp_GetUserByUsername");
 
     const user = result.recordset[0];
     if (!user) {
