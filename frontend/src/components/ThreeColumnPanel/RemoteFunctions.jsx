@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Unlock, Settings, DollarSign, Power, ArrowRight, X, User, Lock, Shield, Eye, EyeOff  } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 
 // Simple Login Modal
 function LoginModal({ onClose, onLoginSuccess }) {
@@ -162,26 +163,161 @@ function LoginModal({ onClose, onLoginSuccess }) {
 
 function StationControlModal({ onClose }) {
   const [remarks, setRemarks] = useState("");
-  const [station, setStation] = useState("");
+  const [selectedStationId, setSelectedStationId] = useState("");
+  const [stations, setStations] = useState({ entrances: [], exits: [] });
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-  // Generic handler for actions
+  const backend = process.env.REACT_APP_BACKEND_API_URL;
+
+  // --- SSE subscriptions ---
+  useEffect(() => {
+    const entrySource = new EventSource(`${backend}/api/movements/stream/entries`);
+    const exitSource = new EventSource(`${backend}/api/movements/stream/exits`);
+
+    const updateStation = (type, data) => {
+      setStations((prev) => {
+        const key = data.Station || data.id;
+        if (!key) return prev;
+
+        const updated = [...prev[type]];
+        const index = updated.findIndex((item) => (item.id || item.station_name) === key);
+
+        const normalized = {
+          id: key,
+          station_name: data.Station || data.station_name || key, // ✅ ensure station_name exists
+          status: (data.Status || "ok").toLowerCase(),
+          lastUpdate: new Date(),
+        };
+
+        if (index >= 0) updated[index] = { ...updated[index], ...normalized };
+        else updated.unshift(normalized);
+
+        // Ensure uniqueness by station_name
+        const uniqueUpdated = Array.from(
+          new Map(updated.map((s) => [s.station_name, s])).values()
+        );
+
+        return { ...prev, [type]: uniqueUpdated };
+      });
+    };
+
+    entrySource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        updateStation("entrances", data);
+      } catch (err) {
+        console.error("Entry SSE parse error:", err);
+      }
+    };
+
+    exitSource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        updateStation("exits", data);
+      } catch (err) {
+        console.error("Exit SSE parse error:", err);
+      }
+    };
+
+    entrySource.onerror = () => entrySource.close();
+    exitSource.onerror = () => exitSource.close();
+
+    setLoading(false);
+    return () => {
+      entrySource.close();
+      exitSource.close();
+    };
+  }, [backend]);
+  // Load stations from backend and/or localStorage
+  useEffect(() => {
+    const fetchStations = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${backend}/api/remote-control/stations`, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch stations");
+
+        const data = await res.json();
+        console.log("Fetched stations:", data);
+
+        // Load previous stations from localStorage
+        const prevEntrances = JSON.parse(localStorage.getItem("entrances") || "[]");
+        const prevExits = JSON.parse(localStorage.getItem("exits") || "[]");
+
+        // Helper: merge previous and incoming stations, keeping station_name unique
+        const mergeUniqueStations = (prev, incoming) =>
+          Array.from(
+            new Map(
+              [...prev, ...incoming].map((station) => [
+                station.station_name, // use station_name as unique key
+                {
+                  ...station,
+                  lastUpdate: station.last_update
+                    ? new Date(station.last_update)
+                    : new Date(),
+                },
+              ])
+            ).values()
+          );
+
+        // Filter by type
+        const entrances = mergeUniqueStations(
+          prevEntrances,
+          data.filter((s) => s.type === "entrance")
+        );
+
+        const exits = mergeUniqueStations(
+          prevExits,
+          data.filter((s) => s.type === "exit")
+        );
+
+        // Update state
+        setStations({ entrances, exits });
+
+        // Persist to localStorage
+        localStorage.setItem("entrances", JSON.stringify(entrances));
+        localStorage.setItem("exits", JSON.stringify(exits));
+      } catch (err) {
+        console.error("Error fetching stations:", err);
+
+        // Fallback: load from localStorage
+        const prevEntrances = JSON.parse(localStorage.getItem("entrances") || "[]");
+        const prevExits = JSON.parse(localStorage.getItem("exits") || "[]");
+        setStations({ entrances: prevEntrances, exits: prevExits });
+      }
+    };
+
+    fetchStations();
+  }, [backend]);
+
+  // Persist stations on change
+  useEffect(() => {
+    localStorage.setItem("entrances", JSON.stringify(stations.entrances));
+    localStorage.setItem("exits", JSON.stringify(stations.exits));
+  }, [stations]);
+
+  // --- Action URLs ---
   const actionMap = {
-    "Open Gate": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/open`, method: "POST" },
-    "Open and Hold": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/open-hold`, method: "POST" },
-    "Close Gate": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/gate/close`, method: "POST" },
-    "Restart App": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/system/restart-app`, method: "POST" },
-    "Eject Card": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/card/eject`, method: "POST" },
-    "Restart UPOS": { url: `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/system/restart-upos`, method: "POST" },
+    "Open Gate": { url: `${backend}/api/remote-control/gate/open`, method: "POST" },
+    "Close Gate": { url: `${backend}/api/remote-control/gate/close`, method: "POST" },
+    "Open and Hold": { url: `${backend}/api/remote-control/gate/open-hold`, method: "POST" },
   };
 
-  const handleAction = async (action) => {
-    if (!station) {
-      toast.error("Please select a station first.");
+  // --- Handle Action ---
+  const handleAction = async (action, stationId) => {
+    if (!stationId) {
+      toast.error("No station selected.");
       return;
     }
-
     if (!remarks.trim()) {
-      toast.error("Remarks are required before performing this action.");
+      toast.error("Please add remarks before performing this action.");
       return;
     }
 
@@ -190,129 +326,199 @@ function StationControlModal({ onClose }) {
 
     const token = localStorage.getItem("token");
     if (!token) {
-      toast.error("You must be logged in to perform this action.");
+      toast.error("You must be logged in.");
       return;
     }
 
-    // --- Check JWT expiration ---
-    let username;
     try {
+      // Decode token and check expiry
       const payloadBase64 = token.split(".")[1];
       const payloadJson = atob(payloadBase64);
       const payload = JSON.parse(payloadJson);
-
-      username = payload.username || payload.sub;
-
-      const now = Math.floor(Date.now() / 1000); // current timestamp in seconds
+      const now = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < now) {
-        // Token expired
-        toast.error("Session expired. Please log in again.");
+        toast.error("Session expired.");
         localStorage.removeItem("token");
-        onClose?.(); // close modal or navigate away
-        return; // stop further execution
+        onClose?.();
+        return;
       }
-    } catch (err) {
-      console.error("Invalid token:", err);
-      toast.error("Invalid session. Please log in again.");
-      localStorage.removeItem("token");
-      onClose?.();
-      return;
-    }
 
-    try {
-      // Perform the main action
       const res = await fetch(config.url, {
         method: config.method,
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ remarks }),
+        body: JSON.stringify({ station_id: stationId, remarks }),
       });
 
       const data = await res.json();
-
+      console.log('data', data);
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          toast.error("Session expired or unauthorized. Please log in again.");
-          localStorage.removeItem("token");
-          onClose?.();
-        } else {
-          toast.error(data.error || "Action failed");
-        }
+        toast.error(data.error || "Action failed.");
         return;
       }
+      
+      toast.success(`${action} executed on ${stationId}`);
 
-      toast.success(`Action performed: ${action}`);
-      setRemarks("");
-      onClose?.();
+      navigate("/");
 
-      // Log the action
-      await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/remote-control-logs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_time: new Date().toISOString(),
-          action,
-          user: username,
-          device: "PMS",
-          status: "Successful",
-        }),
-      });
+      // Log action
+      try {
+        const token = localStorage.getItem("token");
+        const nowIso = new Date().toISOString();
+        const logRes = await fetch(`${backend}/api/remote-control/remote-control-logs`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : "",
+           },
+          body: JSON.stringify({
+            event_time: nowIso,
+            action,
+            user: payload.username || payload.sub,
+            device: "PMS",
+            station_id: stationId,
+            status: "Successful",
+            created_at: nowIso,
+            updated_at: nowIso,
+          }),
+        });
+
+        if (!logRes.ok) {
+          const errData = await logRes.json().catch(() => ({}));
+          console.error("Failed to log action:", errData);
+        } else {
+          console.log(`Action logged successfully: ${action} on ${stationId}`);
+        }
+      } catch (err) {
+        console.error("Error logging action:", err);
+      }
     } catch (err) {
-      console.error(err);
-      toast.error("Error performing action: " + err);
+      console.error("Action error:", err);
+      toast.error("Error performing action.");
     }
   };
-
 
   return (
     <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm">
       <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
         Station Control
       </h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        Manage entry and exit gates remotely with quick actions.
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        Live stations will appear below as they report in via SSE.
       </p>
 
-      {/* Action buttons */}
-      <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <button
-          onClick={() => handleAction("Open Gate")}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-        >
-          Open Gate
-        </button>
-        <button
-          onClick={() => handleAction("Open and Hold")}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          Open & Hold
-        </button>
-        <button
-          onClick={() => handleAction("Close Gate")}
-          className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-        >
-          Close Gate
-        </button>
-        <button
-          onClick={() => handleAction("Restart App")}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-        >
-          Restart App
-        </button>
-        <button
-          onClick={() => handleAction("Eject Card")}
-          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-        >
-          Eject Card
-        </button>
-        <button
-          onClick={() => handleAction("Restart UPOS")}
-          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-        >
-          Restart UPOS
-        </button>
+      {loading && <p className="text-sm text-gray-500">Loading stations...</p>}
+
+      {/* Entrances */}
+      <div className="mt-4">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+          Entrances
+        </h3>
+        {stations.entrances.length === 0 ? (
+          <p className="text-sm text-gray-500">No entrances detected.</p>
+        ) : (
+          <div className="space-y-2">
+            {stations.entrances.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                  s.status === "ok"
+                    ? "border-green-500"
+                    : "border-red-500 bg-red-50 dark:bg-red-900/20"
+                }`}
+              >
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">
+                    {s.station_name} {/* Display station_name */}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {s.status.toUpperCase()} • {s.lastUpdate.toLocaleTimeString()}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAction("Open Gate", s.id)}
+                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                  >
+                    Open
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Close Gate", s.id)}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Open and Hold", s.id)}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                  >
+                    Open & Hold
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Exits */}
+      <div className="mt-6">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+          Exits
+        </h3>
+        {stations.exits.length === 0 ? (
+          <p className="text-sm text-gray-500">No exits detected.</p>
+        ) : (
+          <div className="space-y-2">
+            {stations.exits.map((s) => (
+              <div
+                key={s.id}
+                className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                  s.status === "ok"
+                    ? "border-blue-500"
+                    : "border-red-500 bg-red-50 dark:bg-red-900/20"
+                }`}
+              >
+                <div>
+                  <p className="font-medium text-gray-800 dark:text-gray-100">
+                    {s.station_name} {/* Display station_name */}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {s.status.toUpperCase()} • {s.lastUpdate.toLocaleTimeString()}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAction("Open Gate", s.id)}
+                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
+                  >
+                    Open
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Close Gate", s.id)}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Open and Hold", s.id)}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
+                  >
+                    Open & Hold
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Remarks */}
@@ -331,7 +537,6 @@ function StationControlModal({ onClose }) {
     </div>
   );
 }
-
 
 function LotAdjustmentModal({ onClose }) {
   const [zones, setZones] = useState([]);
@@ -517,12 +722,33 @@ function ParkingTariffModal() {
 export default function RemoteFunctions() {
   const [activeModal, setActiveModal] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
 
-  // Check token on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) setIsLoggedIn(true);
-  }, []);
+    if (!token) return;
+
+    try {
+      const payloadBase64 = token.split(".")[1];
+      const payloadJson = atob(payloadBase64);
+      const payload = JSON.parse(payloadJson);
+
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) {
+        // Token expired
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+        navigate("/"); // Redirect to home
+      } else {
+        setIsLoggedIn(true);
+      }
+    } catch (err) {
+      console.error("Error decoding token:", err);
+      localStorage.removeItem("token");
+      setIsLoggedIn(false);
+      navigate("/"); // Redirect on error
+    }
+  }, [navigate]);
 
   const remoteActions = [
     {

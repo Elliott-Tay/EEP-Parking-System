@@ -243,4 +243,31 @@ router.get("/remote-control-logs", authenticateJWT, async (req, res) => {
   }
 });
 
+// Get list of stations
+router.get("/stations", authenticateJWT, async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      SELECT 
+        id,
+        station_name,
+        type,
+        status,
+        FORMAT(last_update, 'yyyy-MM-dd HH:mm:ss') AS last_update,
+        FORMAT(created_at, 'yyyy-MM-dd HH:mm:ss') AS created_at,
+        FORMAT(updated_at, 'yyyy-MM-dd HH:mm:ss') AS updated_at
+      FROM stations
+      ORDER BY station_name ASC
+    `;
+
+    const result = await pool.request().query(query);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error fetching stations:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 module.exports = router;
