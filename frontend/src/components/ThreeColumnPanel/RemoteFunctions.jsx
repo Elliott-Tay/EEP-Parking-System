@@ -245,7 +245,6 @@ function StationControlModal({ onClose }) {
         if (!res.ok) throw new Error("Failed to fetch stations");
 
         const data = await res.json();
-        console.log("Fetched stations:", data);
 
         // Load previous stations from localStorage
         const prevEntrances = JSON.parse(localStorage.getItem("entrances") || "[]");
@@ -353,7 +352,7 @@ function StationControlModal({ onClose }) {
       });
 
       const data = await res.json();
-      console.log('data', data);
+
       if (!res.ok) {
         toast.error(data.error || "Action failed.");
         return;
@@ -400,6 +399,16 @@ function StationControlModal({ onClose }) {
     }
   };
 
+  const now = new Date();
+  const formatted = now.toLocaleString('en-SG', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).replace(',', '');
+
   return (
     <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm">
       <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
@@ -434,7 +443,7 @@ function StationControlModal({ onClose }) {
                     {s.station_name} {/* Display station_name */}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {s.status.toUpperCase()} • {s.lastUpdate.toLocaleTimeString()}
+                    {s.status.toUpperCase()} • {formatted}
                   </p>
                 </div>
 
@@ -489,7 +498,7 @@ function StationControlModal({ onClose }) {
                     {s.station_name} {/* Display station_name */}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {s.status.toUpperCase()} • {s.lastUpdate.toLocaleTimeString()}
+                    {s.status.toUpperCase()} • { formatted }
                   </p>
                 </div>
 
@@ -738,7 +747,7 @@ export default function RemoteFunctions() {
         // Token expired
         localStorage.removeItem("token");
         setIsLoggedIn(false);
-        navigate("/"); // Redirect to home
+        navigate("/"); 
       } else {
         setIsLoggedIn(true);
       }
@@ -746,7 +755,7 @@ export default function RemoteFunctions() {
       console.error("Error decoding token:", err);
       localStorage.removeItem("token");
       setIsLoggedIn(false);
-      navigate("/"); // Redirect on error
+      navigate("/"); 
     }
   }, [navigate]);
 

@@ -219,7 +219,6 @@ router.get("/upos_collection_report", authenticateJWT, async (req, res) => {
   }
 });
 
-
 // Get UPOS Collection Report with pagination
 router.get("/upos_collection_file", authenticateJWT, async (req, res) => {
   try {
