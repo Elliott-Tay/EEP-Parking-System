@@ -7,7 +7,6 @@ import {
   X,
   Home,
   Info,
-  Loader2,
   Clock,
   User,
   Monitor,
@@ -15,7 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Filter,
-  Download
+  Download,
+  Clipboard
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -81,13 +81,14 @@ export default function RemoteControlHistory() {
       return;
     }
 
-    const headers = ["Timestamp", "Action", "User", "Device", "Status"];
+    const headers = ["Timestamp", "Action", "User", "Device", "Status", "Remarks"];
     const rows = filteredLogs.map(log => [
       new Date(log.event_time).toLocaleString(),
       log.action,
       log.user,
       log.device,
       log.status,
+      log.remarks
     ]);
 
     const csvContent =
@@ -334,6 +335,9 @@ export default function RemoteControlHistory() {
                             </div>
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
+                            Remarks
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider bg-gray-50">
                             Actions
                           </th>
                         </tr>
@@ -364,6 +368,7 @@ export default function RemoteControlHistory() {
                                   {log.status}
                                 </span>
                               </td>
+                              <td className="px-4 py-3 text-sm text-gray-700">{log.remarks}</td>
                               <td className="px-4 py-3 text-sm">
                                 <button
                                   onClick={() => handleViewDetails(log)}
@@ -578,9 +583,18 @@ export default function RemoteControlHistory() {
                   </div>
                   <p className="text-base font-bold text-gray-900">{selectedLog.device}</p>
                 </div>
+                
+                <div className="w-full p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clipboard className="w-5 h-5 text-gray-600" />
+                    <span className="text-sm text-gray-600 uppercase tracking-wide font-medium">Remarks</span>
+                  </div>
+                  <p className="text-base font-bold text-gray-900">{selectedLog.remarks}</p>
+                </div>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+
                 <div className="flex items-center gap-2 mb-2">
                   <Info className="w-4 h-4 text-gray-600" />
                   <span className="text-xs text-gray-600 uppercase tracking-wide font-medium">Status</span>
