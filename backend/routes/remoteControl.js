@@ -191,10 +191,10 @@ router.post("/system/restart-upos", authenticateToken, async (req, res) => {
 
 // Log the remote control logs
 router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
-  const { event_time, action, user, device, status } = req.body;
+  const { event_time, action, user, device, status, remarks } = req.body;
 
   if (!event_time || !action || !user || !device || !status) {
-    return res.status(400).json({ error: "All fields are required" });
+    return res.status(400).json({ error: "All fields except remarks are required" });
   }
 
   try {
@@ -202,9 +202,9 @@ router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
 
     const query = `
       INSERT INTO RemoteControlHistory 
-        (event_time, action, [user], device, status, created_at, updated_at)
+        (event_time, action, [user], device, status, remarks, created_at, updated_at)
       VALUES 
-        (@event_time, @action, @user, @device, @status, GETDATE(), GETDATE())
+        (@event_time, @action, @user, @device, @status, @remarks, GETDATE(), GETDATE())
     `;
 
     const request = pool.request()
@@ -212,7 +212,8 @@ router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
       .input("action", sql.NVarChar, action)
       .input("user", sql.NVarChar, user)
       .input("device", sql.NVarChar, device)
-      .input("status", sql.NVarChar, status);
+      .input("status", sql.NVarChar, status)
+      .input("remarks", sql.NVarChar, remarks || null); // allow null if not provided
 
     const result = await request.query(query);
 

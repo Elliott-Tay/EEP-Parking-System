@@ -384,6 +384,7 @@ function StationControlModal({ onClose }) {
             status: "Successful",
             created_at: nowIso,
             updated_at: nowIso,
+            remarks
           }),
         });
 
