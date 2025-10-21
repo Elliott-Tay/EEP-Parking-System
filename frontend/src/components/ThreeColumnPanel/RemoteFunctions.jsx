@@ -307,6 +307,9 @@ function StationControlModal({ onClose }) {
     "Open Gate": { url: `${backend}/api/remote-control/gate/open`, method: "POST" },
     "Close Gate": { url: `${backend}/api/remote-control/gate/close`, method: "POST" },
     "Open and Hold": { url: `${backend}/api/remote-control/gate/open-hold`, method: "POST" },
+    "Restart Station": { url: `${backend}/api/remote-control/system/restart-app`, method: "POST" },
+    "Restart UPOS": { url: `${backend}/api/remote-control/system/restart-upos`, method: "POST" },
+    "Eject Card": { url: `${backend}/api/remote-control/card/eject`, method: "POST" },
   };
 
   // --- Handle Action ---
@@ -466,7 +469,14 @@ function StationControlModal({ onClose }) {
                     onClick={() => handleAction("Open and Hold", s.id)}
                     className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                   >
-                    Open & Hold
+                    Hold
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Restart Station", s.id)}
+                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+                  >
+                    Restart Station
                   </button>
                 </div>
               </div>
@@ -489,7 +499,7 @@ function StationControlModal({ onClose }) {
                 key={s.id}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
                   s.status === "ok"
-                    ? "border-blue-500"
+                    ? "border-red-500"
                     : "border-red-500 bg-red-50 dark:bg-red-900/20"
                 }`}
               >
@@ -497,7 +507,7 @@ function StationControlModal({ onClose }) {
                   <p className="font-medium text-gray-800 dark:text-gray-100">
                     {s.station_name} {/* Display station_name */}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mr-3">
                     {s.status.toUpperCase()} • { formatted }
                   </p>
                 </div>
@@ -521,7 +531,21 @@ function StationControlModal({ onClose }) {
                     onClick={() => handleAction("Open and Hold", s.id)}
                     className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
                   >
-                    Open & Hold
+                    Hold
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Restart Station", s.id)}
+                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
+                  >
+                    Restart Station
+                  </button>
+
+                  <button
+                    onClick={() => handleAction("Restart UPOS", s.id)}
+                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
+                  >
+                    Restart UPOS
                   </button>
                 </div>
               </div>
