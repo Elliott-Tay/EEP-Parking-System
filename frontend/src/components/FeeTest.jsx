@@ -41,6 +41,9 @@ export default function FeeCalculator() {
     const daySummaries = [];
     let current = new Date(entryDate);
 
+    // Normalize start to midnight for consistent day iteration
+    current.setHours(0, 0, 0, 0);
+
     while (current <= exitDate) {
       const dayStr = current.toLocaleString("en-US", { weekday: "short" });
 
@@ -52,7 +55,6 @@ export default function FeeCalculator() {
 
       if (dayTariffs.length === 0) {
         current.setDate(current.getDate() + 1);
-        current.setHours(0, 0, 0, 0);
         continue;
       }
 
@@ -63,10 +65,9 @@ export default function FeeCalculator() {
         const [endH, endM] = t.to_time.split("T")[1].split(":").map(Number);
 
         const dayStart = new Date(current);
-        dayStart.setHours(0, 0, 0, 0);
-
         const intervalStart = new Date(dayStart);
         intervalStart.setHours(startH, startM, 0, 0);
+
         const intervalEnd = new Date(dayStart);
         intervalEnd.setHours(endH, endM, 0, 0);
 
@@ -75,7 +76,7 @@ export default function FeeCalculator() {
         const overlapMinutes = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60));
 
         if (overlapMinutes > 0) {
-          const units = Math.ceil(overlapMinutes / billingInterval); // <-- use custom interval
+          const units = Math.ceil(overlapMinutes / billingInterval);
           let feeForInterval =
             (t.first_min_fee || 0) +
             (units > 1 ? (units - 1) * (t.min_fee || 0) : 0);
@@ -87,6 +88,10 @@ export default function FeeCalculator() {
         }
       }
 
+      // ✅ Enforce daily max cap (important fix)
+      const dailyMax = Math.max(...dayTariffs.map((t) => t.max_charge || Infinity));
+      if (dailyFee > dailyMax) dailyFee = dailyMax;
+
       totalFee += dailyFee;
 
       daySummaries.push({
@@ -94,6 +99,7 @@ export default function FeeCalculator() {
         fee: dailyFee.toFixed(2),
       });
 
+      // Move to next day
       current.setDate(current.getDate() + 1);
       current.setHours(0, 0, 0, 0);
     }

@@ -48,7 +48,8 @@ export default function ReportPage() {
       color: "bg-blue-100 text-blue-600 border-blue-200",
       items: [
         { name: "Public Holidays", href: "/config/holiday-setup" },
-        { name: "Parking Tariffs", href: "/config/parking-tariff" }
+        { name: "Parking Tariffs", href: "/config/parking-tariff" },
+        { name: "Upload Tariff Image", href: "/config/tariff-image-upload" }
       ]
     },
 

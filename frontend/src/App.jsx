@@ -99,6 +99,8 @@ function App() {
   const TariffSetupDaySeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/daySeasonBView'));
   const TariffSetupNightSeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/nightSeasonBView'));
 
+  const TariffImageUpload = lazy(() => import('./components/reports/systemConfiguration/tariffImageUpload'));
+
   const protectedRoutes = [
     { path: "/configuration", element: <ConfigurationPage />, requiredRole: "admin" },
     { path: "/reports", element: <ReportPage /> },
@@ -119,6 +121,7 @@ function App() {
     { path: "/reports/nets-comparison", element: <NetsCollectionComparison /> },
     { path: "/config/holiday-setup", element: <PublicHolidaySetup /> },
     { path: "/config/parking-tariff", element: <ParkingTariffConfiguration /> },
+    { path: "/config/tariff-image-upload", element: <TariffImageUpload />},
     { path: "/config/season-master", element: <SeasonHolderMaster /> },
     { path: "/config/season-update", element: <SeasonUpdate /> },
     { path: "/config/change-season-no", element: <ChangeSeasonIU /> },
