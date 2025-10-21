@@ -759,7 +759,7 @@ function ParkingTariffModal({ onClose }) {
             <img
               src="http://localhost:5000/api/image/tariff-image"
               alt="Tariff"
-              className="object-contain max-h-[500px] w-full"
+              className="object-contain max-h-[600px] w-full"
             />
           </div>
         </div>
