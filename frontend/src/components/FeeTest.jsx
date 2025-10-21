@@ -10,15 +10,21 @@ export default function FeeCalculator() {
   const [hoursParked, setHoursParked] = useState(null);
   const [tariffs, setTariffs] = useState([]);
   const [history, setHistory] = useState([]);
+  const [tariffImageUrl, setTariffImageUrl] = useState(null);
+
+  const backendUrl = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     axios
-      .get(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates`)
+      .get(`${backendUrl}/api/tariff/tariff-rates`)
       .then((res) => {
         if (res.data.success) setTariffs(res.data.data);
       })
       .catch((err) => console.error(err));
-  }, []);
+
+    // Fetch latest tariff image
+    setTariffImageUrl(`${backendUrl}/api/image/tariff-image`);
+  }, [backendUrl]);
 
   const calculateFee = () => {
     if (!entryTime || !exitTime) {
@@ -40,13 +46,10 @@ export default function FeeCalculator() {
 
     const daySummaries = [];
     let current = new Date(entryDate);
-
-    // Normalize start to midnight for consistent day iteration
     current.setHours(0, 0, 0, 0);
 
     while (current <= exitDate) {
       const dayStr = current.toLocaleString("en-US", { weekday: "short" });
-
       const dayTariffs = tariffs.filter(
         (t) =>
           t.vehicle_type === vehicleType &&
@@ -81,16 +84,22 @@ export default function FeeCalculator() {
             (t.first_min_fee || 0) +
             (units > 1 ? (units - 1) * (t.min_fee || 0) : 0);
 
-          if (feeForInterval < t.min_charge) feeForInterval = t.min_charge;
-          if (feeForInterval > t.max_charge) feeForInterval = t.max_charge;
+          if (t.min_charge !== undefined && feeForInterval < t.min_charge)
+            feeForInterval = t.min_charge;
+          if (t.max_charge !== undefined && feeForInterval > t.max_charge)
+            feeForInterval = t.max_charge;
 
           dailyFee += feeForInterval;
         }
       }
 
-      // ✅ Enforce daily max cap (important fix)
-      const dailyMax = Math.max(...dayTariffs.map((t) => t.max_charge || Infinity));
-      if (dailyFee > dailyMax) dailyFee = dailyMax;
+      const maxCharges = dayTariffs
+        .map((t) => t.max_charge)
+        .filter((v) => v !== undefined);
+      if (maxCharges.length > 0) {
+        const dailyMax = Math.max(...maxCharges);
+        if (dailyFee > dailyMax) dailyFee = dailyMax;
+      }
 
       totalFee += dailyFee;
 
@@ -99,7 +108,6 @@ export default function FeeCalculator() {
         fee: dailyFee.toFixed(2),
       });
 
-      // Move to next day
       current.setDate(current.getDate() + 1);
       current.setHours(0, 0, 0, 0);
     }
@@ -122,43 +130,57 @@ export default function FeeCalculator() {
   };
 
   return (
-    <div className="max-w-lg mx-auto mt-10 p-6 bg-gray-50 rounded-xl shadow-lg font-sans">
+    <div className="max-w-4xl mx-auto mt-10 p-6 bg-gray-50 rounded-2xl shadow-lg font-sans">
       <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Parking Fee Calculator</h2>
 
-     <div className="space-y-4 mb-6">
-        <input
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="space-y-4">
+          <input
             type="datetime-local"
             value={entryTime}
             onChange={(e) => setEntryTime(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <input
+          />
+          <input
             type="datetime-local"
             value={exitTime}
             onChange={(e) => setExitTime(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <select
+          />
+          <select
             value={vehicleType}
             onChange={(e) => setVehicleType(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
+          >
             <option>Car/Van</option>
             <option>Lorry</option>
             <option>M/cycle</option>
             <option>Bus</option>
-        </select>
-
-        {/* Editable billing interval */}
-        <input
+          </select>
+          <input
             type="number"
             min={1}
             value={billingInterval}
             onChange={(e) => setBillingInterval(Number(e.target.value))}
             placeholder="Billing interval in minutes"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+          />
         </div>
+
+        {/* Tariff Image Preview */}
+        <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-md">
+          <h3 className="text-xl font-semibold mb-2 text-gray-700">Current Tariff Image</h3>
+          {tariffImageUrl ? (
+            <img
+              src={tariffImageUrl}
+              alt="Tariff"
+              className="w-full max-h-80 object-contain rounded-lg border border-gray-300 shadow-sm"
+            />
+          ) : (
+            <p className="text-gray-500">No tariff image available</p>
+          )}
+        </div>
+      </div>
 
       <button
         onClick={calculateFee}
@@ -168,14 +190,29 @@ export default function FeeCalculator() {
       </button>
 
       {fee !== null && (
-        <div className="mt-6 p-4 bg-white rounded-lg shadow-md text-center">
-          <div className="text-lg font-semibold text-gray-700">
-            Total Time Parked: {hoursParked.toFixed(2)} hours
+        <div className="mt-6 p-6 bg-white rounded-xl shadow-md flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="text-center md:text-left">
+            <div className="text-lg font-semibold text-gray-700">
+              Total Time Parked: {hoursParked.toFixed(2)} hours
+            </div>
+            <div className="text-lg font-semibold text-gray-700">
+              Billing Interval: {billingInterval} minutes
+            </div>
+            <div className="text-3xl font-bold text-blue-600 mt-2">
+              Total Fee: ${fee}
+            </div>
           </div>
-          <div className="text-lg font-semibold text-gray-700">
-            Billing Interval: {billingInterval} minutes
-          </div>
-          <div className="text-2xl font-bold text-blue-600 mt-2">Total Fee: ${fee}</div>
+
+          {/* Fee Tariff Image */}
+          {tariffImageUrl && (
+            <div className="flex-shrink-0">
+              <img
+                src={tariffImageUrl}
+                alt="Tariff"
+                className="w-64 max-h-64 object-contain rounded-lg border border-gray-300 shadow-sm"
+              />
+            </div>
+          )}
         </div>
       )}
 

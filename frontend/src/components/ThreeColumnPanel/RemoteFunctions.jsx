@@ -831,7 +831,7 @@ export default function RemoteFunctions() {
       label: "Parking Tariff",
       icon: DollarSign,
       color: "bg-orange-500 hover:bg-orange-600",
-      description: "Update pricing structure",
+      description: "Show parking tariff structure",
       component: ParkingTariffModal,
     },
   ];
