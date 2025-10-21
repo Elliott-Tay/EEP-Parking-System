@@ -71,6 +71,4 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
-// ⚠️ Remove req.io = io here — use app.locals.io in routes instead
-
 module.exports = app;

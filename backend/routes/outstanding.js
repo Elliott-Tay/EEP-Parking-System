@@ -253,5 +253,39 @@ router.get("/upos_collection_file", authenticateJWT, async (req, res) => {
   }
 });
 
+// Get LCSC Cashcard Collection report with pagination
+router.get("/lcsc_cashcard_collection", authenticateJWT, async (req, res) => {
+  try {
+    const { startDate, endDate, page = 1, pageSize = 10 } = req.query;
+
+    // Validate input
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: "startDate and endDate are required" });
+    }
+
+    const pool = await sql.connect(config);
+    const offset = (page - 1) * pageSize;
+
+    const result = await pool
+      .request()
+      .input("startDate", sql.Date, startDate)
+      .input("endDate", sql.Date, endDate)
+      .input("offset", sql.Int, offset)
+      .input("pageSize", sql.Int, pageSize)
+      .query(`
+        SELECT *
+        FROM [LCSCCashcardCollection]
+        WHERE CAST(Date AS DATE) BETWEEN @startDate AND @endDate
+        ORDER BY Date DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error fetching LCSC Cashcard Collection:", err);
+    res.status(500).json({ error: "Server error fetching LCSC Cashcard Collection" });
+  }
+});
 
 module.exports = router;
