@@ -439,7 +439,7 @@ ${card.season_no},${card.holder_name},${card.vehicle_no},${card.valid_from},${ca
                                       <Calendar className="w-3 h-3 text-gray-400" />
                                       <span className="text-xs text-gray-600">Start Date</span>
                                     </div>
-                                    <p className="text-sm text-gray-900">{card.valid_from}</p>
+                                    <p className="text-sm text-gray-900">{new Date(card.valid_from).toLocaleDateString("en-GB")}</p>
                                   </div>
 
                                   <div>
@@ -447,7 +447,7 @@ ${card.season_no},${card.holder_name},${card.vehicle_no},${card.valid_from},${ca
                                       <CalendarCheck className="w-3 h-3 text-gray-400" />
                                       <span className="text-xs text-gray-600">Expiry Date</span>
                                     </div>
-                                    <p className="text-sm text-gray-900">{card.valid_to}</p>
+                                    <p className="text-sm text-gray-900">{new Date(card.valid_to).toLocaleDateString("en-GB")}</p>
                                   </div>
                                 </div>
                               </div>
