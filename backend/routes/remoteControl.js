@@ -103,6 +103,7 @@ router.get("/lot-status", async (req, res) => {
   }
 });
 
+// Update parking lot status
 router.patch("/lot-status/:zone/:type", async (req, res) => {
   const { zone, type } = req.params;
   const { allocated, occupied } = req.body;
@@ -159,31 +160,37 @@ router.patch("/lot-status/:zone/:type", async (req, res) => {
   }
 });
 
+// Remote control actions open gate
 router.post("/gate/open", authenticateToken, async (req, res) => {
   console.log("Gate open requested");
   res.json({ success: true, message: "Gate open request received" });
 });
 
+// Remote control actions open and hold gate
 router.post("/gate/open-hold", authenticateToken, async (req, res) => {
   console.log("Gate open and hold requested");
   res.json({ success: true, message: "Gate open-hold request received" });
 });
 
+// Remote control actions close gate
 router.post("/gate/close", authenticateToken, async (req, res) => {
   console.log("Gate close requested");
   res.json({ success: true, message: "Gate close request received" });
 });
 
+// Remote control actions restart app
 router.post("/system/restart-app", authenticateToken, async (req, res) => {
   console.log("System restart app requested");
   res.json({ success: true, message: "System restart-app request received" });
 });
 
+// Remote control actions eject card
 router.post("/card/eject", authenticateToken, async (req, res) => {
   console.log("Card eject requested");
   res.json({ success: true, message: "Card eject request received" });
 });
 
+// Remote control actions restart UPOS
 router.post("/system/restart-upos", authenticateToken, async (req, res) => {
   console.log("System restart UPOS requested");
   res.json({ success: true, message: "System restart-UPOS request received" });
@@ -224,6 +231,7 @@ router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
   }
 });
 
+// Get remote control logs
 router.get("/remote-control-logs", authenticateJWT, async (req, res) => {
   try {
     const pool = await sql.connect(config);
