@@ -19,9 +19,6 @@ router.post("/tariff-image", upload.single("image"), async (req, res) => {
     // Connect to database
     const pool = await sql.connect(config);
 
-    // Delete any existing image (keep only one)
-    await pool.request().query(`DELETE FROM TariffImages`);
-
     // Insert the new image
     await pool.request()
       .input("filename", sql.NVarChar, originalname)
@@ -53,7 +50,7 @@ router.get("/tariff-image", async (req, res) => {
       .query(`
         SELECT TOP 1 filename, mimetype, size, image_data
         FROM TariffImages
-        ORDER BY id ASC
+        ORDER BY id DESC
       `);
 
     if (!result.recordset.length) {
