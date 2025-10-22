@@ -167,7 +167,7 @@ export default function FeeCalculator() {
               <img
                 src={tariffImageUrl}
                 alt="Tariff"
-                className="w-full max-w-5xl max-h-[700px] object-contain rounded-xl border border-gray-300 shadow-sm"
+                className="w-full max-w-8xl max-h-[900px] object-contain rounded-2xl border border-gray-300 shadow-lg"
               />
             ) : (
               <p className="text-gray-500 text-lg">No tariff image available</p>
