@@ -414,162 +414,145 @@ function StationControlModal({ onClose }) {
   }).replace(',', '');
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-xl shadow-sm">
-      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
-        Station Control
-      </h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-        Live stations will appear below as they report in via SSE.
-      </p>
+    <div className="p-8 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 transition-all duration-200">
+      <header className="mb-6">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          Station Control
+        </h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Manage live station gates and monitor their real-time status. 
+          Updates appear automatically via live SSE feed.
+        </p>
+      </header>
 
-      {loading && <p className="text-sm text-gray-500">Loading stations...</p>}
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 animate-pulse">
+          <span className="w-3 h-3 rounded-full bg-green-400 animate-ping" />
+          Loading stations...
+        </div>
+      )}
 
       {/* Entrances */}
-      <div className="mt-4">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+      <section className="mt-6">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
           Entrances
         </h3>
+
         {stations.entrances.length === 0 ? (
           <p className="text-sm text-gray-500">No entrances detected.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {stations.entrances.map((s) => (
               <div
                 key={s.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                className={`flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
                   s.status === "ok"
-                    ? "border-green-500"
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/10"
                     : "border-red-500 bg-red-50 dark:bg-red-900/20"
                 }`}
               >
                 <div>
-                  <p className="font-medium text-gray-800 dark:text-gray-100">
-                    {s.station_name} {/* Display station_name */}
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {s.station_name}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 mt-1">
                     {s.status.toUpperCase()} • {formatted}
                   </p>
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAction("Open Gate", s.id)}
-                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-                  >
-                    Open
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Close Gate", s.id)}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                  >
-                    Close
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Open and Hold", s.id)}
-                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                  >
-                    Hold
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Restart Station", s.id)}
-                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
-                  >
-                    Restart Station
-                  </button>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Open", color: "green", action: "Open Gate" },
+                    { label: "Close", color: "red", action: "Close Gate" },
+                    { label: "Hold", color: "blue", action: "Open and Hold" },
+                    { label: "Restart", color: "yellow", action: "Restart Station" },
+                  ].map((btn) => (
+                    <button
+                      key={btn.action}
+                      onClick={() => handleAction(btn.action, s.id)}
+                      className={`px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-${btn.color}-500 hover:bg-${btn.color}-600 transition-all`}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Exits */}
-      <div className="mt-6">
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">
+      <section className="mt-8">
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">
           Exits
         </h3>
+
         {stations.exits.length === 0 ? (
           <p className="text-sm text-gray-500">No exits detected.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {stations.exits.map((s) => (
               <div
                 key={s.id}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg border ${
+                className={`flex flex-col md:flex-row md:items-center justify-between gap-3 px-4 py-3 rounded-xl border transition-all duration-200 ${
                   s.status === "ok"
-                    ? "border-red-500"
-                    : "border-red-500 bg-red-50 dark:bg-red-900/20"
+                    ? "border-red-500 bg-red-50 dark:bg-red-900/10"
+                    : "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
                 }`}
               >
                 <div>
-                  <p className="font-medium text-gray-800 dark:text-gray-100">
-                    {s.station_name} {/* Display station_name */}
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    {s.station_name}
                   </p>
-                  <p className="text-xs text-gray-500 mr-3">
-                    {s.status.toUpperCase()} • { formatted }
+                  <p className="text-xs text-gray-500 mt-1">
+                    {s.status.toUpperCase()} • {formatted}
                   </p>
                 </div>
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAction("Open Gate", s.id)}
-                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600"
-                  >
-                    Open
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Close Gate", s.id)}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-                  >
-                    Close
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Open and Hold", s.id)}
-                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600"
-                  >
-                    Hold
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Restart Station", s.id)}
-                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600"
-                  >
-                    Restart Station
-                  </button>
-
-                  <button
-                    onClick={() => handleAction("Restart UPOS", s.id)}
-                    className="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600"
-                  >
-                    Restart UPOS
-                  </button>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Open", color: "green", action: "Open Gate" },
+                    { label: "Close", color: "red", action: "Close Gate" },
+                    { label: "Hold", color: "blue", action: "Open and Hold" },
+                    { label: "Restart", color: "yellow", action: "Restart Station" },
+                    { label: "Restart UPOS", color: "gray", action: "Restart UPOS" },
+                  ].map((btn) => (
+                    <button
+                      key={btn.action}
+                      onClick={() => handleAction(btn.action, s.id)}
+                      className={`px-3 py-1.5 text-sm font-medium text-white rounded-lg bg-${btn.color}-500 hover:bg-${btn.color}-600 transition-all`}
+                    >
+                      {btn.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {/* Remarks */}
-      <div className="mt-6">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <section className="mt-8">
+        <label
+          htmlFor="remarks"
+          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+        >
           Remarks
         </label>
         <textarea
+          id="remarks"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
-          placeholder="Add remarks..."
-          className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
-          rows={3}
+          placeholder="Add operator remarks here..."
+          rows={4}
+          className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:text-gray-200 shadow-sm"
         />
-      </div>
+      </section>
     </div>
   );
+
 }
 
 function LotAdjustmentModal({ onClose }) {
@@ -616,27 +599,64 @@ function LotAdjustmentModal({ onClose }) {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/lot-status/${zone}/${type}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          allocated: Number(allocated),
-          occupied: Number(occupied),
-        }),
-      });
+      // Step 1: Update the lot status
+      const res = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/lot-status/${zone}/${type}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            allocated: Number(allocated),
+            occupied: Number(occupied),
+          }),
+        }
+      );
 
       const data = await res.json();
 
       if (!res.ok) {
         toast.error(data.error || "Failed to update lot");
-      } else {
-        toast.success(
-          `Updated zone ${zone} (${type}) to ${data.allocated} allocated, ${data.occupied} occupied`
-        );
-        setAllocated("");
-        setOccupied("");
-        onClose?.();
+        return;
       }
+
+      toast.success(
+        `Updated zone ${zone} (${type}) to ${data.allocated} allocated, ${data.occupied} occupied`
+      );
+
+      // Step 2: Log the lot status history
+      try {
+        const token = localStorage.getItem("token");
+        let username = 0; // default value if no token
+
+        if (token) {
+          // JWT format: header.payload.signature
+          const payloadBase64 = token.split(".")[1];
+          const payloadJson = atob(payloadBase64); // decode base64
+          const payload = JSON.parse(payloadJson);
+
+          username = payload.username; // now it's assigned
+        }
+
+        await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/remote-control/lot-status-history`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            zone,
+            type,
+            allocated: Number(allocated),
+            occupied: Number(occupied),
+            users: username || 0,
+          }),
+        });
+      } catch (logErr) {
+        console.error("Failed to log lot status history:", logErr);
+      }
+
+      // Reset inputs and close modal
+      setAllocated("");
+      setOccupied("");
+      onClose?.();
+
     } catch (err) {
       toast.error("Error updating lot: " + err.message);
       console.error(err);
@@ -644,52 +664,54 @@ function LotAdjustmentModal({ onClose }) {
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-2xl shadow-md">
-      <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+    <div className="p-8 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 transition-all duration-300">
+      <h2 className="text-3xl font-extrabold mb-3 text-gray-900 dark:text-gray-100 tracking-tight">
         Lot Adjustment
       </h2>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-        Adjust the allocated and occupied parking slots for each zone.
+      <p className="text-base text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+        Modify the <span className="font-semibold text-green-600">allocated</span> and{" "}
+        <span className="font-semibold text-blue-600">occupied</span> parking slots for
+        different zones. Ensure data reflects real-time occupancy for accuracy.
       </p>
 
-      <div className="flex flex-col gap-4">
-        {/* Zone selector */}
+      <div className="space-y-6">
+        {/* Zone Selector */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Zone
           </label>
           <select
             value={zone}
             onChange={(e) => setZone(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-green-400 transition"
           >
             <option value="">Select zone</option>
             {zones.map((z) => (
               <option key={z.name} value={z.name} disabled={!z.active}>
-                {z.name} {z.active ? "" : "(full)"}
+                {z.name} {z.active ? "" : "(Full)"}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Type selector */}
+        {/* Type Selector */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Type
           </label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-green-400 transition"
           >
             <option value="hourly">Hourly</option>
             <option value="season">Season</option>
           </select>
         </div>
 
-        {/* Allocated input */}
+        {/* Allocated Slots */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Allocated Slots
           </label>
           <input
@@ -697,13 +719,13 @@ function LotAdjustmentModal({ onClose }) {
             placeholder="e.g. 50"
             value={allocated}
             onChange={(e) => setAllocated(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-green-400 transition"
           />
         </div>
 
-        {/* Occupied input */}
+        {/* Occupied Slots */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Occupied Slots
           </label>
           <input
@@ -711,21 +733,32 @@ function LotAdjustmentModal({ onClose }) {
             placeholder="e.g. 20"
             value={occupied}
             onChange={(e) => setOccupied(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+            className="w-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-4 focus:ring-green-400 transition"
           />
         </div>
 
-        {/* Submit button */}
+        {/* Update Button */}
         <button
           onClick={handleLotUpdate}
           disabled={!zone || !allocated || !occupied}
-          className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-lg font-semibold rounded-2xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Update Lot
         </button>
+
+        {/* Summary Footer (Optional) */}
+        {zone && (
+          <div className="mt-6 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+            <p>
+              <span className="font-semibold">Zone:</span> {zone} |{" "}
+              <span className="font-semibold">Type:</span> {type} |{" "}
+              <span className="font-semibold">Allocated:</span> {allocated} |{" "}
+              <span className="font-semibold">Occupied:</span> {occupied}
+            </p>
+          </div>
+        )}
       </div>
     </div>
-
   );
 }
 

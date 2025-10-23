@@ -189,7 +189,8 @@ export default function ReportPage() {
       description: "System audit trails and historical data",
       reports: [
         { id: 9, name: "Remote Control Logs", description: "System control operation logs", icon: History, route: "/reports/remote-control-history" },
-        { id: 10, name: "Station Error Logs", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" }
+        { id: 10, name: "Station Error Logs", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" },
+        { id: 11, name: "Lot Status History", description: "Parking lot status change history", icon: ExternalLink, route: "/reports/lot-status-history" }
       ]
     },
     {
@@ -356,7 +357,7 @@ export default function ReportPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Audit Reports</p>
-                <p className="text-lg font-semibold">2</p>
+                <p className="text-lg font-semibold">3</p>
               </div>
             </div>
           </div>

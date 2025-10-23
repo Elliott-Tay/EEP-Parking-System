@@ -160,6 +160,43 @@ router.patch("/lot-status/:zone/:type", async (req, res) => {
   }
 });
 
+// Log parking lot status history
+router.post("/lot-status-history", async (req, res) => {
+  const { zone, type, allocated, occupied, users } = req.body;
+
+  if (!zone || !type || allocated === undefined || occupied === undefined) {
+    return res.status(400).json({ error: "zone, type, allocated, and occupied are required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    // Insert a new record in LotStatusHistory
+    await pool.request()
+      .input("zone", sql.NVarChar, zone)
+      .input("type", sql.NVarChar, type)
+      .input("allocated", sql.Int, allocated)
+      .input("occupied", sql.Int, occupied)
+      .input("users", sql.NVarChar, users || '') 
+      .query(`
+        INSERT INTO LotStatusHistory (zone, type, allocated, occupied, users, updated_at)
+        VALUES (@zone, @type, @allocated, @occupied, @users, GETDATE())
+   `);
+
+    res.status(201).json({
+      message: `Lot status logged successfully for zone ${zone} (${type})`,
+      zone,
+      type,
+      allocated,
+      occupied,
+      users: users || 0,
+    });
+  } catch (err) {
+    console.error("Error logging lot status:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
 // Remote control actions open gate
 router.post("/gate/open", authenticateToken, async (req, res) => {
   console.log("Gate open requested");
@@ -227,6 +264,21 @@ router.post("/remote-control-logs", authenticateJWT, async (req, res) => {
     res.json({ message: "Remote control log inserted successfully", rowsAffected: result.rowsAffected[0] });
   } catch (err) {
     console.error("Error inserting remote control log:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// Get Lot Status History
+router.get("/lot-status-history", authenticateJWT, async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+    
+    const query = `SELECT * FROM LotStatusHistory ORDER BY updated_at DESC`;
+
+    const result = await pool.request().query(query);
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("Error fetching lot status history:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
