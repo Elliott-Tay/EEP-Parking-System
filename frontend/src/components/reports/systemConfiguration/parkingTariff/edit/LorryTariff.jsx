@@ -1,56 +1,105 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
+import { DateTime } from "luxon";
 
-export default function TariffSetupLorrySeason() {
+export default function TariffSetupLorry() {
   const navigate = useNavigate();
-  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
 
-  const initialSlot = {
-    from: "08:00",
-    to: "18:00",
-    rateType: "Hourly",
-    every: 60,
-    minFee: 200,
-    graceTime: 15,
-    firstMinFee: 100,
-    min: 200,
-    max: 2000,
-  };
+  const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
+  const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
 
   const [rates, setRates] = useState(
-    daysOfWeek.reduce((acc, day) => {
-      acc[day] = [{ ...initialSlot }];
-      return acc;
-    }, {})
+    daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: [] }), {})
   );
-
   const [effectiveStart, setEffectiveStart] = useState("");
   const [effectiveEnd, setEffectiveEnd] = useState("");
+  const [overlaps, setOverlaps] = useState({});
 
-  // Fetch existing rates
+  // ---------- Helper functions ----------
+  const formatTimeSG = (timeStr) => {
+    if (!timeStr) return null;
+    return DateTime.fromFormat(timeStr, "HH:mm", { zone: "Asia/Singapore" }).toFormat("HH:mm:ss");
+  };
+
+  const parseTimeSG = (timeStr) => {
+    if (!timeStr) return "";
+    return DateTime.fromISO(timeStr, { zone: "Asia/Singapore" }).toFormat("HH:mm");
+  };
+
+  const formatDateSG = (dateStr, startOfDay = true) => {
+    if (!dateStr) return null;
+    const dt = DateTime.fromISO(dateStr, { zone: "Asia/Singapore" });
+    return startOfDay ? dt.startOf("day").toISO() : dt.endOf("day").toISO();
+  };
+
+  const getOverlaps = (slots) => {
+    const result = [];
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        if (slots[i].from < slots[j].to && slots[i].to > slots[j].from) {
+          result.push([i, j]);
+        }
+      }
+    }
+    return result;
+  };
+
+  const checkAllOverlaps = () => {
+    const allOverlaps = {};
+    let hasOverlap = false;
+
+    for (const [day, slots] of Object.entries(rates)) {
+      const dayOverlaps = getOverlaps(slots);
+      if (dayOverlaps.length) {
+        allOverlaps[day] = dayOverlaps;
+        hasOverlap = true;
+      }
+    }
+
+    setOverlaps(allOverlaps);
+    return hasOverlap;
+  };
+
+  // ---------- Fetch existing tariff ----------
   useEffect(() => {
-    const fetchRates = async () => {
+    const fetchTariff = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(
+        const response = await fetch(
           `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Lorry`,
           {
             headers: {
               "Content-Type": "application/json",
               Authorization: token ? `Bearer ${token}` : "",
             },
+            credentials: "include",
           }
         );
-        if (!res.ok) throw new Error("Failed to fetch tariff");
-        const data = await res.json();
 
-        setEffectiveStart(data.effectiveStart || "");
-        setEffectiveEnd(data.effectiveEnd || "");
+        if (!response.ok) throw new Error("Failed to fetch tariff");
+
+        const data = await response.json();
+        if (!data || Object.keys(data).length === 0) return;
+
+        setEffectiveStart(
+          data.effectiveStartDate
+            ? DateTime.fromISO(data.effectiveStartDate, { zone: "Asia/Singapore" }).toISODate()
+            : ""
+        );
+        setEffectiveEnd(
+          data.effectiveEndDate
+            ? DateTime.fromISO(data.effectiveEndDate, { zone: "Asia/Singapore" }).toISODate()
+            : ""
+        );
 
         const newRates = {};
-        daysOfWeek.forEach(day => {
-          newRates[day] = data[day] && data[day].length ? data[day] : [{ ...initialSlot }];
+        daysOfWeek.forEach((day) => {
+          newRates[day] = (data[day] || []).map((slot) => ({
+            ...slot,
+            from: parseTimeSG(slot.from),
+            to: parseTimeSG(slot.to),
+          }));
         });
         setRates(newRates);
       } catch (err) {
@@ -59,44 +108,81 @@ export default function TariffSetupLorrySeason() {
       }
     };
 
-    fetchRates();
+    fetchTariff();
   }, []);
 
+  // ---------- Input handlers ----------
   const handleInputChange = (day, index, field, value) => {
-    setRates(prev => {
+    setRates((prev) => {
       const updatedDay = [...prev[day]];
-      updatedDay[index][field] = value;
+      updatedDay[index][field] = numericFields.includes(field) ? Number(value) : value;
       return { ...prev, [day]: updatedDay };
     });
   };
 
   const addTimeSlot = (day) => {
-    setRates(prev => ({
+    setRates((prev) => ({
       ...prev,
-      [day]: [...prev[day], { ...initialSlot }],
+      [day]: [
+        ...prev[day],
+        {
+          from: "08:00",
+          to: "18:00",
+          rateType: "Hourly",
+          every: 60,
+          minFee: 200,
+          graceTime: 15,
+          firstMinFee: 100,
+          min: 200,
+          max: 2000,
+        },
+      ],
     }));
   };
 
-  const removeTimeSlot = (day, index) => {
-    setRates(prev => {
-      const updatedDay = prev[day].filter((_, i) => i !== index);
-      return { ...prev, [day]: updatedDay.length ? updatedDay : [{ ...initialSlot }] };
-    });
-  };
+  const removeTimeSlot = async (day, index) => {
+    const slot = rates[day][index];
+    if (!slot) return;
 
-  const isOverlapping = (slots) => {
-    for (let i = 0; i < slots.length; i++) {
-      const fromI = slots[i].from;
-      const toI = slots[i].to;
-      for (let j = i + 1; j < slots.length; j++) {
-        const fromJ = slots[j].from;
-        const toJ = slots[j].to;
-        if (fromI && toI && fromJ && toJ && fromI < toJ && toI > fromJ) return true;
-      }
+    console.log(formatTimeSG(slot.from));
+    console.log(formatTimeSG(slot.to));
+    console.log(formatDateSG(slot.effectiveStart || effectiveStart, true));
+    console.log(formatDateSG(slot.effectiveEnd || effectiveEnd, false));
+
+    try {
+      const payload = {
+        vehicleType: "Lorry",
+        dayOfWeek: day,
+        fromTime: formatTimeSG(slot.from),
+        toTime: formatTimeSG(slot.to),
+        effectiveStart: formatDateSG(slot.effectiveStart || effectiveStart, true),
+        effectiveEnd: formatDateSG(slot.effectiveEnd || effectiveEnd, false),
+      };
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-slot`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) throw await response.json();
+
+      setRates((prev) => {
+        const updatedDay = prev[day].filter((_, i) => i !== index);
+        return { ...prev, [day]: updatedDay };
+      });
+
+      alert("Slot deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete slot: " + (err?.error || err.message));
     }
-    return false;
   };
 
+  // ---------- Validation ----------
   const validatePayload = () => {
     if (!effectiveStart || !effectiveEnd) {
       alert("Please select both effective start and end dates.");
@@ -118,110 +204,177 @@ export default function TariffSetupLorrySeason() {
           return false;
         }
       }
-      if (isOverlapping(slots)) {
-        alert(`Time slots overlap for ${day}. Please adjust the times.`);
-        return false;
-      }
     }
+
+    if (checkAllOverlaps()) {
+      alert("Some slots are overlapping! Please fix them before saving.");
+      return false;
+    }
+
     return true;
   };
 
+  // ---------- Save handler ----------
   const handleSave = async () => {
     if (!validatePayload()) return;
 
-    const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
-    const sanitizedRates = {};
-
-    for (const [day, slots] of Object.entries(rates)) {
-      sanitizedRates[day] = slots.map(slot => {
-        const newSlot = { ...slot };
-        numericFields.forEach(field => {
-          newSlot[field] = newSlot[field] !== "" ? Number(newSlot[field]) : null;
-        });
-        return newSlot;
-      });
-    }
-
     const payload = {
-      vehicleType: "DaySeason",
-      effectiveStart: effectiveStart ? effectiveStart + "T00:00:00+08:00" : null,
-      effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59+08:00" : null,
-      rates: sanitizedRates,
+      vehicleType: "Lorry",
+      effectiveStart: formatDateSG(effectiveStart, true),
+      effectiveEnd: formatDateSG(effectiveEnd, false),
+      rates: Object.fromEntries(
+        Object.entries(rates).map(([day, slots]) => [
+          day,
+          slots.map((slot) => ({
+            ...slot,
+            from: formatTimeSG(slot.from),
+            to: formatTimeSG(slot.to),
+          })),
+        ])
+      ),
     };
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (res.ok) alert("Rates saved successfully!");
-      else alert("Error: " + data.error);
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("Rates saved successfully!");
+      } else {
+        console.error(data);
+        alert("Error: " + data.error);
+      }
     } catch (err) {
       console.error(err);
       alert("Network error");
     }
   };
 
+  const isSlotOverlapping = (day, index) =>
+    overlaps[day]?.some(([i, j]) => i === index || j === index);
+
+  // ---------- Render ----------
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <h1 className="text-2xl font-bold mb-4">Tariff Setup for Day Season</h1>
+      <h1 className="text-2xl font-bold mb-4">Tariff Setup for Lorry</h1>
 
       {/* Effective Dates */}
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
           <label>Effective Start Date</label>
-          <input type="date" value={effectiveStart} onChange={e => setEffectiveStart(e.target.value)} className="border rounded p-2 w-full" />
+          <input
+            type="date"
+            className="border rounded p-2 w-full"
+            value={effectiveStart}
+            onChange={(e) => setEffectiveStart(e.target.value)}
+          />
         </div>
         <div>
           <label>Effective End Date</label>
-          <input type="date" value={effectiveEnd} onChange={e => setEffectiveEnd(e.target.value)} className="border rounded p-2 w-full" />
+          <input
+            type="date"
+            className="border rounded p-2 w-full"
+            value={effectiveEnd}
+            onChange={(e) => setEffectiveEnd(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Time slots table */}
-      {daysOfWeek.map(day => (
+      {/* Time slots */}
+      {daysOfWeek.map((day) => (
         <div key={day} className="mb-6">
           <h2 className="text-lg font-semibold mb-2">{day}</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-300">
               <thead className="bg-gray-200">
                 <tr>
-                  {["From","To","Rate Type","Every","Min Fee","Grace Time","First Min Fee","Min","Max","Actions"].map(th => (
-                    <th key={th} className="border px-2 py-1">{th}</th>
+                  {[
+                    "From",
+                    "To",
+                    "Rate Type",
+                    "Every",
+                    "Min Fee",
+                    "Grace Time",
+                    "First Min Fee",
+                    "Min",
+                    "Max",
+                    "Actions",
+                  ].map((th) => (
+                    <th key={th} className="border px-2 py-1">
+                      {th}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {rates[day].map((slot, idx) => (
-                  <tr key={idx} className="text-center">
+                {rates[day].map((slot, index) => (
+                  <tr
+                    key={index}
+                    className={`text-center ${
+                      isSlotOverlapping(day, index) ? "bg-red-100" : ""
+                    }`}
+                  >
                     {Object.entries(slot).map(([field, value]) => (
                       <td key={field} className="border px-2 py-1">
-                        <input 
-                          type={field==="from"||field==="to"?"time":"text"}
-                          value={value} 
-                          onChange={e=>handleInputChange(day, idx, field, e.target.value)}
-                          className="border rounded p-1 w-full text-center" 
+                        <input
+                          type={field === "from" || field === "to" ? "time" : "text"}
+                          value={value}
+                          onChange={(e) =>
+                            handleInputChange(day, index, field, e.target.value)
+                          }
+                          className="border rounded p-1 w-full text-center"
                         />
                       </td>
                     ))}
                     <td className="border px-2 py-1 flex justify-center gap-1">
-                      <button onClick={()=>addTimeSlot(day)} className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"><Plus className="w-4 h-4"/></button>
-                      <button onClick={()=>removeTimeSlot(day, idx)} className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"><Trash2 className="w-4 h-4"/></button>
+                      <button
+                        onClick={() => addTimeSlot(day)}
+                        className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => removeTimeSlot(day, index)}
+                        className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            <button
+              onClick={() => addTimeSlot(day)}
+              className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Add Slot
+            </button>
           </div>
         </div>
       ))}
 
-      {/* Buttons */}
+      {/* Save / Home */}
       <div className="mt-6 flex justify-center gap-4">
-        <button onClick={handleSave} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Save</button>
-        <button onClick={()=>navigate("/")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"><Home className="w-5 h-5 inline mr-2"/> Home</button>
+        <button
+          onClick={handleSave}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Home className="w-5 h-5 inline mr-2" /> Home
+        </button>
       </div>
     </div>
   );

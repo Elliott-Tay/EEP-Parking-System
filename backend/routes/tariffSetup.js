@@ -4,12 +4,6 @@ const router = express.Router();
 const { DateTime } = require("luxon")
 const authenticateJWT = require("../../middleware/auth");
 
-function parseTime(str) {
-  // str = "08:00" or "08:00:00"
-  const [h, m, s] = str.split(":").map(Number);
-  return new Date(1970, 0, 1, h, m, s || 0);
-}
-
 // Get all parking tariffs
 router.get("/tariff-rates", async (req, res) => {
   try {
@@ -38,36 +32,36 @@ router.post("/tariff-setup", async (req, res) => {
 
     for (const [day, slots] of Object.entries(rates)) {
       for (const slot of slots) {
-        // Convert times to Singapore Time
-        const effectiveStartSG = DateTime.fromISO(effectiveStart, { zone: "Asia/Singapore" }).startOf("day").toJSDate();
-        const effectiveEndSG = DateTime.fromISO(effectiveEnd, { zone: "Asia/Singapore" }).endOf("day").toJSDate();
-
-        const fromTimeSG = DateTime.fromISO(slot.from, { zone: "Asia/Singapore" }).toJSDate();
-        const toTimeSG = DateTime.fromISO(slot.to, { zone: "Asia/Singapore" }).toJSDate();
+        // Use the times and dates as strings directly
+        const fromTimeStr = slot.from;   // "08:00:00"
+        const toTimeStr = slot.to;       // "12:00:00"
+        const effectiveStartStr = effectiveStart; // "2025-10-01 00:00:00"
+        const effectiveEndStr = effectiveEnd;     // "2025-10-31 23:59:59"
 
         // 1️⃣ Delete overlapping slots first
         await new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.Time, fromTimeSG)
-          .input("to_time", sql.Time, toTimeSG)
-          .input("effective_start", sql.DateTime2, effectiveStartSG)
-          .input("effective_end", sql.DateTime2, effectiveEndSG)
+          .input("from_time", sql.VarChar, fromTimeStr)
+          .input("to_time", sql.VarChar, toTimeStr)
+          .input("effective_start", sql.VarChar, effectiveStartStr)
+          .input("effective_end", sql.VarChar, effectiveEndStr)
           .query(`
             DELETE FROM TariffRates
             WHERE vehicle_type = @vehicle_type
               AND day_of_week = @day_of_week
               AND effective_start <= @effective_end
               AND effective_end >= @effective_start
-              AND (from_time < @to_time AND to_time > @from_time)
+              AND (CONVERT(VARCHAR(8), from_time, 108) < @to_time
+                   AND CONVERT(VARCHAR(8), to_time, 108) > @from_time)
           `);
 
         // 2️⃣ Insert the new slot
         await new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.Time, fromTimeSG)
-          .input("to_time", sql.Time, toTimeSG)
+          .input("from_time", sql.VarChar, fromTimeStr)
+          .input("to_time", sql.VarChar, toTimeStr)
           .input("rate_type", sql.NVarChar, slot.rateType || "Hourly")
           .input("every", sql.Int, slot.every || null)
           .input("min_fee", sql.Money, slot.minFee || null)
@@ -75,8 +69,8 @@ router.post("/tariff-setup", async (req, res) => {
           .input("first_min_fee", sql.Money, slot.firstMinFee || null)
           .input("min_charge", sql.Money, slot.min || null)
           .input("max_charge", sql.Money, slot.max || null)
-          .input("effective_start", sql.DateTime2, effectiveStartSG)
-          .input("effective_end", sql.DateTime2, effectiveEndSG)
+          .input("effective_start", sql.VarChar, effectiveStartStr)
+          .input("effective_end", sql.VarChar, effectiveEndStr)
           .query(`
             INSERT INTO TariffRates (
               vehicle_type, day_of_week, from_time, to_time, rate_type, every, min_fee, grace_time, first_min_fee, min_charge, max_charge, effective_start, effective_end
@@ -89,6 +83,50 @@ router.post("/tariff-setup", async (req, res) => {
 
     await transaction.commit();
     res.json({ message: "Tariff setup saved successfully" });
+  } catch (err) {
+    console.error("SQL error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+
+// Delete tariff rates by vehicle type and effective start date
+router.delete("/tariff-slot", async (req, res) => {
+  const { vehicleType, dayOfWeek, fromTime, toTime, effectiveStart, effectiveEnd } = req.body;
+
+  if (!vehicleType || !dayOfWeek || !fromTime || !toTime || !effectiveStart || !effectiveEnd) {
+    return res.status(400).json({ error: "All fields are required to identify the slot" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    // Use the effective dates as strings in YYYY-MM-DD format
+    const effectiveStartStr = effectiveStart.split("T")[0];
+    const effectiveEndStr = effectiveEnd.split("T")[0];
+
+    const result = await pool.request()
+      .input("vehicle_type", sql.NVarChar, vehicleType)
+      .input("day_of_week", sql.NVarChar, dayOfWeek)
+      .input("from_time", sql.VarChar, fromTime)   // as string HH:MM:SS
+      .input("to_time", sql.VarChar, toTime)       // as string HH:MM:SS
+      .input("effective_start", sql.Date, effectiveStartStr)
+      .input("effective_end", sql.Date, effectiveEndStr)
+      .query(`
+        DELETE FROM TariffRates
+        WHERE vehicle_type = @vehicle_type
+          AND day_of_week = @day_of_week
+          AND CONVERT(VARCHAR(8), from_time, 108) = @from_time
+          AND CONVERT(VARCHAR(8), to_time, 108) = @to_time
+          AND CAST(effective_start AS DATE) = @effective_start
+          AND CAST(effective_end AS DATE) = @effective_end
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: "Slot not found" });
+    }
+
+    res.json({ message: "Slot deleted successfully" });
   } catch (err) {
     console.error("SQL error:", err);
     res.status(500).json({ error: "Database error", details: err.message });
@@ -111,44 +149,48 @@ router.get("/tariff-setup", authenticateJWT, async (req, res) => {
       .request()
       .input("vehicle_type", sql.NVarChar, vehicleType)
       .query(`
-        SELECT *
+        SELECT 
+          vehicle_type,
+          day_of_week,
+          CONVERT(VARCHAR(8), from_time, 108) AS from_time,
+          CONVERT(VARCHAR(8), to_time, 108) AS to_time,
+          rate_type,
+          every,
+          min_fee,
+          grace_time,
+          first_min_fee,
+          min_charge,
+          max_charge,
+          effective_start,
+          effective_end
         FROM TariffRates
         WHERE vehicle_type = @vehicle_type
         ORDER BY effective_start DESC
       `);
 
-    if (result.recordset.length === 0) {
-      return res.json({});
-    }
+    const records = result.recordset;
+    if (!records || records.length === 0) return res.json({});
 
-    // Assume you want the most recent effective_start group
-    const latestStart = result.recordset[0].effective_start;
-    const filtered = result.recordset.filter(
+    // Find the latest effective_start
+    const latestStart = records[0].effective_start;
+    const filtered = records.filter(
       r => r.effective_start.getTime() === latestStart.getTime()
     );
 
-    // Format response
+    // Format response directly from DB values
     const response = {
-      effectiveStartDate: latestStart.toISOString().split("T")[0].split("-").reverse().join("/"),
-      effectiveStartTime: latestStart.toISOString().split("T")[1].slice(0, 5),
-      effectiveEndDate: filtered[0].effective_end.toISOString().split("T")[0].split("-").reverse().join("/"),
-      effectiveEndTime: filtered[0].effective_end.toISOString().split("T")[1].slice(0, 5),
+      effectiveStart: filtered[0].effective_start, // will be in SQL DATETIME format
+      effectiveEnd: filtered[0].effective_end,     // same
     };
 
-    // Group by day_of_week
+    // Group rates by day_of_week
     const groupedRates = {};
     for (const row of filtered) {
-      if (!groupedRates[row.day_of_week]) {
-        groupedRates[row.day_of_week] = [];
-      }
-
-      // Convert TIME fields to HH:MM
-      const fromTime = row.from_time ? row.from_time.toTimeString().slice(0, 5) : null;
-      const toTime = row.to_time ? row.to_time.toTimeString().slice(0, 5) : null;
+      if (!groupedRates[row.day_of_week]) groupedRates[row.day_of_week] = [];
 
       groupedRates[row.day_of_week].push({
-        from: fromTime,
-        to: toTime,
+        from: row.from_time,   // SQL TIME string as-is
+        to: row.to_time,       // SQL TIME string as-is
         rateType: row.rate_type,
         every: row.every,
         minFee: row.min_fee,
@@ -165,7 +207,6 @@ router.get("/tariff-setup", authenticateJWT, async (req, res) => {
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
-
 
 // Get all registrations
 router.get("/multiple-season", async (req, res) => {

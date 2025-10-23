@@ -1,63 +1,38 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
+import { DateTime } from "luxon";
 
 export default function TariffSetupCarVan() {
   const navigate = useNavigate();
 
   const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "PH"];
-
   const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
 
-  const [rates, setRates] = useState(() =>
-    daysOfWeek.reduce((acc, day) => {
-      acc[day] = []; // start with empty slots
-      return acc;
-    }, {})
+  const [rates, setRates] = useState(
+    daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: [] }), {})
   );
-
   const [effectiveStart, setEffectiveStart] = useState("");
   const [effectiveEnd, setEffectiveEnd] = useState("");
-  const [overlaps, setOverlaps] = useState({}); // { day: [[i,j], ...] }
+  const [overlaps, setOverlaps] = useState({});
 
-  // Fetch existing tariff data
-  useEffect(() => {
-    const fetchTariff = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": token ? `Bearer ${token}` : "",
-            },
-            credentials: "include"
-          }
-        );
+  // ---------- Helper functions ----------
+  const formatTimeSG = (timeStr) => {
+    if (!timeStr) return null;
+    return DateTime.fromFormat(timeStr, "HH:mm", { zone: "Asia/Singapore" }).toFormat("HH:mm:ss");
+  };
 
-        if (!response.ok) throw new Error("Failed to fetch tariff");
-        const data = await response.json();
-        if (!data || Object.keys(data).length === 0) return;
+  const parseTimeSG = (timeStr) => {
+    if (!timeStr) return "";
+    return DateTime.fromISO(timeStr, { zone: "Asia/Singapore" }).toFormat("HH:mm");
+  };
 
-        setEffectiveStart(data.effectiveStartDate);
-        setEffectiveEnd(data.effectiveEndDate);
+  const formatDateSG = (dateStr, startOfDay = true) => {
+    if (!dateStr) return null;
+    const dt = DateTime.fromISO(dateStr, { zone: "Asia/Singapore" });
+    return startOfDay ? dt.startOf("day").toISO() : dt.endOf("day").toISO();
+  };
 
-        const newRates = {};
-        daysOfWeek.forEach(day => {
-          newRates[day] = data[day] || [];
-        });
-        setRates(newRates);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load existing tariff data");
-      }
-    };
-
-    fetchTariff();
-  }, []);
-
-  // Overlap detection
   const getOverlaps = (slots) => {
     const result = [];
     for (let i = 0; i < slots.length; i++) {
@@ -86,9 +61,59 @@ export default function TariffSetupCarVan() {
     return hasOverlap;
   };
 
-  // Input change
+  // ---------- Fetch existing tariff ----------
+  useEffect(() => {
+    const fetchTariff = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+            credentials: "include",
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to fetch tariff");
+
+        const data = await response.json();
+        if (!data || Object.keys(data).length === 0) return;
+
+        setEffectiveStart(
+          data.effectiveStartDate
+            ? DateTime.fromISO(data.effectiveStartDate, { zone: "Asia/Singapore" }).toISODate()
+            : ""
+        );
+        setEffectiveEnd(
+          data.effectiveEndDate
+            ? DateTime.fromISO(data.effectiveEndDate, { zone: "Asia/Singapore" }).toISODate()
+            : ""
+        );
+
+        const newRates = {};
+        daysOfWeek.forEach((day) => {
+          newRates[day] = (data[day] || []).map((slot) => ({
+            ...slot,
+            from: parseTimeSG(slot.from),
+            to: parseTimeSG(slot.to),
+          }));
+        });
+        setRates(newRates);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load existing tariff data");
+      }
+    };
+
+    fetchTariff();
+  }, []);
+
+  // ---------- Input handlers ----------
   const handleInputChange = (day, index, field, value) => {
-    setRates(prev => {
+    setRates((prev) => {
       const updatedDay = [...prev[day]];
       updatedDay[index][field] = numericFields.includes(field) ? Number(value) : value;
       return { ...prev, [day]: updatedDay };
@@ -96,30 +121,68 @@ export default function TariffSetupCarVan() {
   };
 
   const addTimeSlot = (day) => {
-    setRates(prev => ({
+    setRates((prev) => ({
       ...prev,
-      [day]: [...prev[day], {
-        from: "08:00",
-        to: "18:00",
-        rateType: "Hourly",
-        every: 60,
-        minFee: 200,
-        graceTime: 15,
-        firstMinFee: 100,
-        min: 200,
-        max: 2000
-      }],
+      [day]: [
+        ...prev[day],
+        {
+          from: "08:00",
+          to: "18:00",
+          rateType: "Hourly",
+          every: 60,
+          minFee: 200,
+          graceTime: 15,
+          firstMinFee: 100,
+          min: 200,
+          max: 2000,
+        },
+      ],
     }));
   };
 
-  const removeTimeSlot = (day, index) => {
-    setRates(prev => {
-      const updatedDay = prev[day].filter((_, i) => i !== index);
-      return { ...prev, [day]: updatedDay };
-    });
+  const removeTimeSlot = async (day, index) => {
+    const slot = rates[day][index];
+    if (!slot) return;
+
+    console.log(formatTimeSG(slot.from));
+    console.log(formatTimeSG(slot.to));
+    console.log(formatDateSG(slot.effectiveStart || effectiveStart, true));
+    console.log(formatDateSG(slot.effectiveEnd || effectiveEnd, false));
+
+    try {
+      const payload = {
+        vehicleType: "Car/Van",
+        dayOfWeek: day,
+        fromTime: formatTimeSG(slot.from),
+        toTime: formatTimeSG(slot.to),
+        effectiveStart: formatDateSG(slot.effectiveStart || effectiveStart, true),
+        effectiveEnd: formatDateSG(slot.effectiveEnd || effectiveEnd, false),
+      };
+
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-slot`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) throw await response.json();
+
+      setRates((prev) => {
+        const updatedDay = prev[day].filter((_, i) => i !== index);
+        return { ...prev, [day]: updatedDay };
+      });
+
+      alert("Slot deleted successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete slot: " + (err?.error || err.message));
+    }
   };
 
-  // Validate payload before saving
+  // ---------- Validation ----------
   const validatePayload = () => {
     if (!effectiveStart || !effectiveEnd) {
       alert("Please select both effective start and end dates.");
@@ -151,22 +214,35 @@ export default function TariffSetupCarVan() {
     return true;
   };
 
+  // ---------- Save handler ----------
   const handleSave = async () => {
     if (!validatePayload()) return;
 
     const payload = {
       vehicleType: "Car/Van",
-      effectiveStart: effectiveStart + "T00:00:00",
-      effectiveEnd: effectiveEnd + "T23:59:59",
-      rates,
+      effectiveStart: formatDateSG(effectiveStart, true),
+      effectiveEnd: formatDateSG(effectiveEnd, false),
+      rates: Object.fromEntries(
+        Object.entries(rates).map(([day, slots]) => [
+          day,
+          slots.map((slot) => ({
+            ...slot,
+            from: formatTimeSG(slot.from),
+            to: formatTimeSG(slot.to),
+          })),
+        ])
+      ),
     };
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
@@ -181,11 +257,10 @@ export default function TariffSetupCarVan() {
     }
   };
 
-  const isSlotOverlapping = (day, index) => {
-    if (!overlaps[day]) return false;
-    return overlaps[day].some(([i, j]) => i === index || j === index);
-  };
+  const isSlotOverlapping = (day, index) =>
+    overlaps[day]?.some(([i, j]) => i === index || j === index);
 
+  // ---------- Render ----------
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <h1 className="text-2xl font-bold mb-4">Tariff Setup for Car/Van</h1>
@@ -212,37 +287,63 @@ export default function TariffSetupCarVan() {
         </div>
       </div>
 
-      {/* Time slots per day */}
-      {daysOfWeek.map(day => (
+      {/* Time slots */}
+      {daysOfWeek.map((day) => (
         <div key={day} className="mb-6">
           <h2 className="text-lg font-semibold mb-2">{day}</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full border border-gray-300">
               <thead className="bg-gray-200">
                 <tr>
-                  {["From", "To", "Rate Type", "Every", "Min Fee", "Grace Time", "First Min Fee", "Min", "Max", "Actions"].map(th => (
-                    <th key={th} className="border px-2 py-1">{th}</th>
+                  {[
+                    "From",
+                    "To",
+                    "Rate Type",
+                    "Every",
+                    "Min Fee",
+                    "Grace Time",
+                    "First Min Fee",
+                    "Min",
+                    "Max",
+                    "Actions",
+                  ].map((th) => (
+                    <th key={th} className="border px-2 py-1">
+                      {th}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {rates[day].map((slot, index) => (
-                  <tr key={index} className={`text-center ${isSlotOverlapping(day, index) ? 'bg-red-100' : ''}`}>
+                  <tr
+                    key={index}
+                    className={`text-center ${
+                      isSlotOverlapping(day, index) ? "bg-red-100" : ""
+                    }`}
+                  >
                     {Object.entries(slot).map(([field, value]) => (
                       <td key={field} className="border px-2 py-1">
                         <input
                           type={field === "from" || field === "to" ? "time" : "text"}
                           value={value}
-                          onChange={(e) => handleInputChange(day, index, field, e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange(day, index, field, e.target.value)
+                          }
                           className="border rounded p-1 w-full text-center"
                         />
                       </td>
                     ))}
                     <td className="border px-2 py-1 flex justify-center gap-1">
-                      <button onClick={() => addTimeSlot(day)} className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                      <button
+                        onClick={() => addTimeSlot(day)}
+                        className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
                         <Plus className="w-4 h-4" />
                       </button>
-                      <button onClick={() => removeTimeSlot(day, index)} className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">
+                      <button
+                        onClick={() => removeTimeSlot(day, index)}
+                        className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -262,10 +363,16 @@ export default function TariffSetupCarVan() {
 
       {/* Save / Home */}
       <div className="mt-6 flex justify-center gap-4">
-        <button onClick={handleSave} className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+        <button
+          onClick={handleSave}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
           Save
         </button>
-        <button onClick={() => navigate("/")} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
           <Home className="w-5 h-5 inline mr-2" /> Home
         </button>
       </div>
