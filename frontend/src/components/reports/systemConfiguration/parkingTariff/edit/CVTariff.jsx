@@ -129,6 +129,7 @@ export default function TariffSetupCarVan() {
           from: "08:00",
           to: "18:00",
           rateType: "Hourly",
+          contractClass: "Hourly", // 🆕 added
           every: 60,
           minFee: 200,
           graceTime: 15,
@@ -229,6 +230,7 @@ export default function TariffSetupCarVan() {
             ...slot,
             from: formatTimeSG(slot.from),
             to: formatTimeSG(slot.to),
+            contractClass: slot.contractClass || "Hourly",
           })),
         ])
       ),
@@ -296,43 +298,101 @@ export default function TariffSetupCarVan() {
               <thead className="bg-gray-200">
                 <tr>
                   {[
-                    "From",
-                    "To",
-                    "Rate Type",
-                    "Every",
-                    "Min Fee",
-                    "Grace Time",
-                    "First Min Fee",
-                    "Min",
-                    "Max",
-                    "Actions",
-                  ].map((th) => (
+                    "From", 
+                    "To", 
+                    "Contract Class (Rate Type)", 
+                    "Charge Block (Every)", 
+                    "Min Fee", 
+                    "Grace Time", 
+                    "First Min Fee", 
+                    "Min", 
+                    "Max", 
+                    "Actions"].map((th) => (
                     <th key={th} className="border px-2 py-1">
                       {th}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+             <tbody>
                 {rates[day].map((slot, index) => (
                   <tr
                     key={index}
-                    className={`text-center ${
-                      isSlotOverlapping(day, index) ? "bg-red-100" : ""
-                    }`}
+                    className={`text-center ${isSlotOverlapping(day, index) ? "bg-red-100" : ""}`}
                   >
-                    {Object.entries(slot).map(([field, value]) => (
-                      <td key={field} className="border px-2 py-1">
-                        <input
-                          type={field === "from" || field === "to" ? "time" : "text"}
-                          value={value}
-                          onChange={(e) =>
-                            handleInputChange(day, index, field, e.target.value)
-                          }
-                          className="border rounded p-1 w-full text-center"
-                        />
-                      </td>
-                    ))}
+                    <td className="border px-2 py-1">
+                      <input
+                        type="time"
+                        value={slot.from}
+                        onChange={(e) => handleInputChange(day, index, "from", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="time"
+                        value={slot.to}
+                        onChange={(e) => handleInputChange(day, index, "to", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="text"
+                        value={slot.rateType}
+                        onChange={(e) => handleInputChange(day, index, "rateType", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    {/* Continue the other fields */}
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.every}
+                        onChange={(e) => handleInputChange(day, index, "every", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.minFee}
+                        onChange={(e) => handleInputChange(day, index, "minFee", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.graceTime}
+                        onChange={(e) => handleInputChange(day, index, "graceTime", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.firstMinFee}
+                        onChange={(e) => handleInputChange(day, index, "firstMinFee", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.min}
+                        onChange={(e) => handleInputChange(day, index, "min", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input
+                        type="number"
+                        value={slot.max}
+                        onChange={(e) => handleInputChange(day, index, "max", e.target.value)}
+                        className="border rounded p-1 w-full text-center"
+                      />
+                    </td>
                     <td className="border px-2 py-1 flex justify-center gap-1">
                       <button
                         onClick={() => addTimeSlot(day)}

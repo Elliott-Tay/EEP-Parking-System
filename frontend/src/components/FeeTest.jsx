@@ -122,28 +122,28 @@ export default function FeeCalculator() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-start justify-center p-12 bg-gray-100">
-      <div className="w-full max-w-7xl p-12 bg-white rounded-3xl shadow-2xl font-sans">
-        <h2 className="text-5xl font-bold mb-10 text-center text-gray-800">Parking Fee Calculator</h2>
+    <div className="min-h-screen w-full flex items-start justify-center p-8 bg-gray-100">
+      <div className="w-full max-w-6xl p-8 bg-white rounded-3xl shadow-2xl font-sans">
+        <h2 className="text-4xl font-bold mb-8 text-center text-gray-800">Parking Fee Calculator</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-10">
-          <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="space-y-6">
             <input
               type="datetime-local"
               value={entryTime}
               onChange={(e) => setEntryTime(e.target.value)}
-              className="w-full px-8 py-5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-400 text-xl"
+              className="w-full px-6 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg"
             />
             <input
               type="datetime-local"
               value={exitTime}
               onChange={(e) => setExitTime(e.target.value)}
-              className="w-full px-8 py-5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-400 text-xl"
+              className="w-full px-6 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg"
             />
             <select
               value={vehicleType}
               onChange={(e) => setVehicleType(e.target.value)}
-              className="w-full px-8 py-5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-400 text-xl"
+              className="w-full px-6 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg"
             >
               <option>Car/Van</option>
               <option>Lorry</option>
@@ -156,42 +156,42 @@ export default function FeeCalculator() {
               value={billingInterval}
               onChange={(e) => setBillingInterval(Number(e.target.value))}
               placeholder="Billing interval in minutes"
-              className="w-full px-8 py-5 border border-gray-300 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-400 text-xl"
+              className="w-full px-6 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg"
             />
           </div>
 
           {/* Tariff Image Preview */}
-          <div className="flex flex-col items-center justify-center p-10 bg-gray-50 rounded-3xl shadow-lg">
-            <h3 className="text-3xl font-semibold mb-8 text-gray-700">Current Tariff Image</h3>
+          <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-2xl shadow-md">
+            <h3 className="text-2xl font-semibold mb-6 text-gray-700">Current Tariff Image</h3>
             {tariffImageUrl ? (
               <img
                 src={tariffImageUrl}
                 alt="Tariff"
-                className="w-full max-w-9xl max-h-[1000px] object-contain rounded-3xl border border-gray-300 shadow-xl"
+                className="w-full max-w-8xl max-h-[900px] object-contain rounded-2xl border border-gray-300 shadow-lg"
               />
             ) : (
-              <p className="text-gray-500 text-xl">No tariff image available</p>
+              <p className="text-gray-500 text-lg">No tariff image available</p>
             )}
           </div>
         </div>
 
         <button
           onClick={calculateFee}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-2xl text-xl font-bold transition duration-200"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl text-lg font-semibold transition duration-200"
         >
           Calculate
         </button>
 
         {fee !== null && (
-          <div className="mt-10 p-10 bg-gray-50 rounded-3xl shadow-lg flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="mt-8 p-8 bg-gray-50 rounded-2xl shadow-md flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-center md:text-left">
-              <div className="text-2xl font-semibold text-gray-700">
+              <div className="text-xl font-semibold text-gray-700">
                 Total Time Parked: {hoursParked.toFixed(2)} hours
               </div>
-              <div className="text-2xl font-semibold text-gray-700">
+              <div className="text-xl font-semibold text-gray-700">
                 Billing Interval: {billingInterval} minutes
               </div>
-              <div className="text-5xl font-bold text-blue-600 mt-6">Total Fee: ${fee}</div>
+              <div className="text-4xl font-bold text-blue-600 mt-4">Total Fee: ${fee}</div>
             </div>
 
             {tariffImageUrl && (
@@ -199,7 +199,7 @@ export default function FeeCalculator() {
                 <img
                   src={tariffImageUrl}
                   alt="Tariff"
-                  className="w-96 max-h-96 object-contain rounded-2xl border border-gray-300 shadow-md"
+                  className="w-80 max-h-80 object-contain rounded-xl border border-gray-300 shadow-sm"
                 />
               </div>
             )}
@@ -207,30 +207,30 @@ export default function FeeCalculator() {
         )}
 
         {history.length > 0 && (
-          <div className="mt-14">
-            <h3 className="text-4xl font-semibold mb-8 text-gray-800">Parking Fee History</h3>
-            <div className="space-y-6">
+          <div className="mt-12">
+            <h3 className="text-3xl font-semibold mb-6 text-gray-800">Parking Fee History</h3>
+            <div className="space-y-4">
               {history.map((h, idx) => (
                 <div
                   key={idx}
-                  className="p-8 bg-white border-l-4 border-blue-500 rounded-3xl shadow-md hover:shadow-lg transition duration-300"
+                  className="p-6 bg-white border-l-4 border-blue-500 rounded-2xl shadow-sm hover:shadow-md transition duration-200"
                 >
-                  <div className="flex justify-between text-gray-700 font-semibold text-lg">
+                  <div className="flex justify-between text-gray-700 font-medium">
                     <span>Entry:</span> <span>{h.entryTime}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700 font-semibold text-lg">
+                  <div className="flex justify-between text-gray-700 font-medium">
                     <span>Exit:</span> <span>{h.exitTime}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700 font-semibold text-lg">
+                  <div className="flex justify-between text-gray-700 font-medium">
                     <span>Vehicle:</span> <span>{h.vehicleType}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700 font-semibold text-lg">
+                  <div className="flex justify-between text-gray-700 font-medium">
                     <span>Hours:</span> <span>{h.hours}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700 font-semibold text-lg">
+                  <div className="flex justify-between text-gray-700 font-medium">
                     <span>Fee:</span> <span className="text-blue-600 font-bold">${h.fee}</span>
                   </div>
-                  <div className="mt-6 text-base text-gray-500">
+                  <div className="mt-4 text-sm text-gray-500">
                     {h.tariffSummary.map((t, i) => (
                       <div key={i}>
                         {t.day}: ${t.fee}

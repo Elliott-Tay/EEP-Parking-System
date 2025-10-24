@@ -25,6 +25,9 @@ router.post("/tariff-setup", async (req, res) => {
     return res.status(400).json({ error: "vehicleType, effectiveStart, effectiveEnd, and rates are required" });
   }
 
+  // Truncate to 2 decimals helper
+  const truncate2 = (val) => (val !== null && val !== undefined ? Math.floor(val * 100) / 100 : null);
+
   try {
     const pool = await sql.connect(config);
     const transaction = new sql.Transaction(pool);
@@ -32,11 +35,10 @@ router.post("/tariff-setup", async (req, res) => {
 
     for (const [day, slots] of Object.entries(rates)) {
       for (const slot of slots) {
-        // Use the times and dates as strings directly
-        const fromTimeStr = slot.from;   // "08:00:00"
-        const toTimeStr = slot.to;       // "12:00:00"
-        const effectiveStartStr = effectiveStart; // "2025-10-01 00:00:00"
-        const effectiveEndStr = effectiveEnd;     // "2025-10-31 23:59:59"
+        const fromTimeStr = slot.from;
+        const toTimeStr = slot.to;
+        const effectiveStartStr = effectiveStart;
+        const effectiveEndStr = effectiveEnd;
 
         // 1️⃣ Delete overlapping slots first
         await new sql.Request(transaction)
@@ -56,7 +58,7 @@ router.post("/tariff-setup", async (req, res) => {
                    AND CONVERT(VARCHAR(8), to_time, 108) > @from_time)
           `);
 
-        // 2️⃣ Insert the new slot
+        // 2️⃣ Insert the new slot with truncated money fields
         await new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, vehicleType)
           .input("day_of_week", sql.NVarChar, day)
@@ -64,18 +66,22 @@ router.post("/tariff-setup", async (req, res) => {
           .input("to_time", sql.VarChar, toTimeStr)
           .input("rate_type", sql.NVarChar, slot.rateType || "Hourly")
           .input("every", sql.Int, slot.every || null)
-          .input("min_fee", sql.Money, slot.minFee || null)
+          .input("min_fee", sql.Money, truncate2(slot.minFee))
           .input("grace_time", sql.Int, slot.graceTime || null)
-          .input("first_min_fee", sql.Money, slot.firstMinFee || null)
-          .input("min_charge", sql.Money, slot.min || null)
-          .input("max_charge", sql.Money, slot.max || null)
+          .input("first_min_fee", sql.Money, truncate2(slot.firstMinFee))
+          .input("min_charge", sql.Money, truncate2(slot.min))
+          .input("max_charge", sql.Money, truncate2(slot.max))
           .input("effective_start", sql.VarChar, effectiveStartStr)
           .input("effective_end", sql.VarChar, effectiveEndStr)
           .query(`
             INSERT INTO TariffRates (
-              vehicle_type, day_of_week, from_time, to_time, rate_type, every, min_fee, grace_time, first_min_fee, min_charge, max_charge, effective_start, effective_end
+              vehicle_type, day_of_week, from_time, to_time, rate_type, every,
+              min_fee, grace_time, first_min_fee, min_charge, max_charge,
+              effective_start, effective_end
             ) VALUES (
-              @vehicle_type, @day_of_week, @from_time, @to_time, @rate_type, @every, @min_fee, @grace_time, @first_min_fee, @min_charge, @max_charge, @effective_start, @effective_end
+              @vehicle_type, @day_of_week, @from_time, @to_time, @rate_type, @every,
+              @min_fee, @grace_time, @first_min_fee, @min_charge, @max_charge,
+              @effective_start, @effective_end
             );
           `);
       }
@@ -88,7 +94,6 @@ router.post("/tariff-setup", async (req, res) => {
     res.status(500).json({ error: "Database error", details: err.message });
   }
 });
-
 
 // Delete tariff rates by vehicle type and effective start date
 router.delete("/tariff-slot", async (req, res) => {
@@ -189,8 +194,8 @@ router.get("/tariff-setup", authenticateJWT, async (req, res) => {
       if (!groupedRates[row.day_of_week]) groupedRates[row.day_of_week] = [];
 
       groupedRates[row.day_of_week].push({
-        from: row.from_time,   // SQL TIME string as-is
-        to: row.to_time,       // SQL TIME string as-is
+        from: row.from_time,  
+        to: row.to_time,       
         rateType: row.rate_type,
         every: row.every,
         minFee: row.min_fee,
