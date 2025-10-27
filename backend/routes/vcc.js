@@ -1,6 +1,7 @@
 // auth.js
 const express = require("express");
 const { sql, config } = require("../database/db");
+const authenticateJWT = require("../../middleware/auth");
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ async function getPool() {
 }
 
 // Get VCC White List with optional IU No filter
-router.get('/vcc-white-list', async (req, res) => {
+router.get('/vcc-white-list', authenticateJWT, async (req, res) => {
     const { iuNo } = req.query;
 
     try {
@@ -50,7 +51,7 @@ router.get('/vcc-white-list', async (req, res) => {
 });
 
 // Get VCC Exit Transactions with optional IU Ticket No filter
-router.get('/vcc-exit-transactions', async (req, res) => {
+router.get('/vcc-exit-transactions', authenticateJWT, async (req, res) => {
   const { iuNo } = req.query;
 
   try {
