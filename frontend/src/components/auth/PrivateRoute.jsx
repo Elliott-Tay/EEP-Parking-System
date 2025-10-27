@@ -17,16 +17,17 @@ const PrivateRoute = ({ children, requiredRole }) => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
         method: "POST",
-        credentials: "include", // send cookies
+        credentials: "include", // include cookies if refresh token is stored in cookie
       });
 
-      if (!res.ok) throw new Error("Refresh failed");
+      if (!res.ok) throw new Error("Token refresh failed");
+
       const data = await res.json();
       localStorage.setItem("token", data.token);
       return data.token;
     } catch (err) {
       console.error("Token refresh error:", err);
-      localStorage.removeItem("token"); // clear invalid token
+      localStorage.removeItem("token"); // remove expired/invalid token
       return null;
     }
   };
@@ -35,6 +36,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
     const checkAuth = async () => {
       let token = localStorage.getItem("token");
 
+      // ✅ No token at all → unauthorized
       if (!token) {
         setAuthorized(false);
         setLoading(false);
@@ -44,19 +46,19 @@ const PrivateRoute = ({ children, requiredRole }) => {
       let payload = decodeToken(token);
       const now = Math.floor(Date.now() / 1000);
 
-      // If token expired or invalid, try refresh
+      // ✅ Expired or invalid token → try refresh
       if (!payload || (payload.exp && payload.exp < now)) {
         token = await refreshToken();
         if (!token) {
-          setAuthorized(false); // no valid token, redirect
+          setAuthorized(false);
           setLoading(false);
           return;
         }
         payload = decodeToken(token);
       }
 
-      // Check role if required
-      if (requiredRole && payload.role !== requiredRole) {
+      // ✅ Role check (if required)
+      if (requiredRole && payload?.role !== requiredRole) {
         alert("Access denied: insufficient role");
         setAuthorized(false);
       } else {
@@ -69,10 +71,10 @@ const PrivateRoute = ({ children, requiredRole }) => {
     checkAuth();
   }, [requiredRole]);
 
-  // While checking, show loading
+  // ✅ Show loading while verifying
   if (loading) return <div>Loading...</div>;
 
-  // If unauthorized or token invalid/missing, redirect to home page
+  // ✅ Redirect home if not authorized
   if (!authorized) return <Navigate to="/" replace />;
 
   return React.cloneElement(children);

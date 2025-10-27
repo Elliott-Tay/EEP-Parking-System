@@ -91,6 +91,7 @@ export default function ReportPage() {
       color: "bg-purple-100 text-purple-600 border-purple-200",
       items: [
         // --- VCC / EZPay ---
+        { name: "VCC Config", href: "/vcc-ezpay/vcc-config" },
         { name: "VCC Whitelist", href: "/vcc-ezpay/vcc-whitelist" },
         { name: "VCC Exit Transactions", href: "/vcc-ezpay/vcc-exit-transaction" },
         { name: "VCC Settlement Report", href: "/vcc-ezpay/vcc-settlement-file" },

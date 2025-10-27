@@ -11,6 +11,7 @@ import { lazy, Suspense } from 'react';
 import Skeleton from './components/Skeleton';
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import VCCList from './components/reports/VCC/VCCConfig';
 
 function App() {
 
@@ -146,6 +147,7 @@ function App() {
     { path: "/enquiry/eps-performance", element: <EPSPerformanceReport /> },
     { path: "/enquiry/upos-collection-file", element: <UPOSCollectionFileReport /> },
     { path: "/enquiry/upos-collection-report", element: <UPOSCollectionReport /> },
+    { path: "/vcc-ezpay/vcc-config", element: <VCCList />, requiredRole: "admin" },
     { path: "/vcc-ezpay/vcc-whitelist", element: <VCCWhitelistReport /> },
     { path: "/vcc-ezpay/vcc-exit-transaction", element: <VCCExitTransaction /> },
     { path: "/vcc-ezpay/vcc-settlement-file", element: <VCCSettlementFileReport /> },
