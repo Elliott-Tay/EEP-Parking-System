@@ -11,6 +11,7 @@ const outstandingRouter = require('./routes/outstanding');
 const { authRouter } = require("./routes/auth");
 const systemConfigurationRoute = require("./routes/systemConfiguration")
 const imageRouter = require("./routes/image");
+const vccRouter = require("./routes/vcc");
 const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
@@ -65,6 +66,9 @@ app.use("/api/outstanding", outstandingRouter);
 
 // Image route
 app.use("/api/image", imageRouter);
+
+// VCC route
+app.use("/api/vcc", vccRouter);
 
 // 404 handler for undefined routes
 app.use((req, res) => {
