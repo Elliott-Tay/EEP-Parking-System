@@ -205,7 +205,7 @@ class ParkingFeeComputer {
       currentDay = nextDay;
     }
 
-    // Ensure floating point accuracy for the final result
+    // Ensure floating point accuracy for the final result and truncated to 2 decimal places
     return parseFloat(totalFee.toFixed(2));
   }
 }

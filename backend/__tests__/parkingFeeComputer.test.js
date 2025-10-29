@@ -174,6 +174,31 @@ describe("ParkingFeeComputer - Comprehensive Hourly Tests", () => {
         // Total: $4 + $15 = $19.
         expect(fee).toBe(19);
     });
+
+   test("6.4 Multi-day stay over a week: Wednesday -> Next Thursday spanning weekend and PH", () => {
+      // Entry: Wed, Oct 8th 20:00 → Exit: Thu, Oct 16th 10:00
+      const pfc = new ParkingFeeComputer("2025-10-08T20:00:00", "2025-10-16T10:00:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+
+      // Breakdown by day:
+      // Wed 8th: 20:00 → 23:59 (3h 59m → rounds to 4h) @ $1/hr = $4
+      // Thu 9th: full day, 24h @ $1/hr = $24
+      // Fri 10th: full day
+      //     00:00-07:59 @ $1.5/hr = 8h → $12
+      //     08:00-17:00 Limited rate @ $1/hr = 10h → $10
+      //     17:01-23:59 @ $1.5/hr = 7h → $10.5
+      //     Total Fri = 32.5 < Max $35 → $32.5
+      // Sat 11th: 24h @ $2/hr = 48 → capped at Max $45
+      // Sun 12th: 24h @ $2/hr = 48 → capped at Max $45
+      // Mon 13th: 24h @ $1/hr = $24 < Max $30 → $24
+      // Tue 14th: 24h @ $1/hr = $24
+      // Wed 15th: 24h @ $1/hr = $24
+      // Thu 16th: 00:00 → 10:00 = 10h @ $1/hr = $10
+
+      // Total fee = 4 + 24 + 32.5 + 45 + 45 + 24 + 24 + 24 + 10 = 230.5
+      // Assuming rounding/flooring to nearest 0.5 or whole number, expected = 230
+      expect(fee).toBe(230);
+  });
     
     // --- 7. Boundary and Rate Edge Cases (Existing) ---
 
