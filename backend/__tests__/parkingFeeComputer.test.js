@@ -1,360 +1,363 @@
-const { ParkingFeeComputer } = require('../routes/parkingFeeCompute');;
+const { ParkingFeeComputer } = require('../routes/parkingFeeCompute');
 
-// Sample fee models for Car/Van
+// --- Test Data Setup ---
+// The fee models for the whole week including PH
 const feeModels = [
- // Monday blocks
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Mon",
-  from_time: "12:00:00",
-  to_time: "18:00:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 200,
-  grace_time: 15,
-  min_charge: 100,
-  max_charge: 2000,
-  effective_start: "2025-10-01T00:00:00",
-  effective_end: "2025-10-31T23:59:59"
- },
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Mon",
-  from_time: "18:01:00",
-  to_time: "23:59:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 200,
-  grace_time: 15,
-  min_charge: 100,
-  max_charge: 2000,
-  effective_start: "2025-10-01T00:00:00",
-  effective_end: "2025-10-31T23:59:59"
- },
- // Tuesday blocks
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Tue",
-  from_time: "00:00:00",
-  to_time: "23:59:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 150,
-  grace_time: 0,
-  min_charge: 100,
-  max_charge: 1800,
-  effective_start: "2025-10-01T00:00:00",
-  effective_end: "2025-10-31T23:59:59"
- },
- // Wednesday block (New: Crosses midnight)
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Wed",
-  from_time: "22:00:00",
-  to_time: "02:00:00", // Span until 02:00 the next day
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 100,
-  grace_time: 0,
-  min_charge: 0,
-  max_charge: 1000,
-  effective_start: "2025-01-01T00:00:00",
-  effective_end: "2025-12-31T23:59:59"
- },
- // Thursday Block (Standard rate for crossover test)
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Thu",
-  from_time: "00:00:00",
-  to_time: "23:59:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 120,
-  grace_time: 0,
-  min_charge: 100,
-  max_charge: 1500,
-  effective_start: "2025-01-01T00:00:00",
-  effective_end: "2025-12-31T23:59:59"
- },
- // Friday Block 1 (Limited Effective Dates - Should only apply on Oct 10th)
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Fri",
-  from_time: "08:00:00",
-  to_time: "17:00:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 500, // Expensive rate for testing
-  grace_time: 0,
-  min_charge: 500,
-  max_charge: 5000,
-  effective_start: "2025-10-10T00:00:00", // Fri, Oct 10th
-  effective_end: "2025-10-10T23:59:59"
- },
- // Friday Block 2 (Standard Rate - Applies outside the limited block)
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "Fri",
-  from_time: "00:00:00",
-  to_time: "23:59:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 100,
-  grace_time: 0,
-  min_charge: 100,
-  max_charge: 1500,
-  effective_start: "2025-01-01T00:00:00",
-  effective_end: null // No end date
- },
- // Weekend blocks
-  {
-    vehicle_type: "Car/Van",
-    day_of_week: "Sat",
-    from_time: "08:00:00",
-    to_time: "20:00:00",
-    rate_type: "Hourly",
-    every: 60,
-    min_fee: 150,
-    grace_time: 15,
-    min_charge: 100,
-    max_charge: 1800,
-    effective_start: "2025-10-01T00:00:00",
-    effective_end: "2025-12-31T23:59:59"
-  },
-  {
-    vehicle_type: "Car/Van",
-    day_of_week: "Sat",
-    from_time: "20:01:00",
-    to_time: "23:59:00",
-    rate_type: "Hourly",
-    every: 60,
-    min_fee: 200,
-    grace_time: 15,
-    min_charge: 100,
-    max_charge: 2000,
-    effective_start: "2025-10-01T00:00:00",
-    effective_end: "2025-12-31T23:59:59"
-  },
-  {
-    vehicle_type: "Car/Van",
-    day_of_week: "Sun",
-    from_time: "08:00:00",
-    to_time: "20:00:00",
-    rate_type: "Hourly",
-    every: 60,
-    min_fee: 150,
-    grace_time: 15,
-    min_charge: 100,
-    max_charge: 1800,
-    effective_start: "2025-10-01T00:00:00",
-    effective_end: "2025-12-31T23:59:59"
-  },
-  {
-    vehicle_type: "Car/Van",
-    day_of_week: "Sun",
-    from_time: "20:01:00",
-    to_time: "23:59:00",
-    rate_type: "Hourly",
-    every: 60,
-    min_fee: 200,
-    grace_time: 15,
-    min_charge: 100,
-    max_charge: 2000,
-    effective_start: "2025-10-01T00:00:00",
-    effective_end: "2025-12-31T23:59:59"
-  },
- // Public Holiday rate
- {
-  vehicle_type: "Car/Van",
-  day_of_week: "PH",
-  from_time: "00:00:00",
-  to_time: "23:59:00",
-  rate_type: "Hourly",
-  every: 60,
-  min_fee: 300,
-  grace_time: 0,
-  min_charge: 200,
-  max_charge: 2500,
-  effective_start: "2025-01-01T00:00:00",
-  effective_end: "2025-12-31T23:59:59"
- }
+  // Monday (All blocks @ $1/hr, Max $30)
+  { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "00:00:00", to_time: "11:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+  { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "12:00:00", to_time: "18:00:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+  { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "18:01:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+
+  // Tuesday (@ $1/hr, Max $30)
+  { vehicle_type: "Car/Van", day_of_week: "Tue", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+
+  // Wednesday (@ $1/hr, Max $30)
+  { vehicle_type: "Car/Van", day_of_week: "Wed", from_time: "00:00:00", to_time: "21:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+  { vehicle_type: "Car/Van", day_of_week: "Wed", from_time: "22:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+  
+  // Thursday (@ $1/hr, Max $30)
+  { vehicle_type: "Car/Van", day_of_week: "Thu", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30 },
+
+  // Friday
+  { vehicle_type: "Car/Van", day_of_week: "Fri", from_time: "00:00:00", to_time: "07:59:00", rate_type: "Hourly", every: 60, min_fee: 1.5, grace_time: 15, min_charge: 1.5, max_charge: 35 },
+  { vehicle_type: "Car/Van", day_of_week: "Fri", from_time: "08:00:00", to_time: "17:00:00", rate_type: "Hourly", every: 60, min_fee: 1, grace_time: 15, min_charge: 1, max_charge: 30, effective_start: "2025-10-10", effective_end: "2025-10-10" }, // LIMITED RATE
+  { vehicle_type: "Car/Van", day_of_week: "Fri", from_time: "08:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1.5, grace_time: 15, min_charge: 1.5, max_charge: 35 }, // STANDARD RATE
+
+  // Saturday (@ $2/hr, Max $45)
+  { vehicle_type: "Car/Van", day_of_week: "Sat", from_time: "00:00:00", to_time: "07:59:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+  { vehicle_type: "Car/Van", day_of_week: "Sat", from_time: "08:00:00", to_time: "20:00:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+  { vehicle_type: "Car/Van", day_of_week: "Sat", from_time: "20:01:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+
+  // Sunday (@ $2/hr, Max $45)
+  { vehicle_type: "Car/Van", day_of_week: "Sun", from_time: "00:00:00", to_time: "07:59:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+  { vehicle_type: "Car/Van", day_of_week: "Sun", from_time: "08:00:00", to_time: "20:00:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+  { vehicle_type: "Car/Van", day_of_week: "Sun", from_time: "20:01:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 2, grace_time: 15, min_charge: 2, max_charge: 45 },
+
+  // Public Holiday (@ $3/hr, Max $50)
+  { vehicle_type: "Car/Van", day_of_week: "PH", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 3, grace_time: 15, min_charge: 3, max_charge: 50 }
 ];
 
-// Sample public holidays (Mon, Oct 20th)
+// Sample public holiday (Mon, Oct 20th, 2025)
 const publicHolidays = ["2025-10-20T00:00:00"];
 
-describe("ParkingFeeComputer - Multi-day & Multi-block", () => {
- test("Same day within first block with grace time", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T12:10:00", "2025-10-06T12:20:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  expect(fee).toBe(0); // within 15 min grace
- });
 
- test("Same day spanning two blocks (2 hours duration)", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T17:30:00", "2025-10-06T19:30:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  // Block 1 (17:30-18:00 = 30m): Rounds to 1h charge (200).
-  // Block 2 (18:00-19:30 = 90m): Rounds to 2h charge (400).
-  // Total = 600.
-  expect(fee).toBe(600);
- });
+describe("ParkingFeeComputer - Comprehensive Hourly Tests", () => {
+    
+    // Monday, Oct 6th, 2025 is used for standard weekly tests.
 
- test("Overnight parking spanning Mon and Tue (Corrected Calc)", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T17:30:00", "2025-10-07T03:30:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  // Mon (17:30-23:59): Block 1 (17:30-18:00) 1h*200=200. Block 2 (18:00-23:59) 6h*200=1200. Mon Total = 1400.
-  // Tue (00:00-03:30): 3.5h rounds to 4h*150=600.
-  // Total = 1400 + 600 = 2000.
-  expect(fee).toBe(2000);
- });
+    // --- 1. Basic Functionality & Grace Time ---
+    test("1.1 Parking within grace time returns zero fee (Mon)", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T10:10:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Duration 10 mins < 15 min grace.
+        expect(fee).toBe(0);
+    });
 
- test("Parking on a public holiday (Mon, Oct 20th)", () => {
-  const pfc = new ParkingFeeComputer("2025-10-20T10:00:00", "2025-10-20T13:00:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  expect(fee).toBe(900); // 3h * 300
- });
+    test("1.2 Parking just over grace time results in 1-hour minimum fee (Mon)", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T10:16:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Duration 16 mins > 15 min grace. Rounds to 1h @ $1/hr.
+        expect(fee).toBe(1);
+    });
 
- test("Minimum charge enforced per block (not per day, overridden by grace)", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T12:10:00", "2025-10-06T12:20:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  expect(fee).toBe(0); // grace time overrides min_charge
- });
+    test("1.3 Fractional-hour rounding up (1h 1m -> 2h charge)", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T14:00:00", "2025-10-06T15:01:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // 1h 1m rounds to 2h @ $1/hr.
+        expect(fee).toBe(2);
+    });
 
- test("Maximum charge enforced per day (Mon)", () => {
-  const longParking = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T23:59:00", feeModels, publicHolidays);
-  const fee = longParking.computeParkingFee("Car/Van");
-  // Calculated fee is 2400 (12h*200). Max charge for Mon is 2000.
-  expect(fee).toBe(2000);
- });
+    // --- 2. Block Transitions & Multi-Day ---
+    test("2.1 Same-day parking spanning two blocks (Mon 17:45 to 19:45)", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T17:45:00", "2025-10-06T19:45:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Block 2 (12:00-18:00): 17:45 - 18:00 (15 min). Over grace. Rounds to 1h. Fee: $1.
+        // Block 3 (18:01-23:59): 18:01 - 19:45 (1h 44m). Rounds to 2h. Fee: $2.
+        // Total: $1 + $2 = $3
+        expect(fee).toBe(3);
+    });
 
- test("Just over grace time (16 mins) applies hourly rate and min charge", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T12:10:00", "2025-10-06T12:26:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  // Duration 16 mins -> Over 15 min grace. Rounds up to 1h charge (200). Min charge is 100.
-  expect(fee).toBe(200); 
- });
+    test("2.2 Overnight parking spanning Wed (Block 2) into Thu (full day)", () => {
+        const pfc = new ParkingFeeComputer("2025-10-08T23:00:00", "2025-10-09T01:30:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Wed (22:00-23:59): 23:00 - 23:59 (59 min). Rounds to 1h @ $1/hr. Fee: $1.
+        // Thu (00:00-23:59): 00:00 - 01:30 (1h 30m). Rounds to 2h @ $1/hr. Fee: $2.
+        // Total: $1 + $2 = $3
+        expect(fee).toBe(3);
+    });
 
- test("Overnight parking hitting daily maximums (Mon capped + Tue capped)", () => {
-  const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-07T12:00:00", feeModels, publicHolidays);
-  const fee = pfc.computeParkingFee("Car/Van");
-  // Mon (12:00-23:59): Calculated 2400. Capped at Mon Max Charge (2000).
-  // Tue (00:00-12:00): Calculated 12h * 150 = 1800. Capped at Tue Max Charge (1800).
-  // Total = 2000 + 1800 = 3800.
-  expect(fee).toBe(3800);
- });
+    // --- 3. Maximum Charge Enforcement ---
+    test("3.1 Long stay on a Public Holiday hits the PH daily maximum charge ($50)", () => {
+        // Mon, Oct 20th is PH. Rate $3/hr, Max $50.
+        const pfc = new ParkingFeeComputer("2025-10-20T00:00:00", "2025-10-20T23:59:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Calculated: 24h * $3 = $72. Capped at Max Charge: $50.
+        expect(fee).toBe(50);
+    });
 
- test("New: Effective Date Filtering (Parking on Oct 3rd - skips Oct 10th rate)", () => {
- // Fri, Oct 3rd. The expensive 500/hr block is only effective on Oct 10th.
- const pfc = new ParkingFeeComputer("2025-10-03T09:00:00", "2025-10-03T11:00:00", feeModels, publicHolidays);
- const fee = pfc.computeParkingFee("Car/Van");
- // Should use the standard Friday rate (100/hr).
- // Duration 2 hours * 100 = 200.
- expect(fee).toBe(200);
- });
+    test("3.2 Long stay across multiple days hits both daily maximums (Sat/Sun)", () => {
+        // Sat rate $2/hr, Max $45. Sun rate $2/hr, Max $45.
+        const pfc = new ParkingFeeComputer("2025-10-04T08:00:00", "2025-10-05T20:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Sat (08:00-23:59): 16h. Calculated: 16h * $2 = $32. Capped at $45 (no change).
+        // Sun (00:00-20:00): 20h. Calculated: 20h * $2 = $40. Capped at $45 (no change).
+        // Total: $32 + $40 = $72.
+        expect(fee).toBe(72);
+    });
 
-  test("Boundary test: ends exactly on block transition", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T17:00:00", "2025-10-06T18:00:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Car/Van");
-    // Should count as exactly 1h in first block only.
-    expect(fee).toBe(200);
-  });
+    // --- 4. Public Holiday and Effective Date Logic ---
+    test("4.1 Public Holiday rate correctly overrides the standard day rate (Mon)", () => {
+        // Mon, Oct 20th is PH. Rate $3/hr. Mon rate $1/hr.
+        const pfc = new ParkingFeeComputer("2025-10-20T10:00:00", "2025-10-20T13:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // 3h * $3/hr = $9.
+        expect(fee).toBe(9);
+    });
 
-  test("Fractional-hour rounding up (1h 1m → 2h charge)", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T14:00:00", "2025-10-06T15:01:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Car/Van");
-    // 1h 1m → 2h billed @200/h = 400
-    expect(fee).toBe(400);
-  });
+    test("4.2 Limited Effective Date applies the special lower rate (Fri, Oct 10th)", () => {
+        // Fri, Oct 10th: Limited 08:00-17:00 block @ $1/hr should be chosen over the standard $1.5/hr block.
+        const pfc = new ParkingFeeComputer("2025-10-10T09:00:00", "2025-10-10T12:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // 3 hours * $1/hr = $3.
+        expect(fee).toBe(3);
+    });
 
-  test("Exact block alignment at 18:01:00 (no double charge)", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T18:01:00", "2025-10-06T19:01:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Car/Van");
-    // Entirely within second block: 1 h * 200 = 200
-    expect(fee).toBe(200);
-  });
+    test("4.3 Effective Date Filtering: Standard rate applies when date is outside the limited period (Fri, Oct 3rd)", () => {
+        // Fri, Oct 3rd: Limited block is skipped. Standard 08:00-23:59 block @ $1.5/hr should be used.
+        const pfc = new ParkingFeeComputer("2025-10-03T09:00:00", "2025-10-03T12:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // 3 hours * $1.5/hr = $4.5.
+        expect(fee).toBe(4.5);
+    });
 
-  test("Invalid input: exit before entry returns 0", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T18:00:00", "2025-10-06T17:00:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Car/Van");
-    expect(fee).toBe(0);
-  });
+    // --- 5. Edge Cases (Zero duration, invalid input) ---
+    test("5.1 Zero-duration parking returns 0", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T12:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        expect(fee).toBe(0);
+    });
+    
+    test("5.2 Invalid input: exit before entry returns 0", () => {
+        const pfc = new ParkingFeeComputer("2025-10-06T18:00:00", "2025-10-06T17:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        expect(fee).toBe(0);
+    });
 
-  test("Unknown vehicle type safely returns 0", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T13:00:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Motorcycle"); // no model defined
-    expect(fee).toBe(0);
-  });
+    // --- 6. Multi-Day and Daily Maximum Scenarios (Existing) ---
+    
+    test("6.1 Full 24-hour stay (Mon) confirms calculated fee is under the daily max", () => {
+        // Mon rate: $1/hr, Max: $30.
+        const pfc = new ParkingFeeComputer("2025-10-06T00:00:00", "2025-10-06T23:59:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        // Total duration is 24 hours. Calculated fee: 24 * $1 = $24. Since $24 < $30 max, $24 is charged.
+        expect(fee).toBe(24);
+    });
+    
+    test("6.2 Multi-day stay: Friday (Max $35) into Saturday (Max $45)", () => {
+        // Entry: Fri, Oct 3rd 20:00:00, Exit: Sat, Oct 4th 08:00:00
+        const pfc = new ParkingFeeComputer("2025-10-03T20:00:00", "2025-10-04T08:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Day 1 (Fri): 20:00 to 23:59 (4 hours). Rate $1.5/hr. Fee: 4 * $1.5 = $6. (Well below $35 max)
+        // Day 2 (Sat): 00:00 to 08:00 (8 hours). Rate $2/hr. Fee: 8 * $2 = $16. (Well below $45 max)
+        // Total: $6 + $16 = $22.
+        expect(fee).toBe(22);
+    });
 
-  test("Vehicle type not defined returns 0", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T14:00:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Bus");
-    expect(fee).toBe(0);
-  });
+    test("6.3 Multi-day stay: Sunday (Max $45) into Public Holiday Monday (Max $50)", () => {
+        // Entry: Sun, Oct 19th 22:00:00, Exit: Mon, Oct 20th 05:00:00 (Oct 20th is PH)
+        const pfc = new ParkingFeeComputer("2025-10-19T22:00:00", "2025-10-20T05:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Day 1 (Sun): 22:00 to 23:59 (2 hours). Rate $2/hr. Fee: 2 * $2 = $4.
+        // Day 2 (PH Mon): 00:00 to 05:00 (5 hours). Rate $3/hr. Fee: 5 * $3 = $15.
+        // Total: $4 + $15 = $19.
+        expect(fee).toBe(19);
+    });
+    
+    // --- 7. Boundary and Rate Edge Cases (Existing) ---
 
-  test("Zero-duration parking returns 0", () => {
-    const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T12:00:00", feeModels, publicHolidays);
-    const fee = pfc.computeParkingFee("Car/Van");
-    expect(fee).toBe(0);
-  });
+    test("7.1 Multi-day stay near maximum charge (Thu/Fri)", () => {
+        // Entry: Thu, Oct 2nd 10:00:00, Exit: Fri, Oct 3rd 10:00:00 (24 hours total)
+        const pfc = new ParkingFeeComputer("2025-10-02T10:00:00", "2025-10-03T10:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Day 1 (Thu): 10:00 to 23:59 (14 hours). Rate $1/hr. Fee: $14. (Max $30)
+        // Day 2 (Fri, standard rate): 00:00 to 10:00 (10 hours). Rate $1.5/hr. Fee: 10 * $1.5 = $15. (Max $35)
+        // Total: $14 + $15 = $29.
+        expect(fee).toBe(29);
+    });
 
-  test("Block shorter than grace time results in no charge", () => {
-    const shortBlockFeeModel = [
-      { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "12:00:00", to_time: "12:10:00", rate_type: "Hourly", every: 60, min_fee: 200, grace_time: 15, min_charge: 100, max_charge: 2000 }
+    test("7.2 Grace time across a rate block transition (Mon 12:00:00 boundary)", () => {
+        // Entry: Mon 11:55:00 (Block 1), Exit: Mon 12:11:00 (Block 2) -> 16 minutes total.
+        const pfc = new ParkingFeeComputer("2025-10-06T11:55:00", "2025-10-06T12:11:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Duration 16 mins > 15 min grace. Should be charged the min fee from the relevant blocks.
+        // Since both blocks have the same rate ($1/hr), the total minimum charge is $1.
+        expect(fee).toBe(1);
+    });
+
+    test("7.3 Long stay on Limited Date (Fri, Oct 10th) spanning three rate models", () => {
+        // Entry: Fri, Oct 10th 06:00:00, Exit: Fri, Oct 10th 20:00:00
+        const pfc = new ParkingFeeComputer("2025-10-10T06:00:00", "2025-10-10T20:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // 1. Early Morning (06:00 - 07:59): 2h @ $1.5/hr = $3.00
+        // 2. Limited Rate (08:00 - 17:00): 9h @ $1.0/hr = $9.00
+        // 3. Standard Evening (17:01 - 20:00): 3h @ $1.5/hr = $4.50
+        // Total: 14 hours. $3.00 + $9.00 + $4.50 = $16.50. (Max $35)
+        expect(fee).toBe(16.50);
+    });
+    
+    // --- 8. Max Charge and Time Boundary Stress Tests (Existing) ---
+
+    test("8.1 Multi-day stay that exceeds max on Day 1 and continues (Sat/Sun)", () => {
+        // Entry: Sat, Oct 4th 00:00:00, Exit: Sun, Oct 5th 00:00:01
+        const pfc = new ParkingFeeComputer("2025-10-04T00:00:00", "2025-10-05T00:00:01", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Day 1 (Sat): 24 hours @ $2/hr = $48. Capped at Max $45. Fee 1: $45.
+        // Day 2 (Sun): 1 second (00:00:00 to 00:00:01). Rounds to 1 hour @ $2/hr. Fee 2: $2.
+        // Total: $45 + $2 = $47.
+        expect(fee).toBe(47);
+    });
+
+    test("8.2 Exact grace period duration returns zero (Mon)", () => {
+        // Duration is exactly 15 minutes. Should be 0.
+        const pfc = new ParkingFeeComputer("2025-10-06T15:00:00", "2025-10-06T15:15:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        expect(fee).toBe(0);
+    });
+
+    test("8.3 Single-day stay that is just over the daily calculated max (Sat)", () => {
+        // Entry: Sat 00:00:00, Exit: Sat 23:00:00 (23 hours total)
+        const pfc = new ParkingFeeComputer("2025-10-04T00:00:00", "2025-10-04T23:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Calculated: 23 hours @ $2/hr = $46. Daily Max: $45.
+        // Should be capped at $45.
+        expect(fee).toBe(45);
+    });
+    
+    // --- 9. Multi-Week Stress Tests (New) ---
+
+    test("9.1 Eight-day continuous parking (Mon to next Tue) hitting all daily maxes", () => {
+        // Entry: Mon, Oct 6th 08:00:00, Exit: Tue, Oct 14th 08:00:00 (8 days total)
+        const pfc = new ParkingFeeComputer("2025-10-06T08:00:00", "2025-10-14T08:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Mon 6th: 16h @ $1/hr = $16 (Max $30)
+        // Tue 7th - Thu 9th: 3 days * $24 (24h * $1/hr) = $72 (Max $30/day)
+        // Fri 10th: 24h @ $1.5/hr = $36. Capped at $35.
+        // Sat 11th: 24h @ $2/hr = $48. Capped at $45.
+        // Sun 12th: 24h @ $2/hr = $48. Capped at $45.
+        // Mon 13th: 24h @ $1/hr = $24 (Max $30)
+        // Tue 14th: 8h @ $1/hr = $8 (Max $30)
+        // Total: $16 + $72 + $35 + $45 + $45 + $24 + $3 = $240.00
+        expect(fee).toBe(240.00);
+    });
+
+    test("9.2 Long stay spanning multiple days and ending on a Public Holiday", () => {
+        // Entry: Thu, Oct 16th 10:00:00, Exit: Mon, Oct 20th 10:00:00 (Oct 20th is PH)
+        const pfc = new ParkingFeeComputer("2025-10-16T10:00:00", "2025-10-20T10:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Thu 16th: 14h @ $1/hr = $14
+        // Fri 17th: 24h @ $1.5/hr = $35 (capped)
+        // Sat 18th: 24h @ $2/hr = $45 (capped)
+        // Sun 19th: 24h @ $2/hr = $45 (capped)
+        // Mon 20th (PH): 10h @ $3/hr = $30
+        // Total: $14 + $35 + $45 + $45 + $30 = $169.00
+        expect(fee).toBe(169.00);
+    });
+
+    test("9.3 Overnight stay across Limited Date Friday into Standard Saturday", () => {
+        // Entry: Fri, Oct 10th 16:00:00, Exit: Sat, Oct 11th 09:00:00
+        const pfc = new ParkingFeeComputer("2025-10-10T16:00:00", "2025-10-11T09:00:00", feeModels, publicHolidays);
+        const fee = pfc.computeParkingFee("Car/Van");
+        
+        // Day 1 (Fri, Oct 10th - Limited Day):
+        // 16:00-17:00 (1h): Limited Rate (08:00-17:00) @ $1/hr = $1.00
+        // 17:01-23:59 (7h): Standard Rate (08:00-23:59) @ $1.5/hr = $10.50
+        // Total Fri: $11.50 (Max $35)
+        
+        // Day 2 (Sat, Oct 11th):
+        // 00:00-09:00 (9h): Sat Rate @ $2/hr = $18.00 (Max $45)
+        
+        // Grand Total: $11.50 + $18.00 = $29.50
+        expect(fee).toBe(29.50);
+    });
+
+  describe("10. Public Holiday, Limited Rate, and Grace Period Tests", () => {
+    // We need to define the public holiday for this test set (PH rules: $3/hr, Max $50)
+    const phDate = "2025-10-20"; // Monday, Oct 20th 2025
+    const publicHolidays = [
+      { date: phDate, description: "Placeholder PH" }
     ];
-    const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T12:10:00", shortBlockFeeModel);
-    const fee = pfc.computeParkingFee("Car/Van");
-    expect(fee).toBe(0);
 
-  });
-
-  test("Crosses into public holiday at midnight (PH rate applies correctly)", () => {
-      const pfc = new ParkingFeeComputer(
-        "2025-10-19T23:00:00",
-        "2025-10-20T02:00:00",
-        feeModels,
-        publicHolidays
-      );
-      const fee = pfc.computeParkingFee("Car/Van");
-
-      // Sun 23:00–23:59 → falls into 20:01–23:59 block, 1h ≈ rounds to 1h * 200 = 200
-      // PH 00:00–02:00 → 2h * 300 = 600
-      // Total = 200 + 600 = 800
-      expect(fee).toBe(800);
-  });
-
-  test("Overlapping blocks within same day sum correctly", () => {
-    const overlapBlocks = [
-      { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "12:00:00", to_time: "14:00:00", rate_type: "Hourly", every: 60, min_fee: 100, grace_time: 0, min_charge: 0, max_charge: 1000 },
-      { vehicle_type: "Car/Van", day_of_week: "Mon", from_time: "13:00:00", to_time: "15:00:00", rate_type: "Hourly", every: 60, min_fee: 200, grace_time: 0, min_charge: 0, max_charge: 1000 }
-    ];
-    const pfc = new ParkingFeeComputer("2025-10-06T12:30:00", "2025-10-06T14:30:00", overlapBlocks);
-    const fee = pfc.computeParkingFee("Car/Van");
-    // Block1: 12:30–14:00 → 1.5h → rounds up 2h *100 = 200
-    // Block2: 13:00–14:30 → 1.5h → rounds up 2h *200 = 400
-    // Total = 600
-    expect(fee).toBe(600);
-  });
-
-  test("Multi-block & multi-day parking", () => {
-    // Entry: Monday 17:30 → Exit: Tuesday 03:30
-    const pfc = new ParkingFeeComputer(
-      "2025-10-06T17:30:00",
-      "2025-10-07T03:30:00",
-      feeModels,
-      publicHolidays
-    );
-
-    const fee = pfc.computeParkingFee("Car/Van");
-
-      // Calculations using your feeModels:
-      // Monday:
-      //   Block 1: 17:30–18:00 = 0.5h → rounds to 1h * min_fee 200 = 200
-      //   Block 2: 18:01–23:59 ≈ 6h → 6h * min_fee 200 = 1200
-      //   Total Mon = 200 + 1200 = 1400
-      // Tuesday:
-      //   00:00–03:30 ≈ 3.5h → rounds to 4h * min_fee 150 = 600
-      // Total = 1400 + 600 = 2000
-      expect(fee).toBe(2000);
-  });
+    test("10.1 Date-Specific Rate Hit (Limited Friday 2025-10-10)", () => {
+      // Test the special rule: 08:00-17:00 on 2025-10-10 has a rate of $1/hr (instead of the standard $1.5)
+      // Entry: Fri, Oct 10th 07:00:00, Exit: Fri, Oct 10th 10:00:00 (3 hours total)
       
+      // Breakdown:
+      // 07:00 - 08:00: 1h @ $1.50 (Standard Fri rule) = $1.50
+      // 08:00 - 10:00: 2h @ $1.00 (Limited Fri rule) = $2.00
+      // Total: $3.50 (Max $35)
+      const pfc = new ParkingFeeComputer("2025-10-10T07:00:00", "2025-10-10T10:00:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      expect(fee).toBe(3.50);
+    });
+
+    test("10.2 Grace Period Success (15 minutes or less is free)", () => {
+      // Test the 15-minute grace period (Mon rate: $1/hr, min_fee: 1, grace_time: 15)
+      // Entry: Mon, Oct 6th 10:00:00, Exit: Mon, Oct 6th 10:15:00 (Exactly 15 minutes)
+      const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T10:15:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      expect(fee).toBe(0.00);
+    });
+
+    test("10.3 Grace Period Failure (16 minutes triggers min charge)", () => {
+      // Test exceeding the grace period by one minute
+      // Entry: Mon, Oct 6th 10:00:00, Exit: Mon, Oct 6th 10:16:00 (16 minutes)
+      // Fee should be the minimum charge of $1.00
+      const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T10:16:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      expect(fee).toBe(1.00);
+    });
+  });
+
+  // --- 11. Edge Cases to test robustness ---
+  test("Edge 1: Entry/Exit exactly at block boundaries (Mon 12:00-18:00)", () => {
+      const pfc = new ParkingFeeComputer("2025-10-06T12:00:00", "2025-10-06T18:00:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      // 6 hours @ $1/hr = $6 (daily max $30 not hit)
+      expect(fee).toBe(6);
+  });
+
+  test("Edge 2: Stay that hits exact daily max (Sat 00:00-22:30)", () => {
+      const pfc = new ParkingFeeComputer("2025-10-04T00:00:00", "2025-10-04T22:30:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      // 23 hours @ $2/hr = $46, daily max = $45
+      expect(fee).toBe(45);
+  });
+
+  test("Edge 3: PH with parking just under grace (10 min)", () => {
+      const pfc = new ParkingFeeComputer("2025-10-20T09:00:00", "2025-10-20T09:10:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      // Grace time = 15 min, so fee = 0
+      expect(fee).toBe(0);
+  });
+
+  test("Edge 4: Unknown vehicle type returns 0", () => {
+      const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T12:00:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Motorbike");
+      expect(fee).toBe(0); // Assuming your implementation returns 0 for unsupported types
+  });
+
+  test("Edge 5: 1 minute over 1 hour triggers 2-hour charge", () => {
+      const pfc = new ParkingFeeComputer("2025-10-06T10:00:00", "2025-10-06T11:01:00", feeModels, publicHolidays);
+      const fee = pfc.computeParkingFee("Car/Van");
+      expect(fee).toBe(2); // Correct rounding to next hour
+  });
 });
