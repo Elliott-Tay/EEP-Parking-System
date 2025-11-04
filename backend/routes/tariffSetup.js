@@ -4,29 +4,44 @@ const router = express.Router();
 const { DateTime } = require("luxon")
 const authenticateJWT = require("../../middleware/auth");
 
-// Get all parking tariffs
+// Get all parking tarrifs for specifc rate type
 router.get("/tariff-rates", async (req, res) => {
   try {
-    const pool = await sql.connect(config); 
-    const result = await pool.request().query("SELECT * FROM TariffRates ORDER BY vehicle_type, day_of_week, from_time");
+    const { rateType } = req.query;
+
+    const pool = await sql.connect(config);
+    const request = pool.request();
+    let query = "SELECT * FROM TariffRates";
+
+    if (rateType) {
+      // Trim spaces and ignore case
+      query += " WHERE UPPER(LTRIM(RTRIM(rate_type))) = UPPER(@rateType)";
+      request.input("rateType", sql.NVarChar(50), rateType); 
+    }
+
+    query += " ORDER BY vehicle_type, day_of_week, from_time";
+
+    const result = await request.query(query);
     res.json({ success: true, data: result.recordset });
-  } 
-  catch (err) {     
+  } catch (err) {
     console.error("Error fetching tariffs:", err);
-    res.status(500).json({ success: false, error: "Failed to fetch tariffs" }); 
+    res.status(500).json({ success: false, error: "Failed to fetch tariffs" });
   }
 });
 
-// setup the new tariff
-router.post("/tariff-setup", async (req, res) => {
-  const { vehicleType, effectiveStart, effectiveEnd, rates } = req.body;
 
-  if (!vehicleType || !effectiveStart || !effectiveEnd || !rates) {
-    return res.status(400).json({ error: "vehicleType, effectiveStart, effectiveEnd, and rates are required" });
+// setup the new tariff
+// POST /tariff-setup
+router.post("/tariff-setup", async (req, res) => {
+  const { effectiveStart, effectiveEnd, rates } = req.body;
+
+  if (!effectiveStart || !effectiveEnd || !rates) {
+    return res.status(400).json({ error: "effectiveStart, effectiveEnd, and rates are required" });
   }
 
-  // Truncate to 2 decimals helper
-  const truncate2 = (val) => (val !== null && val !== undefined ? Math.floor(val * 100) / 100 : null);
+  // Helper to truncate money to 2 decimals
+  const truncate2 = (val) =>
+    val !== null && val !== undefined ? Math.floor(val * 100) / 100 : null;
 
   try {
     const pool = await sql.connect(config);
@@ -35,44 +50,42 @@ router.post("/tariff-setup", async (req, res) => {
 
     for (const [day, slots] of Object.entries(rates)) {
       for (const slot of slots) {
-        const fromTimeStr = slot.from;
-        const toTimeStr = slot.to;
-        const effectiveStartStr = effectiveStart;
-        const effectiveEndStr = effectiveEnd;
+        // Skip invalid slots
+        if (!slot.vehicleType || !slot.from || !slot.to) continue;
 
-        // 1️⃣ Delete overlapping slots first
+        // Delete any overlapping slots first
         await new sql.Request(transaction)
-          .input("vehicle_type", sql.NVarChar, vehicleType)
+          .input("vehicle_type", sql.NVarChar, slot.vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.VarChar, fromTimeStr)
-          .input("to_time", sql.VarChar, toTimeStr)
-          .input("effective_start", sql.VarChar, effectiveStartStr)
-          .input("effective_end", sql.VarChar, effectiveEndStr)
+          .input("from_time", sql.VarChar, slot.from)
+          .input("to_time", sql.VarChar, slot.to)
+          .input("effective_start", sql.Date, effectiveStart)
+          .input("effective_end", sql.Date, effectiveEnd)
           .query(`
             DELETE FROM TariffRates
             WHERE vehicle_type = @vehicle_type
               AND day_of_week = @day_of_week
               AND effective_start <= @effective_end
               AND effective_end >= @effective_start
-              AND (CONVERT(VARCHAR(8), from_time, 108) < @to_time
-                   AND CONVERT(VARCHAR(8), to_time, 108) > @from_time)
+              AND CONVERT(TIME, from_time) < @to_time
+              AND CONVERT(TIME, to_time) > @from_time
           `);
 
-        // 2️⃣ Insert the new slot with truncated money fields
+        // Insert the full slot payload
         await new sql.Request(transaction)
-          .input("vehicle_type", sql.NVarChar, vehicleType)
+          .input("vehicle_type", sql.NVarChar, slot.vehicleType)
           .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.VarChar, fromTimeStr)
-          .input("to_time", sql.VarChar, toTimeStr)
-          .input("rate_type", sql.NVarChar, slot.rateType || "Hourly")
+          .input("from_time", sql.VarChar, slot.from)
+          .input("to_time", sql.VarChar, slot.to)
+          .input("rate_type", sql.NVarChar, slot.rateType || slot.rate_type || "Hourly")
           .input("every", sql.Int, slot.every || null)
           .input("min_fee", sql.Money, truncate2(slot.minFee))
           .input("grace_time", sql.Int, slot.graceTime || null)
           .input("first_min_fee", sql.Money, truncate2(slot.firstMinFee))
           .input("min_charge", sql.Money, truncate2(slot.min))
           .input("max_charge", sql.Money, truncate2(slot.max))
-          .input("effective_start", sql.VarChar, effectiveStartStr)
-          .input("effective_end", sql.VarChar, effectiveEndStr)
+          .input("effective_start", sql.Date, effectiveStart)
+          .input("effective_end", sql.Date, effectiveEnd)
           .query(`
             INSERT INTO TariffRates (
               vehicle_type, day_of_week, from_time, to_time, rate_type, every,
@@ -95,36 +108,22 @@ router.post("/tariff-setup", async (req, res) => {
   }
 });
 
-// Delete tariff rates by vehicle type and effective start date
+// Delete tariff slot by ID
 router.delete("/tariff-slot", async (req, res) => {
-  const { vehicleType, dayOfWeek, fromTime, toTime, effectiveStart, effectiveEnd } = req.body;
+  const { id } = req.body;
 
-  if (!vehicleType || !dayOfWeek || !fromTime || !toTime || !effectiveStart || !effectiveEnd) {
-    return res.status(400).json({ error: "All fields are required to identify the slot" });
+  if (!id) {
+    return res.status(400).json({ error: "ID is required to delete slot" });
   }
 
   try {
     const pool = await sql.connect(config);
 
-    // Use the effective dates as strings in YYYY-MM-DD format
-    const effectiveStartStr = effectiveStart.split("T")[0];
-    const effectiveEndStr = effectiveEnd.split("T")[0];
-
     const result = await pool.request()
-      .input("vehicle_type", sql.NVarChar, vehicleType)
-      .input("day_of_week", sql.NVarChar, dayOfWeek)
-      .input("from_time", sql.VarChar, fromTime)   // as string HH:MM:SS
-      .input("to_time", sql.VarChar, toTime)       // as string HH:MM:SS
-      .input("effective_start", sql.Date, effectiveStartStr)
-      .input("effective_end", sql.Date, effectiveEndStr)
+      .input("id", sql.Int, id)
       .query(`
         DELETE FROM TariffRates
-        WHERE vehicle_type = @vehicle_type
-          AND day_of_week = @day_of_week
-          AND CONVERT(VARCHAR(8), from_time, 108) = @from_time
-          AND CONVERT(VARCHAR(8), to_time, 108) = @to_time
-          AND CAST(effective_start AS DATE) = @effective_start
-          AND CAST(effective_end AS DATE) = @effective_end
+        WHERE id = @id
       `);
 
     if (result.rowsAffected[0] === 0) {
@@ -132,6 +131,62 @@ router.delete("/tariff-slot", async (req, res) => {
     }
 
     res.json({ message: "Slot deleted successfully" });
+  } catch (err) {
+    console.error("SQL error:", err);
+    res.status(500).json({ error: "Database error", details: err.message });
+  }
+});
+
+// Edit a single tariff slot by ID
+router.put("/tariff-slot", async (req, res) => {
+  const { id, vehicleType, dayOfWeek, fromTime, toTime, rateType, every, minFee, graceTime, firstMinFee, min, max, effectiveStart, effectiveEnd } = req.body;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required to edit slot" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const result = await pool.request()
+      .input("id", sql.Int, id)
+      .input("vehicle_type", sql.NVarChar, vehicleType)
+      .input("day_of_week", sql.NVarChar, dayOfWeek)
+      .input("from_time", sql.VarChar, fromTime)
+      .input("to_time", sql.VarChar, toTime)
+      .input("rate_type", sql.NVarChar, rateType)
+      .input("every", sql.Int, every)
+      .input("min_fee", sql.Money, minFee)
+      .input("grace_time", sql.Int, graceTime)
+      .input("first_min_fee", sql.Money, firstMinFee)
+      .input("min_charge", sql.Money, min)
+      .input("max_charge", sql.Money, max)
+      .input("effective_start", sql.Date, effectiveStart)
+      .input("effective_end", sql.Date, effectiveEnd)
+      .query(`
+        UPDATE TariffRates
+        SET 
+          vehicle_type = @vehicle_type,
+          day_of_week = @day_of_week,
+          from_time = @from_time,
+          to_time = @to_time,
+          rate_type = @rate_type,
+          every = @every,
+          min_fee = @min_fee,
+          grace_time = @grace_time,
+          first_min_fee = @first_min_fee,
+          min_charge = @min_charge,
+          max_charge = @max_charge,
+          effective_start = @effective_start,
+          effective_end = @effective_end
+        WHERE id = @id
+      `);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: "Slot not found" });
+    }
+
+    res.json({ message: "Slot updated successfully" });
   } catch (err) {
     console.error("SQL error:", err);
     res.status(500).json({ error: "Database error", details: err.message });

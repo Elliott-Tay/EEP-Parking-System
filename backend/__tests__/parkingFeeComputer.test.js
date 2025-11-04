@@ -314,6 +314,7 @@ describe("ParkingFeeComputer - Comprehensive Hourly Tests", () => {
         expect(fee).toBe(29.50);
     });
 
+  // Public Holiday, Limited Rate, and Grace Period Tests
   describe("10. Public Holiday, Limited Rate, and Grace Period Tests", () => {
     // We need to define the public holiday for this test set (PH rules: $3/hr, Max $50)
     const phDate = "2025-10-20"; // Monday, Oct 20th 2025

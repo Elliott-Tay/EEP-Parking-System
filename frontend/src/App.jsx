@@ -89,6 +89,8 @@ function App() {
   const TariffSetupDaySeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeasonB'));
   const TariffSetupNightSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB'));
 
+  const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRate'));
+
   // Lazy Load View Tariff
   const TariffSetupCarVanView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffView'));
   const TariffSetupLorryView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/LorryTariffView'));
@@ -172,6 +174,7 @@ function App() {
     { path: "/tariff/edit/mcycle", element: <TariffSetupMotorcycle /> },
     { path: "/tariff/edit/day-season", element: <TariffSetupDaySeason /> },
     { path: "/tariff/edit/night-season", element: <TariffSetupNightSeason /> },
+    { path: "/tariff/edit/hourly-rates", element: <HourlyRate/> },
     { path: "/tariff/edit/car-van-b", element: <TariffSetupCarVanB /> },
     { path: "/tariff/edit/lorry-b", element: <TariffSetupLorryB /> },
     { path: "/tariff/edit/mcycle-b", element: <TariffSetupMotorcycleB /> },

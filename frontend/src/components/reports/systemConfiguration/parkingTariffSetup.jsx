@@ -45,8 +45,8 @@ export default function ParkingTariffConfiguration() {
   };
 
   const viewOnlyTariffs = [
-    { name: "Tariff setup for Car/Van", path: "/tariff/view/car-van" },
-    { name: "Tariff setup for Lorry", path: "/tariff/view/lorry" },
+    { name: "Tariff setup for Hourly", path: "/tariff/view/car-van" },
+    { name: "Tariff setup for Season", path: "/tariff/view/lorry" },
     { name: "Tariff setup for M/Cycle", path: "/tariff/view/mcycle" },
     { name: "Tariff setup for Day Season", path: "/tariff/view/day-season" },
     { name: "Tariff setup for Night Season", path: "/tariff/view/night-season" },
@@ -58,8 +58,8 @@ export default function ParkingTariffConfiguration() {
   ];
 
   const editableTariffs = [
-    { name: "Tariff setup for Car/Van", path: "/tariff/edit/car-van" },
-    { name: "Tariff setup for Lorry", path: "/tariff/edit/lorry" },
+    { name: "Tariff setup for Hourly", path: "/tariff/edit/car-van" },
+    { name: "Tariff setup for Season", path: "/tariff/edit/lorry" },
     { name: "Tariff setup for M/Cycle", path: "/tariff/edit/mcycle" },
     { name: "Tariff setup for Day Season", path: "/tariff/edit/day-season" },
     { name: "Tariff setup for Night Season", path: "/tariff/edit/night-season" },
