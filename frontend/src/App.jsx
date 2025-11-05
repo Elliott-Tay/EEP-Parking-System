@@ -78,18 +78,19 @@ function App() {
   const ViewLogLogin = lazy(() => import('./components/systemMaintenance/viewLog'));
 
   // Lazy Load Edit Tariff
-  const TariffSetupCarVan = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRate'));
-  const TariffSetupLorry = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariff'));
-  const TariffSetupMotorcycle = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariff'));
+  const TariffSetupCarVan = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariff'));
+  const TariffSetupLorry = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SeasonTariff'));
+  const TariffSetupMotorcycle = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SpecialTariff'));
   const TariffSetupDaySeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeason'));
   const TariffSetupNightSeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeason'));
+  const TariffSetupURAStaff = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/URAStaffTariff'));
   const TariffSetupCarVanB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariffB'));
   const TariffSetupLorryB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariffB'));
   const TariffSetupMotorcycleB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariffB'));
   const TariffSetupDaySeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeasonB'));
   const TariffSetupNightSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB'));
 
-  const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRate'));
+  const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariff'));
 
   // Lazy Load View Tariff
   const TariffSetupCarVanView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffView'));
@@ -174,6 +175,7 @@ function App() {
     { path: "/tariff/edit/mcycle", element: <TariffSetupMotorcycle /> },
     { path: "/tariff/edit/day-season", element: <TariffSetupDaySeason /> },
     { path: "/tariff/edit/night-season", element: <TariffSetupNightSeason /> },
+    { path: "/tariff/edit/URA-staff", element: <TariffSetupURAStaff /> },
     { path: "/tariff/edit/hourly-rates", element: <HourlyRate/> },
     { path: "/tariff/edit/car-van-b", element: <TariffSetupCarVanB /> },
     { path: "/tariff/edit/lorry-b", element: <TariffSetupLorryB /> },

@@ -60,9 +60,10 @@ export default function ParkingTariffConfiguration() {
   const editableTariffs = [
     { name: "Tariff setup for Hourly", path: "/tariff/edit/car-van" },
     { name: "Tariff setup for Season", path: "/tariff/edit/lorry" },
-    { name: "Tariff setup for M/Cycle", path: "/tariff/edit/mcycle" },
+    { name: "Tariff setup for Special", path: "/tariff/edit/mcycle" },
     { name: "Tariff setup for Day Season", path: "/tariff/edit/day-season" },
     { name: "Tariff setup for Night Season", path: "/tariff/edit/night-season" },
+    { name: "Tariff setup for URA Staff", path: "/tariff/edit/URA-staff" },
     { name: "Tariff setup for Car/Van (B)", path: "/tariff/edit/car-van-b" },
     { name: "Tariff setup for Lorry (B)", path: "/tariff/edit/lorry-b" },
     { name: "Tariff setup for M/Cycle (B)", path: "/tariff/edit/mcycle-b" },

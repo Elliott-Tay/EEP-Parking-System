@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
 
-export default function TariffSetupNightSeason() {
+export default function TariffSetupMotorcycle() {
   const navigate = useNavigate();
       
         const daysOfWeek = ["All day", "Mon-Fri", "Sat", "Sun", "PH"];
@@ -81,7 +81,7 @@ export default function TariffSetupNightSeason() {
           const fetchTariff = async () => {
             try {
               const token = localStorage.getItem("token");
-              const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Night Season`, {
+              const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Special`, {
                 headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
                 credentials: "include",
               });
@@ -109,14 +109,14 @@ export default function TariffSetupNightSeason() {
                   vehicleType: slot.vehicle_type || "Car/Van",
                   from: parseTimeSG(slot.from_time),
                   to: parseTimeSG(slot.to_time),
-                  rate_type: slot.rate_type || dynamicRateTypes[0] || "Night Season",
+                  rate_type: slot.rate_type || dynamicRateTypes[0] || "Special",
                   every: slot.every || 60,
                   minFee: slot.min_fee || 0,
                   graceTime: slot.grace_time || 0,
                   firstMinFee: slot.first_min_fee || 0,
                   min: slot.min_charge || 0,
                   max: slot.max_charge || 0,
-                  contractClass: slot.rate_type || dynamicRateTypes[0] || "Night Season",
+                  contractClass: slot.rate_type || dynamicRateTypes[0] || "Special",
                 };
                 const label = slot.day_of_week;
                 if (!newRates[label]) newRates[label] = [];
@@ -142,7 +142,7 @@ export default function TariffSetupNightSeason() {
           });
         };
       
-        const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Night Season") => {
+        const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Special") => {
           const newSlot = {
             vehicleType,
             from: "08:00",
@@ -163,7 +163,7 @@ export default function TariffSetupNightSeason() {
           }));
         };
       
-        const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Night Season") => {
+        const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Special") => {
           const newSlot = {
             vehicleType,
             from: "08:00",
@@ -184,7 +184,7 @@ export default function TariffSetupNightSeason() {
           }));
         };
 
-        const addAllTimeSlot = (day, vehicleType = "Car/HGV/MC", rateType = "Night Season") => {
+      const addAllTimeSlot = (day, vehicleType = "Car/HGV/MC", rateType = "URA Staff") => {
         const newSlot = {
           vehicleType,
           from: "08:00",
@@ -204,7 +204,8 @@ export default function TariffSetupNightSeason() {
           [day]: [...prev[day], newSlot],
         }));
       };
-      
+        
+        
         // ---------- Normalize time ----------
         const normalizeTime = (timeStr) => {
           if (!timeStr) return null;
@@ -249,7 +250,7 @@ export default function TariffSetupNightSeason() {
             vehicleType: slot.vehicleType,
             from: normalizeTime(slot.from),
             to: normalizeTime(slot.to),
-            rateType: slot.rate_type || slot.rateType || "Night Season",
+            rateType: slot.rate_type || slot.rateType || "Special",
             every: Number(slot.every),
             minFee: Number(slot.minFee),
             graceTime: Number(slot.graceTime),
@@ -357,7 +358,7 @@ export default function TariffSetupNightSeason() {
                 dayOfWeek: day,
                 fromTime: slot.from,
                 toTime: slot.to,
-                rateType: slot.rate_type || slot.rateType || "Night Season",
+                rateType: slot.rate_type || slot.rateType || "Special",
                 every: Number(slot.every) || 0,
                 minFee: Number(slot.minFee) || 0,
                 graceTime: Number(slot.graceTime) || 0,
@@ -396,7 +397,7 @@ export default function TariffSetupNightSeason() {
         // ---------- Render ----------
         return (
           <div className="min-h-screen bg-gray-50 p-8">
-            <h1 className="text-2xl font-bold mb-4">Tariff Setup for Night Season Rates</h1>
+            <h1 className="text-2xl font-bold mb-4">Tariff Setup for Special Rates</h1>
       
             {/* Effective Dates */}
             <div className="grid grid-cols-2 gap-4 mb-6">
@@ -533,3 +534,4 @@ export default function TariffSetupNightSeason() {
           </div>
         );
       }
+      

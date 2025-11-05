@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Home, Plus, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
 
-export default function TariffSetupLorry() {
+export default function TariffSetupCarVan() {
   const navigate = useNavigate();
 
   const daysOfWeek = ["All day", "Mon-Fri", "Sat", "Sun", "PH"];
@@ -18,34 +18,62 @@ export default function TariffSetupLorry() {
   // ---------- Helper functions ----------
   const parseTimeSG = (timeStr) => (timeStr ? DateTime.fromISO(timeStr, { zone: "Asia/Singapore" }).toFormat("HH:mm") : "");
 
-  const getOverlaps = (slots) => {
-    const result = [];
-    for (let i = 0; i < slots.length; i++) {
-      for (let j = i + 1; j < slots.length; j++) {
-        if (
-          slots[i].vehicleType === slots[j].vehicleType &&  // check same vehicle type
-          slots[i].from < slots[j].to &&
-          slots[i].to > slots[j].from
-        ) {
-          result.push([i, j]);
+  const hasOverlaps = (slots) => {
+    // Normalize times to minutes first
+    const normalizedSlots = slots.map((s, i) => {
+      const fromMinutes = timeToMinutes(s.from);
+      let toMinutes = timeToMinutes(s.to);
+      if (toMinutes <= fromMinutes) toMinutes += 24 * 60; // handle overnight
+      return { ...s, fromMinutes, toMinutes, index: i };
+    });
+
+    // Check pairwise overlaps for same vehicleType
+    for (let i = 0; i < normalizedSlots.length; i++) {
+      const s1 = normalizedSlots[i];
+      for (let j = i + 1; j < normalizedSlots.length; j++) {
+        const s2 = normalizedSlots[j];
+        if (s1.vehicleType === s2.vehicleType) {
+          // If s1 starts before s2 ends and s1 ends after s2 starts → overlap
+          if (s1.fromMinutes < s2.toMinutes && s1.toMinutes > s2.fromMinutes) {
+            return { overlap: true, slots: [s1.index, s2.index] };
+          }
         }
       }
     }
-    return result;
+
+    return { overlap: false };
   };
 
-  const checkAllOverlaps = () => {
-    const allOverlaps = {};
-    let hasOverlap = false;
-    for (const [day, slots] of Object.entries(rates)) {
-      const dayOverlaps = getOverlaps(slots);
-      if (dayOverlaps.length) {
-        allOverlaps[day] = dayOverlaps;
-        hasOverlap = true;
+  // ---------- Helper for validating a single day's slots ----------
+  const validateDaySlots = (day, slots) => {
+    // Check required fields
+    const invalid = slots.some(s => !s.from || !s.to || !s.vehicleType);
+    if (invalid) {
+      alert(`Please fill all required fields for ${day}`);
+      return false;
+    }
+
+    // Normalize slots
+    const normalizedSlots = slots.map(s => normalizeSlot(s));
+
+    // Check 'From' < 'To'
+    for (let i = 0; i < normalizedSlots.length; i++) {
+      const s = normalizedSlots[i];
+      if (s.toMinutes - s.fromMinutes <= 0) {
+        alert(`For ${day}, '${s.vehicleType}', 'From' must be earlier than 'To'.`);
+        return false;
       }
     }
-    setOverlaps(allOverlaps);
-    return hasOverlap;
+
+    // Check overlaps
+    const overlapResult = hasOverlaps(slots);
+    if (overlapResult.overlap) {
+      const [i, j] = overlapResult.slots;
+      alert(`Overlap detected for ${day}, '${slots[i].vehicleType}' between slots ${i + 1} and ${j + 1}.`);
+      return false;
+    }
+
+    return true;
   };
 
   // ---------- Fetch existing tariff ----------
@@ -53,7 +81,7 @@ export default function TariffSetupLorry() {
     const fetchTariff = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Season`, {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Hourly`, {
           headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
           credentials: "include",
         });
@@ -114,9 +142,8 @@ export default function TariffSetupLorry() {
     });
   };
 
-  const addTimeSlot = (day, vehicleType, rateType = "Hourly") => {
+  const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Hourly") => {
     const newSlot = {
-      id: Math.floor(1000 + Math.random() * 9000),
       vehicleType,
       from: "08:00",
       to: "18:00",
@@ -135,46 +162,50 @@ export default function TariffSetupLorry() {
       [day]: [...prev[day], newSlot],
     }));
   };
-    // ---------- Validate payload ----------
-  const validatePayload = () => {
-    for (const [day, slots] of Object.entries(rates)) {
-      const vehicleGroups = {};
 
-      // Group slots by vehicleType
-      slots.forEach((slot, i) => {
-        if (!vehicleGroups[slot.vehicleType]) vehicleGroups[slot.vehicleType] = [];
-        vehicleGroups[slot.vehicleType].push({ ...normalizeSlot(slot), index: i });
-      });
+  const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Hourly") => {
+    const newSlot = {
+      vehicleType,
+      from: "08:00",
+      to: "18:00",
+      rateType,          // <-- use consistent property
+      contractClass: rateType,
+      every: 60,
+      minFee: 200,
+      graceTime: 15,
+      firstMinFee: 100,
+      min: 200,
+      max: 2000,
+    };
 
-      for (const [vehicle, vehicleSlots] of Object.entries(vehicleGroups)) {
-        for (let i = 0; i < vehicleSlots.length; i++) {
-          const s1 = vehicleSlots[i];
-
-          if (!s1.from || !s1.to) {
-            alert(`Please provide both 'from' and 'to' times for ${day}, ${vehicle}.`);
-            return false;
-          }
-
-          if (s1.toMinutes - s1.fromMinutes <= 0) {
-            alert(`For ${day}, ${vehicle}, 'From' must be earlier than 'To'.`);
-            return false;
-          }
-
-          // Check overlaps within same vehicle type
-          for (let j = i + 1; j < vehicleSlots.length; j++) {
-            const s2 = vehicleSlots[j];
-            if (s1.fromMinutes < s2.toMinutes && s1.toMinutes > s2.fromMinutes) {
-              alert(`Overlap detected for ${day}, ${vehicle} between slots ${i + 1} and ${j + 1}.`);
-              return false;
-            }
-          }
-        }
-      }
-    }
-
-    return true;
+    setRates(prev => ({
+      ...prev,
+      [day]: [...prev[day], newSlot],
+    }));
   };
 
+  const addAllTimeSlot = (day, vehicleType = "Car/HGV/MC", rateType = "Hourly") => {
+        const newSlot = {
+          vehicleType,
+          from: "08:00",
+          to: "18:00",
+          rateType,          // <-- use consistent property
+          contractClass: rateType,
+          every: 60,
+          minFee: 200,
+          graceTime: 15,
+          firstMinFee: 100,
+          min: 200,
+          max: 2000,
+        };
+    
+        setRates(prev => ({
+          ...prev,
+          [day]: [...prev[day], newSlot],
+        }));
+      };
+      
+  
   // ---------- Normalize time ----------
   const normalizeTime = (timeStr) => {
     if (!timeStr) return null;
@@ -195,60 +226,16 @@ export default function TariffSetupLorry() {
     return { ...slot, fromMinutes: from, toMinutes: to };
   };
 
-  // ---------- Handle save ----------
-  const handleSave = async () => {
-    if (!validatePayload()) return;
-
-    const sanitizedRates = {};
-
-    Object.entries(rates).forEach(([day, slots]) => {
-      sanitizedRates[day] = slots.map(slot => ({
-        vehicleType: slot.vehicleType,        // take from slot
-        from: normalizeTime(slot.from),
-        to: normalizeTime(slot.to),
-        rateType: slot.rateType || slot.rate_type || "Hourly",
-        every: Number(slot.every),
-        minFee: Number(slot.minFee),
-        graceTime: Number(slot.graceTime),
-        firstMinFee: Number(slot.firstMinFee),
-        min: Number(slot.min),
-        max: Number(slot.max),
-      }));
-    });
-
-    const payload = {
-      effectiveStart: effectiveStart ? effectiveStart + "T00:00:00" : null,
-      effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59" : null,
-      rates: sanitizedRates,
-    };
-
-    try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        alert("Rates saved successfully!");
-      } else {
-        console.error(data);
-        alert("Error: " + (data.error || "Unknown error"));
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Network error");
-    }
-  };
-
+  // Save the rates for a specific day
   const handleSaveDay = async (day) => {
     const slots = rates[day];
     if (!slots || slots.length === 0) {
       alert(`No slots to save for ${day}`);
       return;
     }
+
+    // Call the validation helper
+    if (!validateDaySlots(day, slots)) return;
 
     // Validate required fields
     const invalid = slots.some(s => !s.from || !s.to || !s.vehicleType);
@@ -257,34 +244,26 @@ export default function TariffSetupLorry() {
       return;
     }
 
-    // Deduplicate by vehicleType + rateType
-    const uniqueSlotsMap = {};
-    slots.forEach(s => {
-      const key = `${s.vehicleType}-${s.rate_type || s.rateType || "Hourly"}`;
-      if (!uniqueSlotsMap[key]) {
-        uniqueSlotsMap[key] = s;
-      }
-    });
-    const uniqueSlots = Object.values(uniqueSlotsMap);
+    // Normalize slots for sending
+    const payloadSlots = slots.map(slot => ({
+      id: slot.id || null, // <-- keep DB ID if exists
+      vehicleType: slot.vehicleType,
+      from: normalizeTime(slot.from),
+      to: normalizeTime(slot.to),
+      rateType: slot.rate_type || slot.rateType || "Hourly",
+      every: Number(slot.every),
+      minFee: Number(slot.minFee),
+      graceTime: Number(slot.graceTime),
+      firstMinFee: Number(slot.firstMinFee),
+      min: Number(slot.min),
+      max: Number(slot.max),
+    }));
 
-    // Prepare payload
     const payload = {
       effectiveStart: effectiveStart ? effectiveStart + "T00:00:00" : null,
       effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59" : null,
       rates: {
-        [day]: uniqueSlots.map(slot => ({
-          id: slot.id || Math.floor(1000 + Math.random() * 9000), // only new slots get random ID
-          vehicleType: slot.vehicleType,
-          from: slot.from,
-          to: slot.to,
-          rateType: slot.rate_type || slot.rateType || "Hourly",
-          every: Number(slot.every),
-          minFee: Number(slot.minFee),
-          graceTime: Number(slot.graceTime),
-          firstMinFee: Number(slot.firstMinFee),
-          min: Number(slot.min),
-          max: Number(slot.max),
-        })),
+        [day]: payloadSlots, // send all slots for that day
       },
     };
 
@@ -299,6 +278,8 @@ export default function TariffSetupLorry() {
 
       if (response.ok) {
         alert(`Rates for ${day} saved successfully!`);
+        // Automatically refresh the page
+        window.location.reload();
       } else {
         console.error(data);
         alert(`Error saving ${day}: ${data.error || "Unknown error"}`);
@@ -308,7 +289,6 @@ export default function TariffSetupLorry() {
       alert(`Network error while saving ${day}`);
     }
   };
-
 
   const removeTimeSlot = async (day, index) => {
     const slot = rates[day][index];
@@ -324,7 +304,6 @@ export default function TariffSetupLorry() {
     }
 
     const payload = { id: slot.id }; // <--- only send the ID
-    console.log("DELETE payload:", payload);
 
     try {
       const response = await fetch(
@@ -415,7 +394,6 @@ export default function TariffSetupLorry() {
     });
   };
 
-
   // ---------- Render ----------
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -492,14 +470,6 @@ export default function TariffSetupLorry() {
                       </td>
                     ))}
                     <td className="border px-2 py-1 flex justify-center gap-1">
-                      {/* Add new slot */}
-                      <button
-                        onClick={() => addTimeSlot(day)}
-                        className="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-
                       {/* Delete slot */}
                       <button
                         onClick={() => removeTimeSlot(day, index)}
@@ -524,10 +494,22 @@ export default function TariffSetupLorry() {
             </table>
             <div className="flex gap-2 mt-2">
               <button
-                onClick={() => addTimeSlot(day)}
+                onClick={() => addCarTimeSlot(day)}
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
               >
-                Add Slot
+                Add Car/HGV Slot
+              </button>
+              <button
+                onClick={() => addMCycleTimeSlot(day)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Add MCycle Slot
+              </button>
+              <button
+                onClick={() => addAllTimeSlot(day)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Add Car/HGV/MC Slot
               </button>
               <button
                 onClick={() => handleSaveDay(day)}
@@ -542,12 +524,6 @@ export default function TariffSetupLorry() {
 
       {/* Save / Home */}
       <div className="mt-6 flex justify-center gap-4">
-        <button
-          onClick={handleSave}
-          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          Save
-        </button>
         <button
           onClick={() => navigate("/")}
           className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
