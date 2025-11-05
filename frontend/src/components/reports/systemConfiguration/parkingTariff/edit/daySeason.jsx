@@ -292,7 +292,11 @@ export default function TariffSetupDaySeason() {
       const removeTimeSlot = async (day, index) => {
         const slot = rates[day][index];
         if (!slot) return;
-    
+
+        // Show confirmation alert
+        const confirmed = window.confirm("Are you sure you want to delete this slot?");
+        if (!confirmed) return; // Exit if user clicks "No"
+
         // If the slot hasn't been saved yet (no ID), just remove locally
         if (!slot.id) {
           setRates(prev => ({
@@ -301,9 +305,9 @@ export default function TariffSetupDaySeason() {
           }));
           return;
         }
-    
+
         const payload = { id: slot.id }; // <--- only send the ID
-    
+
         try {
           const response = await fetch(
             `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-slot`,
@@ -313,25 +317,25 @@ export default function TariffSetupDaySeason() {
               body: JSON.stringify(payload),
             }
           );
-    
+
           if (!response.ok) {
             const errData = await response.json();
             throw new Error(errData.error || "Failed to delete slot");
           }
-    
+
           // Remove locally
           setRates(prev => ({
             ...prev,
             [day]: prev[day].filter((_, i) => i !== index),
           }));
-    
+
           alert("Slot deleted successfully!");
         } catch (err) {
           console.error("Delete slot error:", err);
           alert("Failed to delete slot: " + err.message);
         }
       };
-    
+          
       const isSlotOverlapping = (day, index) => overlaps[day]?.some(([i, j]) => i === index || j === index);
     
       const toggleEditSlot = async (day, index) => {

@@ -294,6 +294,10 @@ export default function TariffSetupCarVan() {
     const slot = rates[day][index];
     if (!slot) return;
 
+    // Show confirmation alert
+    const confirmed = window.confirm("Are you sure you want to delete this slot?");
+    if (!confirmed) return; // Exit if user clicks "No"
+
     // If the slot hasn't been saved yet (no ID), just remove locally
     if (!slot.id) {
       setRates(prev => ({
