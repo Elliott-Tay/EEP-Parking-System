@@ -12,6 +12,7 @@ const { authRouter } = require("./routes/auth");
 const systemConfigurationRoute = require("./routes/systemConfiguration")
 const imageRouter = require("./routes/image");
 const vccRouter = require("./routes/vcc");
+const authorisedCarsRouter = require("./routes/authorisedCars");
 const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
@@ -69,6 +70,9 @@ app.use("/api/image", imageRouter);
 
 // VCC route
 app.use("/api/vcc", vccRouter);
+
+// Authorised Cars route
+app.use("/api/authorized-cars", authorisedCarsRouter);
 
 // 404 handler for undefined routes
 app.use((req, res) => {

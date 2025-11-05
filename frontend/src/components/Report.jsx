@@ -49,7 +49,8 @@ export default function ReportPage() {
       items: [
         { name: "Public Holidays", href: "/config/holiday-setup" },
         { name: "Parking Tariffs", href: "/config/parking-tariff" },
-        { name: "Upload Tariff Image", href: "/config/tariff-image-upload" }
+        { name: "Upload Tariff Image", href: "/config/tariff-image-upload" },
+        { name: "Authorized Cars", href: "/config/authorized-cars"}
       ]
     },
 

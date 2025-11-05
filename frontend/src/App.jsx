@@ -36,6 +36,7 @@ function App() {
   const PublicHolidaySetup = lazy(() => import('./components/reports/systemConfiguration/holidaySetup'));
   const ParkingTariffConfiguration = lazy(() => import('./components/reports/systemConfiguration/parkingTariffSetup'));
   const SeasonHolderMaster = lazy(() => import('./components/reports/systemConfiguration/seasonMaster'));
+  const ConfigurationAuthorizedCars = lazy(() => import('./components/reports/systemConfiguration/authorisedCars'));
   const SeasonUpdate = lazy(() => import('./components/reports/systemConfiguration/seasonUpdate'));
   const MultipleSeasonRegister = lazy(() => import('./components/reports/systemConfiguration/multipleSeasonRegister'));
   const ChangeSeasonIU = lazy(() => import('./components/reports/systemConfiguration/changeSeasonNo'));
@@ -133,6 +134,7 @@ function App() {
     { path: "/config/change-season-no", element: <ChangeSeasonIU /> },
     { path: "/config/multiple-season-register", element: <MultipleSeasonRegister /> },
     { path: "/config/check-search-season", element: <SearchCheckSeason /> },
+    { path: "/config/authorized-cars", element: <ConfigurationAuthorizedCars />},
     { path: "/enquiry/movement-transaction", element: <MovementTransaction /> },
     { path: "/enquiry/entry-transaction", element: <EntryTransaction /> },
     { path: "/enquiry/exit-valid-transaction", element: <ExitValidTransaction /> },
