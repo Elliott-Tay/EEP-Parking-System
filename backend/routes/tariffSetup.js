@@ -29,8 +29,6 @@ router.get("/tariff-rates", async (req, res) => {
   }
 });
 
-
-// setup the new tariff
 // POST /tariff-setup
 router.post("/tariff-setup", async (req, res) => {
   const { effectiveStart, effectiveEnd, rates } = req.body;
@@ -39,7 +37,6 @@ router.post("/tariff-setup", async (req, res) => {
     return res.status(400).json({ error: "effectiveStart, effectiveEnd, and rates are required" });
   }
 
-  // Helper to truncate money to 2 decimals
   const truncate2 = (val) =>
     val !== null && val !== undefined ? Math.floor(val * 100) / 100 : null;
 
@@ -49,30 +46,31 @@ router.post("/tariff-setup", async (req, res) => {
     await transaction.begin();
 
     for (const [day, slots] of Object.entries(rates)) {
+      // Collect IDs sent from frontend
+      const sentIds = slots.filter(s => s.id).map(s => s.id);
+
+      if (sentIds.length) {
+        // Validate IDs are numeric to prevent injection
+        const safeIds = sentIds.filter(id => Number.isInteger(id));
+        if (safeIds.length) {
+          await new sql.Request(transaction)
+            .input("day_of_week", sql.NVarChar, day)
+            .input("effective_start", sql.Date, effectiveStart)
+            .input("effective_end", sql.Date, effectiveEnd)
+            .query(`
+              DELETE FROM TariffRates
+              WHERE day_of_week = @day_of_week
+                AND effective_start <= @effective_end
+                AND effective_end >= @effective_start
+                AND id NOT IN (${safeIds.join(",")})
+            `);
+        }
+      }
+
       for (const slot of slots) {
-        // Skip invalid slots
         if (!slot.vehicleType || !slot.from || !slot.to) continue;
 
-        // Delete any overlapping slots first
-        await new sql.Request(transaction)
-          .input("vehicle_type", sql.NVarChar, slot.vehicleType)
-          .input("day_of_week", sql.NVarChar, day)
-          .input("from_time", sql.VarChar, slot.from)
-          .input("to_time", sql.VarChar, slot.to)
-          .input("effective_start", sql.Date, effectiveStart)
-          .input("effective_end", sql.Date, effectiveEnd)
-          .query(`
-            DELETE FROM TariffRates
-            WHERE vehicle_type = @vehicle_type
-              AND day_of_week = @day_of_week
-              AND effective_start <= @effective_end
-              AND effective_end >= @effective_start
-              AND CONVERT(TIME, from_time) < @to_time
-              AND CONVERT(TIME, to_time) > @from_time
-          `);
-
-        // Insert the full slot payload
-        await new sql.Request(transaction)
+        const request = new sql.Request(transaction)
           .input("vehicle_type", sql.NVarChar, slot.vehicleType)
           .input("day_of_week", sql.NVarChar, day)
           .input("from_time", sql.VarChar, slot.from)
@@ -85,8 +83,29 @@ router.post("/tariff-setup", async (req, res) => {
           .input("min_charge", sql.Money, truncate2(slot.min))
           .input("max_charge", sql.Money, truncate2(slot.max))
           .input("effective_start", sql.Date, effectiveStart)
-          .input("effective_end", sql.Date, effectiveEnd)
-          .query(`
+          .input("effective_end", sql.Date, effectiveEnd);
+
+        if (slot.id) {
+          await request.input("id", sql.Int, slot.id)
+            .query(`
+              UPDATE TariffRates
+              SET vehicle_type = @vehicle_type,
+                  day_of_week = @day_of_week,
+                  from_time = @from_time,
+                  to_time = @to_time,
+                  rate_type = @rate_type,
+                  every = @every,
+                  min_fee = @min_fee,
+                  grace_time = @grace_time,
+                  first_min_fee = @first_min_fee,
+                  min_charge = @min_charge,
+                  max_charge = @max_charge,
+                  effective_start = @effective_start,
+                  effective_end = @effective_end
+              WHERE id = @id
+            `);
+        } else {
+          await request.query(`
             INSERT INTO TariffRates (
               vehicle_type, day_of_week, from_time, to_time, rate_type, every,
               min_fee, grace_time, first_min_fee, min_charge, max_charge,
@@ -95,8 +114,9 @@ router.post("/tariff-setup", async (req, res) => {
               @vehicle_type, @day_of_week, @from_time, @to_time, @rate_type, @every,
               @min_fee, @grace_time, @first_min_fee, @min_charge, @max_charge,
               @effective_start, @effective_end
-            );
+            )
           `);
+        }
       }
     }
 

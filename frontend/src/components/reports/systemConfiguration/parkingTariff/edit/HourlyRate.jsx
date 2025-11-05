@@ -1,362 +1,570 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { Home, Plus, Trash2 } from "lucide-react";
+import { DateTime } from "luxon";
 
-export default function HourlyRatesCRUD({ rateType = "Hourly" }) {
-  const [ratesData, setRatesData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [formData, setFormData] = useState({
-    vehicle: "",
-    dayOfWeek: "Monday",
-    from: "",
-    to: "",
-    rateType: rateType,
-    every: "",
-    minFee: 0,
-    graceTime: 0,
-    firstMinFee: 0,
-    min: 0,
-    max: 0,
-  });
-  const [editingId, setEditingId] = useState(null);
+export default function TariffSetupCarVan() {
+  const navigate = useNavigate();
 
+  const daysOfWeek = ["All day", "Mon-Fri", "Sat", "Sun", "PH"];
+  const numericFields = ["every", "minFee", "graceTime", "firstMinFee", "min", "max"];
+
+  const [rates, setRates] = useState(daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: [] }), {}));
+  const [rateTypeOptions, setRateTypeOptions] = useState([]);
+  const [effectiveStart, setEffectiveStart] = useState("");
+  const [effectiveEnd, setEffectiveEnd] = useState("");
+  const [overlaps, setOverlaps] = useState({});
+
+  // ---------- Helper functions ----------
+  const parseTimeSG = (timeStr) => (timeStr ? DateTime.fromISO(timeStr, { zone: "Asia/Singapore" }).toFormat("HH:mm") : "");
+
+  const getOverlaps = (slots) => {
+    const result = [];
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        if (
+          slots[i].vehicleType === slots[j].vehicleType &&  // check same vehicle type
+          slots[i].from < slots[j].to &&
+          slots[i].to > slots[j].from
+        ) {
+          result.push([i, j]);
+        }
+      }
+    }
+    return result;
+  };
+
+  const checkAllOverlaps = () => {
+    const allOverlaps = {};
+    let hasOverlap = false;
+    for (const [day, slots] of Object.entries(rates)) {
+      const dayOverlaps = getOverlaps(slots);
+      if (dayOverlaps.length) {
+        allOverlaps[day] = dayOverlaps;
+        hasOverlap = true;
+      }
+    }
+    setOverlaps(allOverlaps);
+    return hasOverlap;
+  };
+
+  // ---------- Fetch existing tariff ----------
   useEffect(() => {
-    fetchRates();
-  }, [rateType]);
+    const fetchTariff = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Hourly`, {
+          headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
+          credentials: "include",
+        });
+        if (!response.ok) throw new Error("Failed to fetch tariff");
+        const result = await response.json();
+        if (!result?.data?.length) return;
 
-  const fetchRates = async () => {
-    setLoading(true);
-    setError(null);
+        const allRates = result.data;
+
+        // Determine effective dates
+        const startDates = allRates.map(r => r.effective_start).filter(Boolean);
+        const endDates = allRates.map(r => r.effective_end).filter(Boolean);
+        setEffectiveStart(startDates.length ? DateTime.fromISO(startDates.sort()[0], { zone: "Asia/Singapore" }).toISODate() : "");
+        setEffectiveEnd(endDates.length ? DateTime.fromISO(endDates.sort().reverse()[0], { zone: "Asia/Singapore" }).toISODate() : "");
+
+        // Extract rate type options from fetched data
+        const dynamicRateTypes = Array.from(new Set(allRates.map(r => r.rate_type).filter(Boolean)));
+        setRateTypeOptions(dynamicRateTypes);
+
+        // Map rates to frontend
+        const newRates = daysOfWeek.reduce((acc, day) => ({ ...acc, [day]: [] }), {});
+        allRates.forEach(slot => {
+          const mapped = {
+            id: slot.id,                // <-- store DB primary key
+            vehicleType: slot.vehicle_type || "Car/Van",
+            from: parseTimeSG(slot.from_time),
+            to: parseTimeSG(slot.to_time),
+            rate_type: slot.rate_type || dynamicRateTypes[0] || "Hourly",
+            every: slot.every || 60,
+            minFee: slot.min_fee || 0,
+            graceTime: slot.grace_time || 0,
+            firstMinFee: slot.first_min_fee || 0,
+            min: slot.min_charge || 0,
+            max: slot.max_charge || 0,
+            contractClass: slot.rate_type || dynamicRateTypes[0] || "Hourly",
+          };
+          const label = slot.day_of_week;
+          if (!newRates[label]) newRates[label] = [];
+          newRates[label].push(mapped);
+        });
+
+        setRates(newRates);
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load tariff data");
+      }
+    };
+
+    fetchTariff();
+  }, []);
+
+  // ---------- Handlers ----------
+  const handleInputChange = (day, index, field, value) => {
+    setRates(prev => {
+      const updatedDay = [...prev[day]];
+      updatedDay[index][field] = numericFields.includes(field) ? Number(value) : value;
+      return { ...prev, [day]: updatedDay };
+    });
+  };
+
+  const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Hourly") => {
+    const newSlot = {
+      vehicleType,
+      from: "08:00",
+      to: "18:00",
+      rate_type: rateType,
+      contractClass: rateType,
+      every: 60,
+      minFee: 200,
+      graceTime: 15,
+      firstMinFee: 100,
+      min: 200,
+      max: 2000,
+    };
+
+    setRates(prev => ({
+      ...prev,
+      [day]: [...prev[day], newSlot],
+    }));
+  };
+
+  const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Hourly") => {
+    const newSlot = {
+      vehicleType,
+      from: "08:00",
+      to: "18:00",
+      rateType,          // <-- use consistent property
+      contractClass: rateType,
+      every: 60,
+      minFee: 200,
+      graceTime: 15,
+      firstMinFee: 100,
+      min: 200,
+      max: 2000,
+    };
+
+    setRates(prev => ({
+      ...prev,
+      [day]: [...prev[day], newSlot],
+    }));
+  };
+  
+    // ---------- Validate payload ----------
+  const validatePayload = () => {
+    for (const [day, slots] of Object.entries(rates)) {
+      const vehicleGroups = {};
+
+      // Group slots by vehicleType
+      slots.forEach((slot, i) => {
+        if (!vehicleGroups[slot.vehicleType]) vehicleGroups[slot.vehicleType] = [];
+        vehicleGroups[slot.vehicleType].push({ ...normalizeSlot(slot), index: i });
+      });
+
+      for (const [vehicle, vehicleSlots] of Object.entries(vehicleGroups)) {
+        for (let i = 0; i < vehicleSlots.length; i++) {
+          const s1 = vehicleSlots[i];
+
+          if (!s1.from || !s1.to) {
+            alert(`Please provide both 'from' and 'to' times for ${day}, ${vehicle}.`);
+            return false;
+          }
+
+          if (s1.toMinutes - s1.fromMinutes <= 0) {
+            alert(`For ${day}, ${vehicle}, 'From' must be earlier than 'To'.`);
+            return false;
+          }
+
+          // Check overlaps within same vehicle type
+          for (let j = i + 1; j < vehicleSlots.length; j++) {
+            const s2 = vehicleSlots[j];
+            if (s1.fromMinutes < s2.toMinutes && s1.toMinutes > s2.fromMinutes) {
+              alert(`Overlap detected for ${day}, ${vehicle} between slots ${i + 1} and ${j + 1}.`);
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    return true;
+  };
+
+  // ---------- Normalize time ----------
+  const normalizeTime = (timeStr) => {
+    if (!timeStr) return null;
+    const dt = DateTime.fromFormat(timeStr, "HH:mm");
+    return dt.toFormat("HH:mm");
+  };
+
+  // ---------- Normalize slot for calculations ----------
+  const timeToMinutes = (time) => {
+    const [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const normalizeSlot = (slot) => {
+    let from = timeToMinutes(slot.from);
+    let to = timeToMinutes(slot.to);
+    if (to <= from) to += 24 * 60; // handle overnight slots
+    return { ...slot, fromMinutes: from, toMinutes: to };
+  };
+
+  // ---------- Handle save ----------
+  const handleSave = async () => {
+    if (!validatePayload()) return;
+
+    const sanitizedRates = {};
+
+    Object.entries(rates).forEach(([day, slots]) => {
+      sanitizedRates[day] = slots.map(slot => ({
+        vehicleType: slot.vehicleType,        // take from slot
+        from: normalizeTime(slot.from),
+        to: normalizeTime(slot.to),
+        rateType: slot.rateType || slot.rate_type || "Hourly",
+        every: Number(slot.every),
+        minFee: Number(slot.minFee),
+        graceTime: Number(slot.graceTime),
+        firstMinFee: Number(slot.firstMinFee),
+        min: Number(slot.min),
+        max: Number(slot.max),
+      }));
+    });
+
+    const payload = {
+      effectiveStart: effectiveStart ? effectiveStart + "T00:00:00" : null,
+      effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59" : null,
+      rates: sanitizedRates,
+    };
+
     try {
-      const res = await axios.get(
-        `http://localhost:5000/api/tariff/tariff-setup?rateType=${rateType}`
-      );
-      console.log('data', res.data);
-      setRatesData(res.data || {});
-      setLoading(false);
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Rates saved successfully!");
+      } else {
+        console.error(data);
+        alert("Error: " + (data.error || "Unknown error"));
+      }
     } catch (err) {
       console.error(err);
-      setError("Failed to load rates.");
-      setLoading(false);
+      alert("Network error");
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        vehicle_type: formData.vehicle,
-        day_of_week: formData.dayOfWeek,
-        from_time: formData.from,
-        to_time: formData.to,
-        rate_type: formData.rateType,
-        every: formData.every,
-        min_fee: formData.minFee,
-        grace_time: formData.graceTime,
-        first_min_fee: formData.firstMinFee,
-        min_charge: formData.min,
-        max_charge: formData.max,
-      };
+  const handleSaveDay = async (day) => {
+    const slots = rates[day];
+    if (!slots || slots.length === 0) {
+      alert(`No slots to save for ${day}`);
+      return;
+    }
 
-      if (editingId) {
-        await axios.put(
-          `http://localhost:5000/api/tariff/tariff-setup/${editingId}`,
-          payload
-        );
+    // Validate required fields
+    const invalid = slots.some(s => !s.from || !s.to || !s.vehicleType);
+    if (invalid) {
+      alert(`Please fill all required fields for ${day}`);
+      return;
+    }
+
+    // Normalize slots for sending
+    const payloadSlots = slots.map(slot => ({
+      id: slot.id || null, // <-- keep DB ID if exists
+      vehicleType: slot.vehicleType,
+      from: normalizeTime(slot.from),
+      to: normalizeTime(slot.to),
+      rateType: slot.rate_type || slot.rateType || "Hourly",
+      every: Number(slot.every),
+      minFee: Number(slot.minFee),
+      graceTime: Number(slot.graceTime),
+      firstMinFee: Number(slot.firstMinFee),
+      min: Number(slot.min),
+      max: Number(slot.max),
+    }));
+
+    const payload = {
+      effectiveStart: effectiveStart ? effectiveStart + "T00:00:00" : null,
+      effectiveEnd: effectiveEnd ? effectiveEnd + "T23:59:59" : null,
+      rates: {
+        [day]: payloadSlots, // send all slots for that day
+      },
+    };
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(`Rates for ${day} saved successfully!`);
+        // Optional: update local slots with returned IDs if backend returns them
       } else {
-        await axios.post(
-          "http://localhost:5000/api/tariff/tariff-setup",
-          payload
-        );
+        console.error(data);
+        alert(`Error saving ${day}: ${data.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Network error while saving ${day}`);
+    }
+  };
+
+
+  const removeTimeSlot = async (day, index) => {
+    const slot = rates[day][index];
+    if (!slot) return;
+
+    // If the slot hasn't been saved yet (no ID), just remove locally
+    if (!slot.id) {
+      setRates(prev => ({
+        ...prev,
+        [day]: prev[day].filter((_, i) => i !== index),
+      }));
+      return;
+    }
+
+    const payload = { id: slot.id }; // <--- only send the ID
+
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-slot`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to delete slot");
       }
 
-      setFormData({
-        vehicle: "",
-        dayOfWeek: "Monday",
-        from: "",
-        to: "",
-        rateType: rateType,
-        every: "",
-        minFee: 0,
-        graceTime: 0,
-        firstMinFee: 0,
-        min: 0,
-        max: 0,
-      });
-      setEditingId(null);
-      fetchRates();
+      // Remove locally
+      setRates(prev => ({
+        ...prev,
+        [day]: prev[day].filter((_, i) => i !== index),
+      }));
+
+      alert("Slot deleted successfully!");
     } catch (err) {
-      console.error(err);
-      setError("Failed to save rate.");
+      console.error("Delete slot error:", err);
+      alert("Failed to delete slot: " + err.message);
     }
   };
 
-  const handleEdit = (day, rateIndex) => {
-    const rate = ratesData[day][rateIndex];
-    setFormData({
-      vehicle: rate.vehicle_type,
-      dayOfWeek: day,
-      from: rate.from,
-      to: rate.to,
-      rateType: rate.rateType,
-      every: rate.every || "",
-      minFee: rate.min_fee || 0,
-      graceTime: rate.grace_time || 0,
-      firstMinFee: rate.first_min_fee || 0,
-      min: rate.min_charge || 0,
-      max: rate.max_charge || 0,
+  const isSlotOverlapping = (day, index) => overlaps[day]?.some(([i, j]) => i === index || j === index);
+
+  const toggleEditSlot = async (day, index) => {
+    let slot = rates[day][index];
+
+    // Generate a random 4-digit ID if it doesn't exist
+    if (!slot.id) {
+      slot.id = Math.floor(1000 + Math.random() * 9000);
+      // Update state immediately so UI reflects new ID
+      setRates(prev => {
+        const updatedDay = [...prev[day]];
+        updatedDay[index] = { ...slot };
+        return { ...prev, [day]: updatedDay };
+      });
+    }
+
+    // If we are exiting edit mode, save to backend
+    if (slot.isEditing) {
+      try {
+        const payload = {
+          id: slot.id,
+          vehicleType: slot.vehicleType,
+          dayOfWeek: day,
+          fromTime: slot.from,
+          toTime: slot.to,
+          rateType: slot.rate_type || slot.rateType || "Hourly",
+          every: Number(slot.every) || 0,
+          minFee: Number(slot.minFee) || 0,
+          graceTime: Number(slot.graceTime) || 0,
+          firstMinFee: Number(slot.firstMinFee) || 0,
+          min: Number(slot.min) || 0,
+          max: Number(slot.max) || 0,
+          effectiveStart,
+          effectiveEnd
+        };
+
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-slot`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to update slot");
+
+        alert("Slot updated successfully!");
+      } catch (err) {
+        console.error("Edit slot error:", err);
+        alert("Failed to update slot: " + err.message);
+        return; // exit early without toggling edit mode
+      }
+    }
+
+    // Toggle editing mode
+    setRates(prev => {
+      const updatedDay = [...prev[day]];
+      updatedDay[index] = { ...slot, isEditing: !slot.isEditing };
+      return { ...prev, [day]: updatedDay };
     });
-    setEditingId(rate.id);
   };
 
-  const handleDelete = async (rate) => {
-    if (!window.confirm("Are you sure you want to delete this rate?")) return;
-
-    try {
-      await axios.delete("http://localhost:5000/api/tariff/tariff-slot", {
-        data: {
-          vehicleType: rate.vehicleType,
-          dayOfWeek: rate.day_of_week,
-          fromTime: rate.from,
-          toTime: rate.to,
-          effectiveStart: ratesData.effectiveStart,
-          effectiveEnd: ratesData.effectiveEnd,
-        },
-      });
-
-      fetchRates();
-    } catch (err) {
-      console.error(err);
-      setError("Failed to delete rate.");
-    }
-  };
-
-  if (loading) return <p>Loading rates...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
-
-  const { effectiveStart, effectiveEnd, ...days } = ratesData;
-
+  // ---------- Render ----------
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">{rateType} Rates CRUD</h1>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <h1 className="text-2xl font-bold mb-4">Tariff Setup for Hourly Rates</h1>
 
-      {/* Form Description */}
-      <div className="mb-4 p-4 border rounded bg-gray-50">
-        <h2 className="text-lg font-semibold mb-2">
-          {editingId ? "Editing Rate" : "Create New Rate"}
-        </h2>
-        <p className="text-gray-700 text-sm">
-          {editingId
-            ? `You are editing the ${formData.vehicle} rate for ${formData.dayOfWeek} from ${formData.from} to ${formData.to}.`
-            : "Fill out the fields below to create a new hourly rate. Specify the vehicle type, day, time range, rate, and other optional parameters like grace time and min/max charges."}
-        </p>
+      {/* Effective Dates */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <label>Effective Start Date</label>
+          <input type="date" className="border rounded p-2 w-full" value={effectiveStart} onChange={e => setEffectiveStart(e.target.value)} />
+        </div>
+        <div>
+          <label>Effective End Date</label>
+          <input type="date" className="border rounded p-2 w-full" value={effectiveEnd} onChange={e => setEffectiveEnd(e.target.value)} />
+        </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="mb-6 space-y-4 border p-4 rounded bg-gray-50">
-
-      {/* Vehicle Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
-        <p className="text-xs text-gray-500 mb-1">The type of vehicle this rate applies to (e.g., Car, Van, Motorcycle).</p>
-        <input
-          placeholder="Vehicle"
-          value={formData.vehicle}
-          onChange={(e) => setFormData({ ...formData, vehicle: e.target.value })}
-          className="border px-2 py-1 w-full"
-          required
-        />
-      </div>
-
-      {/* Day of Week */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Day of Week</label>
-        <p className="text-xs text-gray-500 mb-1">The day this rate applies to (e.g., Monday, Tuesday).</p>
-        <select
-          value={formData.dayOfWeek}
-          onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
-          className="border px-2 py-1 w-full"
-        >
-          {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(day => (
-            <option key={day} value={day}>{day}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Start Time */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Start Time</label>
-        <p className="text-xs text-gray-500 mb-1">The starting time for this rate.</p>
-        <input
-          type="time"
-          value={formData.from}
-          onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-          className="border px-2 py-1 w-full"
-          required
-        />
-      </div>
-
-      {/* End Time */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">End Time</label>
-        <p className="text-xs text-gray-500 mb-1">The ending time for this rate.</p>
-        <input
-          type="time"
-          value={formData.to}
-          onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-          className="border px-2 py-1 w-full"
-          required
-        />
-      </div>
-
-      {/* Rate Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Rate Type</label>
-        <input
-          type="text"
-          value={formData.rateType}
-          onChange={(e) => setFormData({ ...formData, rateType: e.target.value })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Every */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Every (minutes)</label>
-        <input
-          type="number"
-          value={formData.every}
-          onChange={(e) => setFormData({ ...formData, every: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Min Fee */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Min Fee</label>
-        <input
-          type="number"
-          value={formData.minFee}
-          onChange={(e) => setFormData({ ...formData, minFee: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Grace Time */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Grace Time (minutes)</label>
-        <input
-          type="number"
-          value={formData.graceTime}
-          onChange={(e) => setFormData({ ...formData, graceTime: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* First Min Fee */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">First Min Fee</label>
-        <input
-          type="number"
-          value={formData.firstMinFee}
-          onChange={(e) => setFormData({ ...formData, firstMinFee: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Min Charge */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Min Charge</label>
-        <input
-          type="number"
-          value={formData.min}
-          onChange={(e) => setFormData({ ...formData, min: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Max Charge */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Max Charge</label>
-        <input
-          type="number"
-          value={formData.max}
-          onChange={(e) => setFormData({ ...formData, max: Number(e.target.value) })}
-          className="border px-2 py-1 w-full"
-        />
-      </div>
-
-      {/* Submit Button */}
-      <div>
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          {editingId ? "Update" : "Create"}
-        </button>
-      </div>
-    </form>
-
-
-
-      {/* Tables */}
-      {Object.keys(days).map((day) => (
+      {/* Time Slots */}
+      {daysOfWeek.map(day => (
         <div key={day} className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">{day}</h2>
-          <table className="w-full border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border px-2 py-1">Vehicle</th>
-                <th className="border px-2 py-1">From</th>
-                <th className="border px-2 py-1">To</th>
-                <th className="border px-2 py-1">Rate Type</th>
-                <th className="border px-2 py-1">Every</th>
-                <th className="border px-2 py-1">Min Fee</th>
-                <th className="border px-2 py-1">Grace Time</th>
-                <th className="border px-2 py-1">First Min Fee</th>
-                <th className="border px-2 py-1">Min Charge</th>
-                <th className="border px-2 py-1">Max Charge</th>
-                <th className="border px-2 py-1">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(days[day]) && days[day].length > 0 ? (
-                days[day].map((rate, index) => (
-                  <tr key={rate.id || index}>
-                    <td className="border px-2 py-1">{rate.vehicleType}</td>
-                    <td className="border px-2 py-1">{rate.from}</td>
-                    <td className="border px-2 py-1">{rate.to}</td>
-                    <td className="border px-2 py-1">{rate.rateType}</td>
-                    <td className="border px-2 py-1">{rate.every}</td>
-                    <td className="border px-2 py-1">{rate.minFee}</td>
-                    <td className="border px-2 py-1">{rate.graceTime}</td>
-                    <td className="border px-2 py-1">{rate.firstMinFee}</td>
-                    <td className="border px-2 py-1">{rate.min}</td>
-                    <td className="border px-2 py-1">{rate.max}</td>
+          <h2 className="text-lg font-semibold mb-2">{day}</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-300">
+              <thead className="bg-gray-200">
+                <tr>
+                  {[
+                    "ID",
+                    "Vehicle Type",
+                    "From",
+                    "To",
+                    "Rate Type",
+                    "Charge Block (Every)",
+                    "Min Fee",
+                    "Grace Time",
+                    "First Min Fee",
+                    "Min",
+                    "Max",
+                    "Actions"
+                  ].map(th => <th key={th} className="border px-2 py-1">{th}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rates[day].map((slot, index) => (
+                  <tr key={index} className={`text-center ${isSlotOverlapping(day,index) ? "bg-red-100" : ""}`}>
+                    <td className="border px-2 py-1">{slot.id || "-"}</td>
                     <td className="border px-2 py-1">
+                      {slot.isEditing ? (
+                        <select
+                          value={slot.vehicleType}
+                          onChange={e => handleInputChange(day, index, "vehicleType", e.target.value)}
+                          className="border rounded p-1 w-full text-center"
+                        >
+                          <option value="Car/HGV">Car/HGV</option>
+                          <option value="MC">MC</option>
+                        </select>
+                      ) : (
+                        slot.vehicleType || "Car/HGV"
+                      )}
+                    </td>
+                                        <td className="border px-2 py-1">
+                      <input type="time" value={slot.from} onChange={e => handleInputChange(day,index,"from",e.target.value)} className="border rounded p-1 w-full text-center"/>
+                    </td>
+                    <td className="border px-2 py-1">
+                      <input type="time" value={slot.to} onChange={e => handleInputChange(day,index,"to",e.target.value)} className="border rounded p-1 w-full text-center"/>
+                    </td>
+                    <td className="border px-2 py-1">
+                      <select value={slot.rate_type} onChange={e => handleInputChange(day,index,"rate_type",e.target.value)} className="border rounded p-1 w-full text-center">
+                        {rateTypeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </td>
+                    {numericFields.map(field => (
+                      <td key={field} className="border px-2 py-1">
+                        <input type="number" value={slot[field]} onChange={e => handleInputChange(day,index,field,e.target.value)} className="border rounded p-1 w-full text-center"/>
+                      </td>
+                    ))}
+                    <td className="border px-2 py-1 flex justify-center gap-1">
+                      {/* Delete slot */}
                       <button
-                        className="text-blue-500 mr-2"
-                        onClick={() => handleEdit(day, index)}
+                        onClick={() => removeTimeSlot(day, index)}
+                        className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                       >
-                        Edit
+                        <Trash2 className="w-4 h-4" />
                       </button>
+
+                      {/* Edit / Save toggle */}
                       <button
-                        className="text-red-500"
-                        onClick={() => handleDelete(rate.id)}
+                        onClick={() => toggleEditSlot(day, index)}
+                        className={`px-2 py-1 rounded text-white ${
+                          rates[day][index].isEditing ? "bg-blue-500 hover:bg-blue-600" : "bg-yellow-500 hover:bg-yellow-600"
+                        }`}
                       >
-                        Delete
+                        {rates[day][index].isEditing ? "Save" : "Edit"}
                       </button>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="11" className="text-center py-2">
-                    No rates for this day
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => addCarTimeSlot(day)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Add Car/HGV Slot
+              </button>
+              <button
+                onClick={() => addMCycleTimeSlot(day)}
+                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Add MCycle Slot
+              </button>
+              <button
+                onClick={() => handleSaveDay(day)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Save {day}
+              </button>
+            </div>
+          </div>
         </div>
       ))}
+
+      {/* Save / Home */}
+      <div className="mt-6 flex justify-center gap-4">
+        <button
+          onClick={handleSave}
+          className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          Save
+        </button>
+        <button
+          onClick={() => navigate("/")}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Home className="w-5 h-5 inline mr-2" /> Home
+        </button>
+      </div>
     </div>
   );
 }

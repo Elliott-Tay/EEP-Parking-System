@@ -78,7 +78,7 @@ function App() {
   const ViewLogLogin = lazy(() => import('./components/systemMaintenance/viewLog'));
 
   // Lazy Load Edit Tariff
-  const TariffSetupCarVan = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariff'));
+  const TariffSetupCarVan = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRate'));
   const TariffSetupLorry = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariff'));
   const TariffSetupMotorcycle = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariff'));
   const TariffSetupDaySeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeason'));
