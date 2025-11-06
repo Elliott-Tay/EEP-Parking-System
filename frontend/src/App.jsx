@@ -85,6 +85,13 @@ function App() {
   const TariffSetupDaySeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeason'));
   const TariffSetupNightSeason = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeason'));
   const TariffSetupURAStaff = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/URAStaffTariff'));
+  const TariffSetupCSPT = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CSPTTariff'));
+  const TariffSetupBlock1 = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block1Tariff'));
+  const TariffSetupBlock2 = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block2Tariff'));
+  const TariffSetupBlock3 = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block3Tariff'));
+  const TariffSetupAuthorized = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/authorized'));
+  const TariffSetupStaffTypeA = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateA'));
+  const TariffSetupStaffTypeB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateB'));
   const TariffSetupCarVanB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariffB'));
   const TariffSetupLorryB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariffB'));
   const TariffSetupMotorcycleB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariffB'));
@@ -178,6 +185,13 @@ function App() {
     { path: "/tariff/edit/day-season", element: <TariffSetupDaySeason /> },
     { path: "/tariff/edit/night-season", element: <TariffSetupNightSeason /> },
     { path: "/tariff/edit/URA-staff", element: <TariffSetupURAStaff /> },
+    { path: "/tariff/edit/CSPT", element: <TariffSetupCSPT /> },
+    { path: "/tariff/edit/Block-1", element: <TariffSetupBlock1 /> },
+    { path: "/tariff/edit/Block-2", element: <TariffSetupBlock2 /> },
+    { path: "/tariff/edit/Block-3", element: <TariffSetupBlock3 /> },
+    { path: "/tariff/edit/authorized", element: <TariffSetupAuthorized /> },
+    { path: "/tariff/edit/staff-a", element: <TariffSetupStaffTypeA /> },
+    { path: "/tariff/edit/staff-b", element: <TariffSetupStaffTypeB /> },
     { path: "/tariff/edit/hourly-rates", element: <HourlyRate/> },
     { path: "/tariff/edit/car-van-b", element: <TariffSetupCarVanB /> },
     { path: "/tariff/edit/lorry-b", element: <TariffSetupLorryB /> },
