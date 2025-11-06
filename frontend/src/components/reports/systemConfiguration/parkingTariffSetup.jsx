@@ -71,11 +71,14 @@ export default function ParkingTariffConfiguration() {
     { name: "Tariff setup for Authorized", path: "/tariff/edit/authorized" },
     { name: "Tariff setup for Staff Estate (Type A)", path: "/tariff/edit/staff-a" },
     { name: "Tariff setup for Staff Estate (Type B)", path: "/tariff/edit/staff-b" },
-    { name: "Tariff setup for Car/Van (B)", path: "/tariff/edit/car-van-b" },
-    { name: "Tariff setup for Lorry (B)", path: "/tariff/edit/lorry-b" },
-    { name: "Tariff setup for M/Cycle (B)", path: "/tariff/edit/mcycle-b" },
+    { name: "Tariff setup for Hourly (B)", path: "/tariff/edit/car-van-b" },
+    { name: "Tariff setup for Season (B)", path: "/tariff/edit/lorry-b" },
+    { name: "Tariff setup for Special (B)", path: "/tariff/edit/mcycle-b" },
     { name: "Tariff setup for Day Season (B)", path: "/tariff/edit/day-season-b" },
     { name: "Tariff setup for Night Season (B)", path: "/tariff/edit/night-season-b" },
+    { name: "Tariff setup for URA Staff (B)", path: "/tariff/edit/URA-staff-b" },
+    { name: "Tariff setup for CSPT (B)", path: "/tariff/edit/CSPT-b" },
+    { name: "Tariff setup for Block 1 (B)", path: "/tariff/edit/block-1-b" },
   ];
 
   const TariffCard = ({ item, index, isEditMode = false }) => {

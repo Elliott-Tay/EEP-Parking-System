@@ -92,11 +92,14 @@ function App() {
   const TariffSetupAuthorized = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/authorized'));
   const TariffSetupStaffTypeA = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateA'));
   const TariffSetupStaffTypeB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateB'));
-  const TariffSetupCarVanB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CVTariffB'));
-  const TariffSetupLorryB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/LorryTariffB'));
-  const TariffSetupMotorcycleB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/MCycleTariffB'));
+  const TariffSetupHourlyB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariffB'));
+  const TariffSetupSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SeasonRateTariffB'));
+  const TariffSetupSpecialB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SpecialRateTariffB'));
   const TariffSetupDaySeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/daySeasonB'));
   const TariffSetupNightSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/nightSeasonB'));
+  const TariffSetupURAStaffB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/URAStaffTariffB'));
+  const TariffSetupCSPTB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CSPTTariffB'));
+  const TariffSetupBlock1B = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block1TariffB'));
 
   const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariff'));
 
@@ -193,11 +196,14 @@ function App() {
     { path: "/tariff/edit/staff-a", element: <TariffSetupStaffTypeA /> },
     { path: "/tariff/edit/staff-b", element: <TariffSetupStaffTypeB /> },
     { path: "/tariff/edit/hourly-rates", element: <HourlyRate/> },
-    { path: "/tariff/edit/car-van-b", element: <TariffSetupCarVanB /> },
-    { path: "/tariff/edit/lorry-b", element: <TariffSetupLorryB /> },
-    { path: "/tariff/edit/mcycle-b", element: <TariffSetupMotorcycleB /> },
+    { path: "/tariff/edit/car-van-b", element: <TariffSetupHourlyB /> },
+    { path: "/tariff/edit/lorry-b", element: <TariffSetupSeasonB /> },
+    { path: "/tariff/edit/mcycle-b", element: <TariffSetupSpecialB /> },
     { path: "/tariff/edit/day-season-b", element: <TariffSetupDaySeasonB /> },
     { path: "/tariff/edit/night-season-b", element: <TariffSetupNightSeasonB /> },
+    { path: "/tariff/edit/URA-staff-b", element: <TariffSetupURAStaffB /> },
+    { path: "/tariff/edit/CSPT-b", element: <TariffSetupCSPTB /> },
+    { path: "/tariff/edit/block-1-b", element: <TariffSetupBlock1B /> },
     { path: "/tariff/view/car-van", element: <TariffSetupCarVanView /> },
     { path: "/tariff/view/lorry", element: <TariffSetupLorryView /> },
     { path: "/tariff/view/mcycle", element: <TariffSetupMotorcycleView /> },
