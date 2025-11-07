@@ -14,7 +14,7 @@ export default function TariffSetupCarVanBView() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Car/Van`,
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Car/HGV`,
           {
             headers: {
               "Content-Type": "application/json",

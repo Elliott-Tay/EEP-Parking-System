@@ -47,7 +47,7 @@ export default function ParkingTariffConfiguration() {
   const viewOnlyTariffs = [
     { name: "Tariff setup for Hourly", path: "/tariff/view/car-van" },
     { name: "Tariff setup for Season", path: "/tariff/view/lorry" },
-    { name: "Tariff setup for M/Cycle", path: "/tariff/view/mcycle" },
+    { name: "Tariff setup for Special", path: "/tariff/view/mcycle" },
     { name: "Tariff setup for Day Season", path: "/tariff/view/day-season" },
     { name: "Tariff setup for Night Season", path: "/tariff/view/night-season" },
     { name: "Tariff setup for Car/Van (B)", path: "/tariff/view/car-van-b" },
@@ -79,6 +79,11 @@ export default function ParkingTariffConfiguration() {
     { name: "Tariff setup for URA Staff (B)", path: "/tariff/edit/URA-staff-b" },
     { name: "Tariff setup for CSPT (B)", path: "/tariff/edit/CSPT-b" },
     { name: "Tariff setup for Block 1 (B)", path: "/tariff/edit/block-1-b" },
+    { name: "Tariff setup for Block 2 (B)", path: "/tariff/edit/block-2-b" },
+    { name: "Tariff setup for Block 3 (B)", path: "/tariff/edit/block-3-b" },
+    { name: "Tariff setup for Authorized (B)", path: "/tariff/edit/authorized-b" },
+    { name: "Tariff setup for Staff Estate (Type A) (B)", path: "/tariff/edit/staff-a-b" },
+    { name: "Tariff setup for Staff Estate (Type B) (B)", path: "/tariff/edit/staff-b-b" },
   ];
 
   const TariffCard = ({ item, index, isEditMode = false }) => {

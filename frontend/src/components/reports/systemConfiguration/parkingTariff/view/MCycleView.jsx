@@ -14,7 +14,7 @@ export default function TariffSetupMCycleView() {
       try {
         const token = localStorage.getItem("token");
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-setup?vehicleType=Motorcycle`,
+          `${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Special`,
           {
             headers: {
               "Content-Type": "application/json",

@@ -100,6 +100,11 @@ function App() {
   const TariffSetupURAStaffB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/URAStaffTariffB'));
   const TariffSetupCSPTB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/CSPTTariffB'));
   const TariffSetupBlock1B = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block1TariffB'));
+  const TariffSetupBlock2B = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block2TariffB'));
+  const TariffSetupBlock3B = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/Block3TariffB'));
+  const TariffSetupAuthorizedB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/authorizedB'));
+  const TariffSetupStaffEstateAB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateA(B)'));
+  const TariffSetupStaffEstateBB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateB(B)'));
 
   const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariff'));
 
@@ -204,6 +209,11 @@ function App() {
     { path: "/tariff/edit/URA-staff-b", element: <TariffSetupURAStaffB /> },
     { path: "/tariff/edit/CSPT-b", element: <TariffSetupCSPTB /> },
     { path: "/tariff/edit/block-1-b", element: <TariffSetupBlock1B /> },
+    { path: "/tariff/edit/block-2-b", element: <TariffSetupBlock2B /> },
+    { path: "/tariff/edit/block-3-b", element: <TariffSetupBlock3B /> },
+    { path: "/tariff/edit/authorized-b", element: <TariffSetupAuthorizedB /> },
+    { path: "/tariff/edit/staff-a-b", element: <TariffSetupStaffEstateAB /> },
+    { path: "/tariff/edit/staff-b-b", element: <TariffSetupStaffEstateBB /> },
     { path: "/tariff/view/car-van", element: <TariffSetupCarVanView /> },
     { path: "/tariff/view/lorry", element: <TariffSetupLorryView /> },
     { path: "/tariff/view/mcycle", element: <TariffSetupMotorcycleView /> },
