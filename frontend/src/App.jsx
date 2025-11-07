@@ -108,18 +108,6 @@ function App() {
 
   const HourlyRate = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariff'));
 
-  // Lazy Load View Tariff
-  const TariffSetupCarVanView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffView'));
-  const TariffSetupLorryView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/LorryTariffView'));
-  const TariffSetupMotorcycleView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/MCycleView'));
-  const TariffSetupDaySeasonView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/daySeasonView'));
-  const TariffSetupNightSeasonView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/nightSeasonView'));
-  const TariffSetupCarVanBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/CVTariffBView'));
-  const TariffSetupLorryBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/LorryTariffBView'));
-  const TariffSetupMotorcycleBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/MCycleBView'));
-  const TariffSetupDaySeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/daySeasonBView'));
-  const TariffSetupNightSeasonBView = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/view/nightSeasonBView'));
-
   const TariffImageUpload = lazy(() => import('./components/reports/systemConfiguration/tariffImageUpload'));
 
   const protectedRoutes = [
@@ -214,16 +202,6 @@ function App() {
     { path: "/tariff/edit/authorized-b", element: <TariffSetupAuthorizedB /> },
     { path: "/tariff/edit/staff-a-b", element: <TariffSetupStaffEstateAB /> },
     { path: "/tariff/edit/staff-b-b", element: <TariffSetupStaffEstateBB /> },
-    { path: "/tariff/view/car-van", element: <TariffSetupCarVanView /> },
-    { path: "/tariff/view/lorry", element: <TariffSetupLorryView /> },
-    { path: "/tariff/view/mcycle", element: <TariffSetupMotorcycleView /> },
-    { path: "/tariff/view/day-season", element: <TariffSetupDaySeasonView /> },
-    { path: "/tariff/view/night-season", element: <TariffSetupNightSeasonView /> },
-    { path: "/tariff/view/car-van-b", element: <TariffSetupCarVanBView /> },
-    { path: "/tariff/view/lorry-b", element: <TariffSetupLorryBView /> },
-    { path: "/tariff/view/mcycle-b", element: <TariffSetupMotorcycleBView /> },
-    { path: "/tariff/view/day-season-b", element: <TariffSetupDaySeasonBView /> },
-    { path: "/tariff/view/night-season-b", element: <TariffSetupNightSeasonBView /> },
   ];
 
   return (
