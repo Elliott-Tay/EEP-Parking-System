@@ -109,6 +109,7 @@ router.post("/season-holder", async (req, res) => {
     serial_no,
     season_no,
     vehicle_no,
+    rate_type,
     season_type,
     holder_type,
     holder_name,
@@ -122,7 +123,7 @@ router.post("/season-holder", async (req, res) => {
   } = req.body;
 
   // Validate required fields
-  if (!serial_no || !season_no || !vehicle_no || !season_type || !holder_type || !holder_name || !season_status || !valid_from || !valid_to) {
+  if (!serial_no || !season_no || !vehicle_no || !rate_type || !season_type || !holder_type || !holder_name || !season_status || !valid_from || !valid_to) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -131,29 +132,31 @@ router.post("/season-holder", async (req, res) => {
 
     const query = `
       INSERT INTO SeasonHolders
-      (serial_no, season_no, vehicle_no, season_type, holder_type, holder_name, company, season_status, address, valid_from, valid_to, employee_no, telephone, created_at, updated_at)
+      (serial_no, season_no, vehicle_no, rate_type, season_type, holder_type, holder_name, company, season_status, address, valid_from, valid_to, employee_no, telephone, created_at, updated_at)
       VALUES
-      (@serial_no, @season_no, @vehicle_no, @season_type, @holder_type, @holder_name, @company, @season_status, @address, @valid_from, @valid_to, @employee_no, @telephone, GETDATE(), GETDATE())
+      (@serial_no, @season_no, @vehicle_no, @rate_type, @season_type, @holder_type, @holder_name, @company, @season_status, @address, @valid_from, @valid_to, @employee_no, @telephone, GETDATE(), GETDATE())
     `;
 
     const request = pool.request()
       .input("serial_no", sql.NVarChar, serial_no)
       .input("season_no", sql.NVarChar, season_no)
       .input("vehicle_no", sql.NVarChar, vehicle_no)
-      .input("season_type", sql.NVarChar, season_type)
-      .input("holder_type", sql.NVarChar, holder_type)
-      .input("holder_name", sql.NVarChar, holder_name)
-      .input("company", sql.NVarChar, company || null)
-      .input("season_status", sql.NVarChar, season_status)
-      .input("address", sql.NVarChar, address || null)
-      .input("valid_from", sql.Date, valid_from)
-      .input("valid_to", sql.Date, valid_to)
-      .input("employee_no", sql.NVarChar, employee_no || null)
-      .input("telephone", sql.NVarChar, telephone || null);
+      .input("rate_type", sql.NVarChar(50), rate_type)
+      .input("serial_no", sql.NVarChar(50), serial_no)
+      .input("season_no", sql.NVarChar(50), season_no)
+      .input("vehicle_no", sql.NVarChar(50), vehicle_no)
+      .input("season_type", sql.NVarChar(50), season_type)
+      .input("holder_type", sql.NVarChar(50), holder_type)
+      .input("holder_name", sql.NVarChar(100), holder_name)
+      .input("company", sql.NVarChar(100), company || null)
+      .input("season_status", sql.NVarChar(20), season_status)
+      .input("address", sql.NVarChar(200), address || null)
+      .input("employee_no", sql.NVarChar(50), employee_no || null)
+      .input("telephone", sql.NVarChar(50), telephone || null)
 
-    const result = await request.query(query);
+      const result = await request.query(query);
 
-    console.log("Insert result:", result);
+      console.log("Insert result:", result);
 
     res.json({ message: "Season holder saved successfully!" });
   } catch (err) {
