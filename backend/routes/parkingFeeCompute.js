@@ -180,7 +180,7 @@ class ParkingFeeComputer {
         }
         
         // --- 2. Fixed/Flat Rate Override Check (Handles Season, CSPT, Day Season) ---
-        const fixedRateTypes = ['season', 'day season', 'cspt', 'block3'];
+        const fixedRateTypes = ['season', 'day season', 'cspt', 'block3', 'authorized'];
         
         if (fixedRateTypes.includes(requestedRateType)) {
             // Find the fixed rate model matching the vehicle, day, and rate type.

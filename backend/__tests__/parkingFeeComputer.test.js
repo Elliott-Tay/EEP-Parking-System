@@ -1,35 +1,39 @@
+const auth = require('../routes/auth');
 const { ParkingFeeComputer } = require('../routes/parkingFeeCompute'); 
 // NOTE: Assuming 'parkingFeeCompute.js' is in the '../routes/' directory. 
 // Change this path if needed for your environment.
 
 // --- Test Data Setup ---
 const feeModels = [
-    // 0. Car/HGV – Daytime (7:00am - 10:30pm, $0.60 / 30 mins)
+    // Car/HGV – Daytime (7:00am - 10:30pm, $0.60 / 30 mins)
     { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Hourly", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    // 1. Car/HGV – Nighttime (10:30pm - 7:00am, $2.00 / 30 mins)
+    // Car/HGV – Nighttime (10:30pm - 7:00am, $2.00 / 30 mins)
     { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Hourly", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    // 2. MC – Daytime (7:00am - 10:30pm, $0.30 / 30 mins)
+    // MC – Daytime (7:00am - 10:30pm, $0.30 / 30 mins)
     { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Hourly", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
-    // 3. MC – Nighttime (10:30pm - 7:00am, $1.00 / 30 mins)
+    // MC – Nighttime (10:30pm - 7:00am, $1.00 / 30 mins)
     { vehicle_type: "MC", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Hourly", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    // 4. Public Holiday (Car/HGV, $3/hr) - Hourly Rule
+    // Public Holiday (Car/HGV, $3/hr)
     { vehicle_type: "Car/HGV", day_of_week: "PH", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 3.00, grace_time: 15, min_charge: null, max_charge: null },
-    // 5. Seasonal Rule (Car/HGV/MC, Mon-Fri, FREE) - Rate Type: Season
+    // Seasonal Rule (Car/HGV/MC, Mon-Fri, FREE) - Rate Type: Season
     { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Season", every: 60, min_fee: 0.00, grace_time: 15, min_charge: 0, max_charge: 0 },
-    // 6. Hourly Fallback Rule (Car/HGV/MC, Mon-Fri, $1.00/hr) - Rate Type: Hourly
+    // Hourly Fallback Rule (Car/HGV/MC, Mon-Fri, $1.00/hr) - Rate Type: Hourly
     { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1.00, grace_time: 15, min_charge: 0, max_charge: 0 },
-    // 7. Day Season (Daytime: 7:00am - 10:30pm, Free) - Rate Type: Day Season
+    // Day Season (Daytime: 7:00am - 10:30pm, Free) - Rate Type: Day Season
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Day Season", every: 1, min_fee: 0, grace_time: 15, min_charge: null, max_charge: null },
-    // 8. Day Season (Nighttime: 10:30pm - 7:00am, $2) - Rate Type: Day Season
+    // Day Season (Nighttime: 10:30pm - 7:00am, $2) - Rate Type: Day Season
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Day Season", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    // 9. CSPT – MC (All day, Free) - Rate Type: CSPT
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "CSPT", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    // 10. Block3 – Car/MC/HGV (All day, Free) - Rate Type: Block3
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Block3", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    // CSPT – MC (All day, Free) - Rate Type: CSPT
+    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "CSPT", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+    // Block3 – Car/MC/HGV (All day, Free) - Rate Type: Block3
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Block3", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+    // Authorized – Car/MC/HGV (All day, Free) - Rate Type: Authorized
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Authorized", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
 ];
 
+
 const publicHolidays = ["2025-10-20T00:00:00"]; // Monday, Oct 20th, 2025
-const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block3: "Block3", daySeason: "Day Season" };
+const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block3: "Block3", daySeason: "Day Season", authorized: "Authorized" };
 const standardVehicle = "Car/HGV";
 const mcVehicle = "MC";
 const comboVehicle = "Car/HGV/MC";
@@ -196,23 +200,39 @@ describe('Block 1: Standard Hourly & Fixed Rate Logic (Hourly, Season, CSPT)', (
 // --- BLOCK 2: NEW TESTS FOR BLOCK3 AND DAY SEASON RATE TYPES ---
 // ----------------------------------------------------------------------------------
 
-describe('Block 2: Block3 Rate Logic', () => {
+describe('Block 2: Block3 Rate and Authorized Logic (Expanded)', () => {
 
+    // Existing Tests (Reference points 9.1 - 9.3)
+    
     // --- 9. Block3 Tests (Fixed Free Rate) ---
 
-    test('9.1: Car/HGV should be FREE (0.00) for Block3 rate on a short weekday stay', () => {
-        const entry = "2025-10-27T10:00:00";
-        const exit = "2025-10-27T11:30:00"; // 90 minutes
+    // 9.4: Stress test a long duration that would normally trigger a daily max fee.
+    test('9.4: Car should be FREE (0.00) for Block3 rate even on a 25-hour stay across two calendar days', () => {
+        // This duration (25 hours) would typically hit two daily caps or a high hourly total.
+        const entry = "2025-10-27T20:00:00"; // Monday night
+        const exit = "2025-10-28T21:00:00"; // Tuesday night
         const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
-        // Block3 rule is an all-day, fixed $0.00 fee.
+        // The fixed Block3 rate must override all standard time calculations.
         expect(computer.computeParkingFee(standardVehicle, 'Block3')).toBe(0.00);
     });
+    
+    // --- 10. Authorized Rate Tests (Fixed Free Rate) ---
 
-    test('9.2: MC should be FREE (0.00) for Block3 rate on a Public Holiday stay', () => {
-        const entry = "2025-10-20T10:00:00"; // Public Holiday
-        const exit = "2025-10-20T12:00:00"; // 120 minutes
+    // 10.1: Stress test the Authorized rate over a full weekend, crossing DOW/Public Holiday boundaries.
+    test('10.1: Car should be FREE (0.00) for Authorized rate on a long weekend stay (Friday to Monday)', () => {
+        const entry = "2025-10-24T18:00:00"; // Friday evening
+        const exit = "2025-10-27T09:00:00"; // Monday morning (63 hours)
         const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
-        // Fixed rate rules should apply regardless of PH/DOW if they are "All day".
-        expect(computer.computeParkingFee(mcVehicle, 'Block3')).toBe(0.00);
+        // Authorized status must hold for the entire duration, regardless of DOW rate changes.
+        expect(computer.computeParkingFee(standardVehicle, 'Authorized')).toBe(0.00);
     });
-  });
+
+    // 10.2: Ensure the Authorized rate handles a midnight crossover correctly.
+    test('10.2: MC should be FREE (0.00) for Authorized rate crossing midnight (High-Rate Day to Low-Rate Day)', () => {
+        const entry = "2025-10-28T23:30:00";
+        const exit = "2025-10-29T00:30:00"; // Crossover
+        const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+        // Even if the rate model changes at 00:00, the Authorized override remains $0.00.
+        expect(computer.computeParkingFee(mcVehicle, 'Authorized')).toBe(0.00);
+    });
+});
