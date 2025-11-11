@@ -1,254 +1,270 @@
 class ParkingFeeComputer {
-  constructor(entryDateTime, exitDateTime, feeModels, publicHolidays = []) {
-    this.entryDateTime = new Date(entryDateTime);
-    this.exitDateTime = new Date(exitDateTime);
-    
-    // ⭐ NEW STEP: Expand day ranges into individual days
-    this.feeModels = this.expandFeeModels(feeModels);
-    
-    // Normalize public holidays to LOCAL YYYY-MM-DD string for consistent lookup.
-    this.publicHolidays = publicHolidays.map(d => this.getLocalISODate(new Date(d)));
-  }
+    constructor(entryDateTime, exitDateTime, feeModels, rate_types, publicHolidays = []) {
+        this.entryDateTime = new Date(entryDateTime);
+        this.exitDateTime = new Date(exitDateTime);
 
-  // ⭐ NEW HELPER: To expand day ranges (like "Mon-Fri") into individual day entries.
-  expandFeeModels(feeModels) {
-    // Maps short names to their index (0=Sun, 6=Sat) for range checking
-    const dayIndices = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
-    const indexToDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const expandedModels = [];
+        // Store and normalize the rate type map (minimal use here, but kept for robustness)
+        this.rateTypes = {};
+        if (rate_types && typeof rate_types === 'object') {
+            for (const key in rate_types) {
+                // Ensure rate_types (e.g., "hourly") are mapped to the correct value (e.g., "Hourly")
+                this.rateTypes[key] = String(rate_types[key]).toLowerCase();
+            }
+        }
+        
+        // Expand day ranges ('All day') into individual days
+        this.feeModels = this.expandFeeModels(feeModels);
+        
+        // Normalize public holidays to LOCAL YYYY-MM-DD string for consistent lookup.
+        this.publicHolidays = publicHolidays.map(d => this.getLocalISODate(new Date(d)));
+    }
 
-    for (const model of feeModels) {
-      const dayRange = model.day_of_week;
-      const parts = dayRange.split('-');
+    /**
+     * Expands fee models with day ranges (like "All day" or "Mon-Fri") into individual day models.
+     */
+    expandFeeModels(feeModels) {
+        const dayIndices = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+        const indexToDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const expandedModels = [];
 
-      if (parts.length === 2) {
-        // Handle range, e.g., "Mon-Fri" or "Mon-Wed"
-        const startDay = parts[0];
-        const endDay = parts[1];
-        const startIndex = dayIndices[startDay];
-        let endIndex = dayIndices[endDay];
-        
-        // Handle wrap-around ranges like "Fri-Mon" if needed, but for Mon-Fri/Sat-Sun this is sufficient
-        if (startIndex === undefined || endIndex === undefined) {
-             expandedModels.push(model); // Keep invalid/unrecognized range as is
-             continue;
-        }
+        for (const model of feeModels) {
+            const dayRange = model.day_of_week;
 
-        // Adjust for wrap-around days if needed (e.g., Sat-Sun is handled fine if order is correct)
-        if (startIndex > endIndex) {
-          endIndex += 7; // Treat range as wrapping over the week boundary
-        }
+            if (dayRange === "All day") {
+                // Expand "All day" to Mon-Sun
+                for (let i = 0; i < 7; i++) {
+                    const day = indexToDay[i];
+                    expandedModels.push({ ...model, day_of_week: day });
+                }
+            } else if (dayRange.includes('-')) {
+                // Handle complex day ranges (e.g., Mon-Fri)
+                const parts = dayRange.split('-');
+                const startIndex = dayIndices[parts[0]];
+                let endIndex = dayIndices[parts[1]];
 
-        for (let i = startIndex; i <= endIndex; i++) {
-          const dayIndex = i % 7;
-          const day = indexToDay[dayIndex];
-          // Create a new model for each specific day
-          expandedModels.push({ ...model, day_of_week: day });
-        }
-      } else {
-        // Keep single-day ("Mon", "Sat", "PH") entries as is
-        expandedModels.push(model);
-      }
-    }
-    return expandedModels;
-  }
-  
-  // Helper to format date object into YYYY-MM-DD string using LOCAL time.
-  getLocalISODate(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+                if (startIndex !== undefined && endIndex !== undefined) {
+                    if (startIndex > endIndex) {
+                        endIndex += 7; 
+                    }
+                    for (let i = startIndex; i <= endIndex; i++) {
+                        const dayIndex = i % 7;
+                        const day = indexToDay[dayIndex];
+                        expandedModels.push({ ...model, day_of_week: day });
+                    }
+                } else {
+                    expandedModels.push(model); 
+                }
+            } else {
+                // Add single day or "PH" models directly
+                expandedModels.push(model);
+            }
+        }
+        return expandedModels;
+    }
+    
+    /**
+     * Returns the local date string (YYYY-MM-DD) for a Date object.
+     */
+    getLocalISODate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-  // Helper to add time (HH:MM:SS) to a date object (for block boundaries)
-  addTime(date, timeStr) {
-    const [hour, minute] = timeStr.split(":").map(Number);
-    const newDate = new Date(date);
-    // Set hours and minutes using local methods to align with currentDay's local midnight start
-    newDate.setHours(hour, minute, 0, 0);
-    return newDate;
-  }
+    /**
+     * Creates a new Date object at the start of a day and sets its time.
+     */
+    addTime(date, timeStr) {
+        const [hour, minute] = timeStr.split(":").map(Number);
+        // Start from the beginning of the day of the provided date
+        const newDate = new Date(date);
+        newDate.setHours(hour, minute, 0, 0);
+        return newDate;
+    }
 
-  isHourlyRate(rateType) {
-    return rateType?.toLowerCase() === "hourly";
-  }
+    /**
+     * Checks if a model's rate_type matches a semantic name (simplified for hourly focus).
+     */
+    isRateType(rateType, semanticName) {
+        if (!rateType || !semanticName) return false;
+        // In this hourly focus, we only care if it's "Hourly" (case-insensitive)
+        return rateType.toLowerCase().replace(/[\s_]/g, '') === semanticName;
+    }
 
-  isFixedCharge(rateType) {
-    return rateType?.toLowerCase() === "fixed_charge";
-  }
 
-  computeParkingFee(vehicleType) {
-    const totalDurationMinutes = (this.exitDateTime.getTime() - this.entryDateTime.getTime()) / 60000;
-    
-    // Safety check for entry after exit
-    if (totalDurationMinutes <= 0) return 0;
+    computeParkingFee(vehicleType) {
+        const totalDurationMinutes = (this.exitDateTime.getTime() - this.entryDateTime.getTime()) / 60000;
+        
+        if (totalDurationMinutes <= 0) return 0.00;
 
-    // --- 1. Initial Grace Time Setup and Short-Circuit ---
-    const entryDate = new Date(this.entryDateTime);
-    const entryDayStr = this.getLocalISODate(entryDate);
-    const entryDayOfWeek = this.publicHolidays.includes(entryDayStr) ? "PH" : entryDate.toLocaleString("en-US", { weekday: "short" });
+        let totalFee = 0;
+        let currentDay = new Date(this.entryDateTime);
+        currentDay.setHours(0, 0, 0, 0);
 
-    // Filter models specifically for the expanded entry day
-    const entryBlocks = this.feeModels.filter(
-      (item) => item.vehicle_type === vehicleType && item.day_of_week === entryDayOfWeek
-    );
-    const maxGrace = entryBlocks.reduce((max, block) => Math.max(max, block.grace_time || 0), 0);
-    
-    // Final Short-circuit logic is critical to satisfy 1.1, B.2, and B.3
-    if (totalDurationMinutes <= maxGrace) {
-        return 0; 
-    }
-    
-    let totalFee = 0;
-    let currentDay = new Date(this.entryDateTime);
-    currentDay.setHours(0, 0, 0, 0);
-    
-    // --- Day-by-Day Iteration ---
-    while (currentDay.getTime() < this.exitDateTime.getTime()) {
-      const dayStart = new Date(currentDay);
-      const nextDay = new Date(currentDay);
-      nextDay.setDate(nextDay.getDate() + 1);
-      nextDay.setHours(0, 0, 0, 0);
-      const dayEnd = nextDay; 
+        // --- Helper for Hourly Calculation ---
+        const calculateHourlyFee = (block, durationMinutes) => {
+            const billedUnitMinutes = block.every;
+            // CRITICAL: Use Math.ceil to round up to the next full unit
+            const billedUnits = Math.ceil(durationMinutes / billedUnitMinutes);
+            
+            if (billedUnits > 0) {
+                let fee = billedUnits * block.min_fee;
+                
+                // For simplified hourly models, min_charge is mostly redundant if min_fee is the unit rate.
+                // We keep the logic for standard unit billing:
+                if (block.min_charge > 0 && fee < block.min_charge) {
+                    fee = block.min_charge;
+                }
+                return fee;
+            }
+            return 0;
+        };
+        
+        // --- 1. Initial Grace Time Check ---
+        const entryDate = new Date(this.entryDateTime);
+        const entryDayStr = this.getLocalISODate(entryDate);
+        const entryDayOfWeek = this.publicHolidays.includes(entryDayStr) ? "PH" : entryDate.toLocaleString("en-US", { weekday: "short" });
+        const entryTime = entryDate.getTime();
 
-      const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
-      const segmentEnd = this.exitDateTime.getTime() < dayEnd.getTime() ? this.exitDateTime : dayEnd;
+        let maxGrace = 0;
+        
+        for (const item of this.feeModels) {
+            if (item.vehicle_type === vehicleType && item.day_of_week === entryDayOfWeek && item.grace_time > 0) {
+                let blockStart = this.addTime(entryDate, item.from_time);
+                let blockEnd = this.addTime(entryDate, item.to_time);
 
-      if (segmentStart.getTime() >= segmentEnd.getTime()) {
-        currentDay = nextDay;
-        continue;
-      }
+                // Handle overnight block matching for grace period
+                if (blockEnd.getTime() <= blockStart.getTime() && item.to_time !== item.from_time) {
+                    if (entryDate.getHours() < blockEnd.getHours()) {
+                        blockStart.setDate(blockStart.getDate() - 1); // Started yesterday
+                    } else {
+                        blockEnd.setDate(blockEnd.getDate() + 1); // Ends tomorrow
+                    }
+                }
 
-      const dateStr = this.getLocalISODate(currentDay);
-      const isPublicHoliday = this.publicHolidays.includes(dateStr);
-      const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
+                if (entryTime >= blockStart.getTime() && entryTime < blockEnd.getTime()) {
+                    maxGrace = Math.max(maxGrace, item.grace_time);
+                }
+            }
+        }
 
-      // 1. Filter all applicable blocks for the current day
-      let dailyBlocks = this.feeModels.filter(
-        (item) => {
-          const effectiveStartStr = item.effective_start ? this.getLocalISODate(new Date(item.effective_start)) : null;
-          const effectiveEndStr = item.effective_end ? this.getLocalISODate(new Date(item.effective_end)) : null;
+        if (totalDurationMinutes <= maxGrace) {
+            return 0.00; 
+        }
+        
+        // --- 2. Day-by-Day Iteration & Time Segmentation ---
+        while (currentDay.getTime() < this.exitDateTime.getTime()) {
+            const dayStart = new Date(currentDay);
+            const nextDay = new Date(currentDay);
+            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setHours(0, 0, 0, 0);
+            
+            const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
+            const segmentEnd = this.exitDateTime.getTime() < nextDay.getTime() ? this.exitDateTime : nextDay;
 
-          return item.vehicle_type === vehicleType &&
-            item.day_of_week === dayOfWeek && 
-            (!effectiveStartStr || dateStr >= effectiveStartStr) &&
-            (!effectiveEndStr || dateStr <= effectiveEndStr);
-        }
-      );
+            if (segmentStart.getTime() >= segmentEnd.getTime()) {
+                currentDay = nextDay;
+                continue;
+            }
 
-      // ⭐ CRITICAL FIX: Enforce priority and exclusivity
-      const hasPHBlock = dailyBlocks.some(block => block.day_of_week === "PH");
-      const hasEffectiveDateBlock = dailyBlocks.some(block => block.effective_start || block.effective_end);
+            const dateStr = this.getLocalISODate(currentDay);
+            const isPublicHoliday = this.publicHolidays.includes(dateStr);
+            const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
 
-      if (hasPHBlock) {
-        // PH blocks take absolute precedence over everything else for that day.
-        dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
-      } else if (hasEffectiveDateBlock) {
-        // Effective date blocks take precedence over general Mon/Tue/Wed blocks.
-        dailyBlocks = dailyBlocks.filter(block => block.effective_start || block.effective_end);
-      }
-      // NOTE: We don't need a complex sort now, because the exclusive filtering handles the PH and Effective Date priority. 
-      // If two Effective Date blocks exist (A.3 scenario), we still need to process them both, 
-      // and the daily max logic will handle the conflict.
+            // Filter blocks for the correct vehicle and day (PH or Mon/Tue/etc)
+            let dailyBlocks = this.feeModels.filter(
+                (item) => item.vehicle_type === vehicleType && item.day_of_week === dayOfWeek
+            );
+            
+            // Public Holiday blocks always override.
+            if (!isPublicHoliday) {
+                dailyBlocks = dailyBlocks.filter(block => block.day_of_week !== "PH");
+            } else {
+                 dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
+            }
+            
+            // 3. Collect all unique boundary times (Day/Night transition times)
+            let boundaries = new Set();
+            boundaries.add(segmentStart.getTime());
+            boundaries.add(segmentEnd.getTime());
 
-      // 2. Collect all unique boundary times (for time segmentation)
-      let boundaries = new Set();
-      boundaries.add(segmentStart.getTime());
-      boundaries.add(segmentEnd.getTime());
+            for (const block of dailyBlocks) {
+                const blockStart = this.addTime(currentDay, block.from_time);
+                let blockEnd = this.addTime(currentDay, block.to_time);
 
-      for (const block of dailyBlocks) {
-        const blockStart = this.addTime(currentDay, block.from_time);
-        let blockEnd = this.addTime(currentDay, block.to_time);
-        if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
-          blockEnd.setDate(blockEnd.getDate() + 1);
-        }
+                // Adjust blockEnd if it's an overnight block
+                if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
+                    blockEnd.setDate(blockEnd.getDate() + 1);
+                }
 
-        if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
-          boundaries.add(blockStart.getTime());
-        }
-        if (blockEnd.getTime() > segmentStart.getTime() && blockEnd.getTime() < segmentEnd.getTime()) {
-          boundaries.add(blockEnd.getTime());
-        }
-      }
+                // Add start/end times if they fall within the segment
+                if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
+                    boundaries.add(blockStart.getTime());
+                }
+                if (blockEnd.getTime() > segmentStart.getTime() && blockEnd.getTime() < segmentEnd.getTime()) {
+                    boundaries.add(blockEnd.getTime());
+                }
+            }
+            
+            const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
+            let dailyFee = 0;
 
-      const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
-      let dailyFee = 0;
-      let appliedFixedCharges = new Set(); 
+            // 4. Iterate through the generated time segments
+            for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+                const segStartT = sortedBoundaries[i];
+                const segEndT = sortedBoundaries[i + 1];
 
-      // 3. Iterate through the time segments (Only the best block is considered per segment)
-      for (let i = 0; i < sortedBoundaries.length - 1; i++) {
-        const segStartT = sortedBoundaries[i];
-        const segEndT = sortedBoundaries[i + 1];
+                const segDurationMinutes = (segEndT - segStartT) / 60000;
+                if (segDurationMinutes <= 0) continue;
+                
+                let bestBlock = null;
+                const checkDate = new Date(segStartT); // Use the segment's actual date
+                
+                // Find the rate block that applies to the segment
+                for (const block of dailyBlocks) {
+                    // Determine the block's actual start and end time in context of the segment's date
+                    let blockStart = this.addTime(checkDate, block.from_time);
+                    let blockEnd = this.addTime(checkDate, block.to_time);
+                    
+                    // CRITICAL OVERNIGHT FIX: Map the block's boundaries based on the segment time
+                    if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
+                        if (checkDate.getHours() < blockEnd.getHours()) {
+                            // Morning segment (e.g., 01:00 AM) -> block started yesterday.
+                            blockStart.setDate(blockStart.getDate() - 1); 
+                        } else { 
+                            // Evening segment (e.g., 23:00 PM) -> block ends tomorrow.
+                            blockEnd.setDate(blockEnd.getDate() + 1); 
+                        }
+                    }
+                    
+                    // If the segment starts within the block's time range
+                    if (segStartT >= blockStart.getTime() && segStartT < blockEnd.getTime()) {
+                        bestBlock = block;
+                        // Since all rates are "Hourly" in this focus, the first matching block is the one.
+                        break; 
+                    }
+                }
+                
+                if (bestBlock) {
+                    const rateTypeName = bestBlock.rate_type ? String(bestBlock.rate_type).toLowerCase() : '';
 
-        const segDurationMinutes = (segEndT - segStartT) / 60000;
-        if (segDurationMinutes <= 0) continue;
-        
-        // Find the single best block for this segment
-        let bestBlock = null;
-        // Using the start of the segment to check for the block
-        const checkTime = segStartT;
+                    // Check for "Season" or "Seasonal" rate type to apply $0 fee
+                    if (rateTypeName === 'season' || rateTypeName === 'seasonal') {
+                        // Fee is $0 for this segment
+                    } else {
+                        // Standard hourly calculation for other rate types
+                        dailyFee += calculateHourlyFee(bestBlock, segDurationMinutes);
+                    }
+                }
+            }
 
-        // We iterate through the *already filtered* dailyBlocks
-        for (const block of dailyBlocks) {
-          const blockStart = this.addTime(currentDay, block.from_time);
-          let blockEnd = this.addTime(currentDay, block.to_time);
-          if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
-            blockEnd.setDate(blockEnd.getDate() + 1);
-          }
+            totalFee += dailyFee;
+            currentDay = nextDay;
+        }
 
-          // Check if the block is active at the segment start time
-          if (checkTime >= blockStart.getTime() && checkTime < blockEnd.getTime()) {
-            bestBlock = block;
-            break; 
-          }
-        }
-        
-        if (bestBlock && this.isHourlyRate(bestBlock.rate_type)) {
-            let fee = 0;
-            const billedUnitMinutes = bestBlock.every;
-            
-            // Standard rounding
-            const billedUnits = Math.ceil(segDurationMinutes / billedUnitMinutes);
-            
-            if (billedUnits > 0) {
-                fee = billedUnits * bestBlock.min_fee;
-                
-                // Apply block minimum charge for the first unit
-                if (bestBlock.min_charge > 0 && fee < bestBlock.min_charge) {
-                    fee = bestBlock.min_charge;
-                }
-            }
-            
-            dailyFee += fee;
-        } else if (bestBlock && this.isFixedCharge(bestBlock.rate_type)) {
-            // Apply Fixed Charge once per block duration per day
-            const fixedChargeKey = `${bestBlock.from_time}-${bestBlock.to_time}-${bestBlock.min_fee}`;
-            
-            if (!appliedFixedCharges.has(fixedChargeKey)) {
-                dailyFee += bestBlock.min_fee;
-                appliedFixedCharges.add(fixedChargeKey);
-            }
-        }
-      }
-
-      // 4. Apply Daily Max Charge
-      // Logic for A.3 is handled here: it finds the lowest max_charge among the *filtered* applicable blocks.
-      let dailyMaxCharge = dailyBlocks.reduce((max, block) => {
-        return (block.max_charge > 0) ? Math.min(max, block.max_charge) : Infinity;
-      }, Infinity);
-      dailyMaxCharge = dailyMaxCharge === Infinity ? null : dailyMaxCharge;
-
-      if (dailyMaxCharge !== null && dailyFee > dailyMaxCharge) {
-        dailyFee = dailyMaxCharge;
-      }
-
-      totalFee += dailyFee;
-      currentDay = nextDay;
-    }
-
-    return parseFloat(totalFee.toFixed(2));
-  }
+        return parseFloat(totalFee.toFixed(2));
+    }
 }
 
 module.exports = { ParkingFeeComputer };

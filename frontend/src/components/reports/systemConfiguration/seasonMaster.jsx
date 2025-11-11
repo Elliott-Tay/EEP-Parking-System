@@ -15,7 +15,6 @@ import {
   Save,
   RotateCcw,
   CheckCircle,
-  AlertCircle,
   Loader2,
   Clock,
   UserCheck,
@@ -27,6 +26,7 @@ function SeasonHolderMaster() {
   const [serialNo, setSerialNo] = useState("");
   const [seasonNo, setSeasonNo] = useState("");
   const [vehicleNo, setVehicleNo] = useState("");
+  const [rateType, setRateType] = useState("");
   const [seasonType, setSeasonType] = useState("Master");
   const [holderType, setHolderType] = useState("VIP");
   const [holderName, setHolderName] = useState("");
@@ -49,6 +49,7 @@ function SeasonHolderMaster() {
       serial_no: serialNo,
       season_no: seasonNo,
       vehicle_no: vehicleNo,
+      rate_type: rateType,
       season_type: seasonType,
       holder_type: holderType,
       holder_name: holderName,
@@ -62,6 +63,7 @@ function SeasonHolderMaster() {
     };
 
     try {
+      console.log('payload', payload);
       const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/seasons/season-holder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,6 +87,7 @@ function SeasonHolderMaster() {
     setSerialNo("");
     setSeasonNo("");
     setVehicleNo("");
+    setRateType("");
     setSeasonType("Master");
     setHolderType("VIP");
     setHolderName("");
@@ -228,6 +231,36 @@ function SeasonHolderMaster() {
                       onChange={(e) => setVehicleNo(e.target.value)}
                       className="flex h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                     />
+                  </div>
+                </div>
+
+
+                {/* Rate Type */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Rate Type
+                  </label>
+                  <div className="relative">
+                    <Car className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <select
+                      value={rateType}
+                      onChange={(e) => setRateType(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-input-background pl-10 pr-3 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                    >
+                      <option value="">Select Rate Type</option>
+                      <option value="Season">Season</option>
+                      <option value="Day Season">Day Season</option>
+                      <option value="Night Season">Night Season</option>
+                      <option value="CSPT">CSPT</option>
+                      <option value="Special Parking">Special Parking</option>
+                      <option value="Block1">Block1</option>
+                      <option value="Block2">Block2</option>
+                      <option value="Block3">Block3</option>
+                      <option value="Authorized">Authorized</option>
+                      <option value="Staff Estate(Type A)">Staff Estate(Type A)</option>
+                      <option value="Staff Estate(Type B)">Staff Estate(Type B)</option>
+                      <option value="URA Staff">URA Staff</option>
+                    </select>
                   </div>
                 </div>
               </div>
