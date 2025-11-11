@@ -3,7 +3,7 @@ const { ParkingFeeComputer } = require('../routes/parkingFeeCompute');
 // NOTE: Assuming 'parkingFeeCompute.js' is in the '../routes/' directory. 
 // Change this path if needed for your environment.
 
-// --- Test Data Setup ---
+// --- Test Data Setup according to the EEP Excel sheet ---
 const feeModels = [
     // Car/HGV – Daytime (7:00am - 10:30pm, $0.60 / 30 mins)
     { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Hourly", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
@@ -29,11 +29,16 @@ const feeModels = [
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Block3", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
     // Authorized – Car/MC/HGV (All day, Free) - Rate Type: Authorized
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Authorized", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+    // Night Season – Daytime (7:00am - 10:30pm, $0.60 / 30 mins)
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Night Season", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+    // Night Season – Nighttime (10:30pm - 7:00am, Free)
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Night Season", every: 30, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
 ];
 
 
+
 const publicHolidays = ["2025-10-20T00:00:00"]; // Monday, Oct 20th, 2025
-const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block3: "Block3", daySeason: "Day Season", authorized: "Authorized" };
+const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block3: "Block3", daySeason: "Day Season", nightSeason: "Night Season", authorized: "Authorized" };
 const standardVehicle = "Car/HGV";
 const mcVehicle = "MC";
 const comboVehicle = "Car/HGV/MC";
@@ -215,7 +220,7 @@ describe('Block 2: Block3 Rate and Authorized Logic (Expanded)', () => {
         // The fixed Block3 rate must override all standard time calculations.
         expect(computer.computeParkingFee(standardVehicle, 'Block3')).toBe(0.00);
     });
-    
+
     // --- 10. Authorized Rate Tests (Fixed Free Rate) ---
 
     // 10.1: Stress test the Authorized rate over a full weekend, crossing DOW/Public Holiday boundaries.
@@ -235,4 +240,121 @@ describe('Block 2: Block3 Rate and Authorized Logic (Expanded)', () => {
         // Even if the rate model changes at 00:00, the Authorized override remains $0.00.
         expect(computer.computeParkingFee(mcVehicle, 'Authorized')).toBe(0.00);
     });
+
+    describe('Block 3: Day Season Rate Segmentation Logic', () => {
+
+      // Assuming standardVehicle = 'Car/MC/HGV' for these tests.
+      const standardVehicle = 'Car/MC/HGV';
+
+      // --- 11. Day Season Tests (Segmented Rate) ---
+
+      test('11.1: Day Season should be FREE (0.00) for a short stay entirely within the free day period', () => {
+          // Stay: 1 hour 30 mins, entirely between 7:00am and 10:30pm (Free block)
+          const entry = "2025-10-27T14:00:00";
+          const exit = "2025-10-27T15:30:00"; 
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Expect 0.00 due to free daytime season rate
+          expect(computer.computeParkingFee(standardVehicle, 'Day Season')).toBe(0.00);
+      });
+
+      test('11.2: Day Season should be charged only for the time spent in the charged night period', () => {
+          // Charged period: 22:30 to 07:00 ($2.00 / 30 mins)
+          // Stay Duration: 2 hours (1 hour in Day, 1 hour in Night)
+          const entry = "2025-10-27T22:00:00"; // 30 mins (22:00-22:30) in FREE block (0.00)
+          const exit = "2025-10-27T23:30:00"; // 60 mins (22:30-23:30) in CHARGED block ($2/30min = $4.00)
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Calculation: (30 min Free) + (60 min Charged) = 2 units * $2.00 = $4.00
+          expect(computer.computeParkingFee(standardVehicle, 'Day Season')).toBe(4.00);
+      });
+
+      test('11.3: Day Season should correctly calculate fee crossing midnight, entirely within the charged night period', () => {
+          // Charged period: 22:30 to 07:00 ($2.00 / 30 mins)
+          // Stay Duration: 3 hours, entirely within the night rate
+          const entry = "2025-10-27T01:00:00"; // 1am
+          const exit = "2025-10-27T04:00:00"; // 4am
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Calculation: 3 hours = 180 minutes. 180 / 30 min units = 6 units. 6 * $2.00 = $12.00
+          expect(computer.computeParkingFee(standardVehicle, 'Day Season')).toBe(12.00);
+      });
+
+      test('11.4: Day Season should correctly calculate fee for an overnight stay (Free day + Charged night + Free day)', () => {
+          // Charged period: 22:30 to 07:00 ($2.00 / 30 mins)
+          // Entry: Mon 21:30 | Exit: Tue 08:00 (10.5 hours total)
+          // Segments:
+          // 1. Mon 21:30 - Mon 22:30: 60 mins in FREE (0.00)
+          // 2. Mon 22:30 - Tue 07:00: 8.5 hours (510 mins) in CHARGED ($2/30min)
+          // 3. Tue 07:00 - Tue 08:00: 60 mins in FREE (0.00)
+          
+          const entry = "2025-10-27T21:30:00";
+          const exit = "2025-10-28T08:00:00"; 
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          
+          // Charged time: 510 minutes. 510 / 30 min units = 17 units. 17 * $2.00 = $34.00
+          expect(computer.computeParkingFee(standardVehicle, 'Day Season')).toBe(34.00);
+      });
+  });
+
+  describe('Block 4: Night Season Rate Segmentation Logic (Opposite of Day Season)', () => {
+
+      // Assuming standardVehicle = 'Car/MC/HGV' for these tests.
+      const standardVehicle = 'Car/MC/HGV';
+      
+      test('12.1: Night Season should be FREE (0.00) for a short stay entirely within the free night period', () => {
+          // Free period: 22:30 to 07:00
+          // Stay: 1 hour 30 mins, entirely between 11:00pm and 12:30am (Free block)
+          const entry = "2025-10-27T23:00:00";
+          const exit = "2025-10-28T00:30:00"; 
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Expect 0.00 due to free nighttime season rate
+          expect(computer.computeParkingFee(standardVehicle, 'Night Season')).toBe(0.00);
+      });
+
+      test('12.2: Night Season should be charged only for the time spent in the charged day period (crossing the 7:00 AM boundary)', () => {
+          // Charged period: 07:00 to 22:30 ($0.60 / 30 mins)
+          // Stay Duration: 1 hour 30 minutes (1 hour Free, 30 minutes Charged)
+          
+          // Entry: 2025-10-28T06:00:00 // 60 mins (06:00-07:00) in FREE block (0.00)
+          // Exit: 2025-10-28T07:30:00 // 30 mins (07:00-07:30) in CHARGED block ($0.60/30min = $0.60)
+          const entry = "2025-10-28T06:00:00"; 
+          const exit = "2025-10-28T07:30:00"; 
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Calculation: (60 min Free) + (30 min Charged) = 1 unit * $0.60 = $0.60
+          expect(computer.computeParkingFee(standardVehicle, 'Night Season')).toBe(0.60);
+      });
+
+      test('12.3: Night Season should correctly calculate fee for a stay entirely within the charged day period', () => {
+          // Charged period: 07:00 to 22:30 ($0.60 / 30 mins)
+          // Stay Duration: 3 hours, entirely within the day rate
+          const entry = "2025-10-27T10:00:00"; 
+          const exit = "2025-10-27T13:00:00"; 
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          // Calculation: 3 hours = 180 minutes. 180 / 30 min units = 6 units. 6 * $0.60 = $3.60
+          expect(computer.computeParkingFee(standardVehicle, 'Night Season')).toBe(3.60);
+      });
+
+      test('12.4: Night Season should correctly calculate fee for an overnight stay (Charged day + Free night + Charged day)', () => {
+          // Free period: 22:30 to 07:00
+          // Charged period: 07:00 to 22:30 ($0.60 / 30 mins)
+          
+          // Entry: Mon 21:30 | Exit: Tue 08:00 (10.5 hours total)
+          // Segments:
+          // 1. Mon 21:30 - Mon 22:30: 60 mins in CHARGED ($0.60/30min = $1.20)
+          // 2. Mon 22:30 - Tue 07:00: 8.5 hours (510 mins) in FREE (0.00)
+          // 3. Tue 07:00 - Tue 08:00: 60 mins in CHARGED ($0.60/30min = $1.20)
+          
+          const entry = "2025-10-27T21:30:00";
+          const exit = "2025-10-28T08:00:00"; 
+          
+          const computer = new ParkingFeeComputer(entry, exit, feeModels, rateTypes, publicHolidays);
+          
+          // Charged time: (60 mins + 60 mins) = 120 minutes. 120 / 30 min units = 4 units. 4 * $0.60 = $2.40
+          expect(computer.computeParkingFee(standardVehicle, 'Night Season')).toBe(2.40);
+      });
+  });
 });

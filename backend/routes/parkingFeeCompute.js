@@ -1,7 +1,7 @@
 /**
  * ParkingFeeComputer
  * * Computes parking fees based on entry/exit times and a detailed set of fee models,
- * filtering rates by vehicle type and the requested rate type (e.g., "Hourly", "Seasonal").
+ * filtering rates by vehicle type and the requested rate type (e.g., "Hourly", "Day Season", "Night Season").
  * * NOTE: Fee models must include 'rate_type', 'vehicle_type', 'day_of_week', 
  * 'from_time', 'to_time', 'every' (billing unit in minutes), 'min_fee' (rate per unit), 
  * and optional 'grace_time'.
@@ -107,7 +107,7 @@ class ParkingFeeComputer {
     /**
      * Computes the parking fee based on the duration, vehicle type, and specified rate type.
      * @param {string} vehicleType - The type of vehicle (e.g., 'Car', 'Truck').
-     * @param {string} rate_type - The specific rate type to use (e.g., 'Hourly', 'Season').
+     * @param {string} rate_type - The specific rate type to use (e.g., 'Hourly', 'Day Season', 'Night Season').
      * @returns {number} The total parking fee.
      */
     computeParkingFee(vehicleType, rate_type) {
@@ -116,9 +116,7 @@ class ParkingFeeComputer {
         if (totalDurationMinutes <= 0) return 0.00;
 
         let totalFee = 0;
-        let currentDay = new Date(this.entryDateTime);
-        currentDay.setHours(0, 0, 0, 0);
-
+        
         // Normalize rate type for comparison
         const requestedRateType = String(rate_type || '').toLowerCase();
         
@@ -179,20 +177,21 @@ class ParkingFeeComputer {
             return 0.00; 
         }
         
-        // --- 2. Fixed/Flat Rate Override Check (Handles Season, CSPT, Day Season) ---
-        const fixedRateTypes = ['season', 'day season', 'cspt', 'block3', 'authorized'];
+        // --- 2. Fixed/Flat Rate Override Check (Applies to single-charge rates like 'Season', 'CSPT', 'Block3', 'Authorized') ---
+        // Note: 'Day Season' and 'Night Season' are calculated hourly in Step 3.
+        const fixedRateTypes = ['season', 'cspt', 'block3', 'authorized']; 
         
         if (fixedRateTypes.includes(requestedRateType)) {
             // Find the fixed rate model matching the vehicle, day, and rate type.
             const fixedRateModel = this.feeModels.find(
                 (item) => item.vehicle_type === vehicleType
                     && String(item.rate_type || '').toLowerCase() === requestedRateType
-                    // Match day of week or PH status (important for Day Season/PH Season rules)
+                    // Match day of week or PH status
                     && item.day_of_week === entryDayOfWeek
             );
             
             if (fixedRateModel) {
-                 // Return the fixed fee defined in the model's min_fee (e.g., 0.00 or a fixed monthly amount)
+                // Return the fixed fee defined in the model's min_fee 
                 return parseFloat(fixedRateModel.min_fee.toFixed(2));
             }
             
@@ -200,8 +199,10 @@ class ParkingFeeComputer {
             return 0.00;
         }
 
-        // --- 3. Default: Hourly Segmented Calculation ---
-        // Only run the complex segmentation logic if an hourly/time-based rate is requested.
+        // --- 3. Default: Hourly/Segmented Calculation (Handles 'Hourly', 'Day Season', and 'Night Season') ---
+        // These rates are calculated minute-by-minute/unit-by-unit based on which time blocks apply during the stay.
+        let currentDay = new Date(this.entryDateTime);
+        currentDay.setHours(0, 0, 0, 0);
         
         while (currentDay.getTime() < this.exitDateTime.getTime()) {
             const dayStart = new Date(currentDay);
@@ -222,7 +223,8 @@ class ParkingFeeComputer {
             const isPublicHoliday = this.publicHolidays.includes(dateStr);
             const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
 
-            // CRITICAL STEP: Filter blocks for the correct vehicle, day, AND requested rate type ('Hourly' by default here)
+            // CRITICAL STEP: Filter blocks for the correct vehicle, day, AND requested rate type 
+            // (e.g., 'Hourly', 'Day Season', or 'Night Season')
             let dailyBlocks = this.feeModels.filter(
                 (item) => item.vehicle_type === vehicleType 
                 && item.day_of_week === dayOfWeek
