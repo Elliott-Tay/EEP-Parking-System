@@ -33,12 +33,16 @@ const feeModels = [
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Night Season", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
     // Night Season – Nighttime (10:30pm - 7:00am, Free)
     { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Night Season", every: 30, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+
+    // Block2 – Car/MC/HGV Daytime (7:00am - 11:00pm, Free)
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Block2", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+
+    // Block2 – Car/MC/HGV Nighttime (11:00pm - 7:00am, $2.00 / 30 mins)
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Block2", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
 ];
 
-
-
 const publicHolidays = ["2025-10-20T00:00:00"]; // Monday, Oct 20th, 2025
-const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block3: "Block3", daySeason: "Day Season", nightSeason: "Night Season", authorized: "Authorized" };
+const rateTypes = { hourly: "Hourly", season: "Season", CSPT: "CSPT", Block2: "Block2", Block3: "Block3", daySeason: "Day Season", nightSeason: "Night Season", authorized: "Authorized" };
 const standardVehicle = "Car/HGV";
 const mcVehicle = "MC";
 const comboVehicle = "Car/HGV/MC";
