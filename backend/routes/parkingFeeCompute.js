@@ -1,18 +1,32 @@
+/**
+ * ParkingFeeComputer
+ * * Computes parking fees based on entry/exit times and a detailed set of fee models,
+ * filtering rates by vehicle type and the requested rate type (e.g., "Hourly", "Seasonal").
+ * * NOTE: Fee models must include 'rate_type', 'vehicle_type', 'day_of_week', 
+ * 'from_time', 'to_time', 'every' (billing unit in minutes), 'min_fee' (rate per unit), 
+ * and optional 'grace_time'.
+ */
 class ParkingFeeComputer {
+    /**
+     * @param {string} entryDateTime - ISO string or date representation of entry.
+     * @param {string} exitDateTime - ISO string or date representation of exit.
+     * @param {Array<Object>} feeModels - The detailed rate blocks, must include rate_type.
+     * @param {Object} rate_types - A map for rate type normalization (unused in main logic, but kept for future).
+     * @param {Array<string>} publicHolidays - Array of ISO date strings for public holidays (e.g., 'YYYY-MM-DD').
+     */
     constructor(entryDateTime, exitDateTime, feeModels, rate_types, publicHolidays = []) {
         this.entryDateTime = new Date(entryDateTime);
         this.exitDateTime = new Date(exitDateTime);
 
-        // Store and normalize the rate type map (minimal use here, but kept for robustness)
+        // Store and normalize the rate type map
         this.rateTypes = {};
         if (rate_types && typeof rate_types === 'object') {
             for (const key in rate_types) {
-                // Ensure rate_types (e.g., "hourly") are mapped to the correct value (e.g., "Hourly")
                 this.rateTypes[key] = String(rate_types[key]).toLowerCase();
             }
         }
         
-        // Expand day ranges ('All day') into individual days
+        // Expand day ranges ('All day', 'Mon-Fri') into individual day models
         this.feeModels = this.expandFeeModels(feeModels);
         
         // Normalize public holidays to LOCAL YYYY-MM-DD string for consistent lookup.
@@ -21,6 +35,8 @@ class ParkingFeeComputer {
 
     /**
      * Expands fee models with day ranges (like "All day" or "Mon-Fri") into individual day models.
+     * @param {Array<Object>} feeModels - The original rate blocks.
+     * @returns {Array<Object>} The expanded rate blocks.
      */
     expandFeeModels(feeModels) {
         const dayIndices = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
@@ -44,7 +60,7 @@ class ParkingFeeComputer {
 
                 if (startIndex !== undefined && endIndex !== undefined) {
                     if (startIndex > endIndex) {
-                        endIndex += 7; 
+                        endIndex += 7; // Handle wrapping (e.g., Sat-Mon)
                     }
                     for (let i = startIndex; i <= endIndex; i++) {
                         const dayIndex = i % 7;
@@ -64,6 +80,8 @@ class ParkingFeeComputer {
     
     /**
      * Returns the local date string (YYYY-MM-DD) for a Date object.
+     * @param {Date} date - The Date object.
+     * @returns {string} The local ISO date string.
      */
     getLocalISODate(date) {
         const year = date.getFullYear();
@@ -73,7 +91,10 @@ class ParkingFeeComputer {
     }
 
     /**
-     * Creates a new Date object at the start of a day and sets its time.
+     * Creates a new Date object at the start of a day and sets its time based on a string (HH:MM).
+     * @param {Date} date - The base date for the day.
+     * @param {string} timeStr - The time string (e.g., "14:30").
+     * @returns {Date} The new Date object with time set.
      */
     addTime(date, timeStr) {
         const [hour, minute] = timeStr.split(":").map(Number);
@@ -84,16 +105,12 @@ class ParkingFeeComputer {
     }
 
     /**
-     * Checks if a model's rate_type matches a semantic name (simplified for hourly focus).
+     * Computes the parking fee based on the duration, vehicle type, and specified rate type.
+     * @param {string} vehicleType - The type of vehicle (e.g., 'Car', 'Truck').
+     * @param {string} rate_type - The specific rate type to use (e.g., 'Hourly', 'Season').
+     * @returns {number} The total parking fee.
      */
-    isRateType(rateType, semanticName) {
-        if (!rateType || !semanticName) return false;
-        // In this hourly focus, we only care if it's "Hourly" (case-insensitive)
-        return rateType.toLowerCase().replace(/[\s_]/g, '') === semanticName;
-    }
-
-
-    computeParkingFee(vehicleType) {
+    computeParkingFee(vehicleType, rate_type) {
         const totalDurationMinutes = (this.exitDateTime.getTime() - this.entryDateTime.getTime()) / 60000;
         
         if (totalDurationMinutes <= 0) return 0.00;
@@ -102,6 +119,9 @@ class ParkingFeeComputer {
         let currentDay = new Date(this.entryDateTime);
         currentDay.setHours(0, 0, 0, 0);
 
+        // Normalize rate type for comparison
+        const requestedRateType = String(rate_type || '').toLowerCase();
+        
         // --- Helper for Hourly Calculation ---
         const calculateHourlyFee = (block, durationMinutes) => {
             const billedUnitMinutes = block.every;
@@ -111,8 +131,7 @@ class ParkingFeeComputer {
             if (billedUnits > 0) {
                 let fee = billedUnits * block.min_fee;
                 
-                // For simplified hourly models, min_charge is mostly redundant if min_fee is the unit rate.
-                // We keep the logic for standard unit billing:
+                // Apply minimum charge if specified and fee is less
                 if (block.min_charge > 0 && fee < block.min_charge) {
                     fee = block.min_charge;
                 }
@@ -124,13 +143,20 @@ class ParkingFeeComputer {
         // --- 1. Initial Grace Time Check ---
         const entryDate = new Date(this.entryDateTime);
         const entryDayStr = this.getLocalISODate(entryDate);
+        // Determine day type for entry
         const entryDayOfWeek = this.publicHolidays.includes(entryDayStr) ? "PH" : entryDate.toLocaleString("en-US", { weekday: "short" });
         const entryTime = entryDate.getTime();
 
         let maxGrace = 0;
         
+        // Find maximum grace time that applies to the entry time, vehicle, day, and rate type
         for (const item of this.feeModels) {
-            if (item.vehicle_type === vehicleType && item.day_of_week === entryDayOfWeek && item.grace_time > 0) {
+            if (item.vehicle_type === vehicleType 
+                && item.day_of_week === entryDayOfWeek 
+                && item.grace_time > 0
+                // Match the requested rate type for the grace period check
+                && String(item.rate_type || '').toLowerCase() === requestedRateType
+            ) {
                 let blockStart = this.addTime(entryDate, item.from_time);
                 let blockEnd = this.addTime(entryDate, item.to_time);
 
@@ -153,13 +179,37 @@ class ParkingFeeComputer {
             return 0.00; 
         }
         
-        // --- 2. Day-by-Day Iteration & Time Segmentation ---
+        // --- 2. Fixed/Flat Rate Override Check (Handles Season, CSPT, Day Season) ---
+        const fixedRateTypes = ['season', 'day season', 'cspt', 'block3'];
+        
+        if (fixedRateTypes.includes(requestedRateType)) {
+            // Find the fixed rate model matching the vehicle, day, and rate type.
+            const fixedRateModel = this.feeModels.find(
+                (item) => item.vehicle_type === vehicleType
+                    && String(item.rate_type || '').toLowerCase() === requestedRateType
+                    // Match day of week or PH status (important for Day Season/PH Season rules)
+                    && item.day_of_week === entryDayOfWeek
+            );
+            
+            if (fixedRateModel) {
+                 // Return the fixed fee defined in the model's min_fee (e.g., 0.00 or a fixed monthly amount)
+                return parseFloat(fixedRateModel.min_fee.toFixed(2));
+            }
+            
+            // If a fixed rate was requested but no model matched for the current day, return 0.00.
+            return 0.00;
+        }
+
+        // --- 3. Default: Hourly Segmented Calculation ---
+        // Only run the complex segmentation logic if an hourly/time-based rate is requested.
+        
         while (currentDay.getTime() < this.exitDateTime.getTime()) {
             const dayStart = new Date(currentDay);
             const nextDay = new Date(currentDay);
             nextDay.setDate(nextDay.getDate() + 1);
             nextDay.setHours(0, 0, 0, 0);
             
+            // Determine the segment boundaries for the current day
             const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
             const segmentEnd = this.exitDateTime.getTime() < nextDay.getTime() ? this.exitDateTime : nextDay;
 
@@ -172,19 +222,21 @@ class ParkingFeeComputer {
             const isPublicHoliday = this.publicHolidays.includes(dateStr);
             const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
 
-            // Filter blocks for the correct vehicle and day (PH or Mon/Tue/etc)
+            // CRITICAL STEP: Filter blocks for the correct vehicle, day, AND requested rate type ('Hourly' by default here)
             let dailyBlocks = this.feeModels.filter(
-                (item) => item.vehicle_type === vehicleType && item.day_of_week === dayOfWeek
+                (item) => item.vehicle_type === vehicleType 
+                && item.day_of_week === dayOfWeek
+                && String(item.rate_type || '').toLowerCase() === requestedRateType
             );
             
-            // Public Holiday blocks always override.
+            // Filter blocks to match Public Holiday status
             if (!isPublicHoliday) {
                 dailyBlocks = dailyBlocks.filter(block => block.day_of_week !== "PH");
             } else {
-                 dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
+                dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
             }
             
-            // 3. Collect all unique boundary times (Day/Night transition times)
+            // 3. Collect all unique boundary times (start/end of segment and rate block times)
             let boundaries = new Set();
             boundaries.add(segmentStart.getTime());
             boundaries.add(segmentEnd.getTime());
@@ -219,21 +271,20 @@ class ParkingFeeComputer {
                 if (segDurationMinutes <= 0) continue;
                 
                 let bestBlock = null;
-                const checkDate = new Date(segStartT); // Use the segment's actual date
+                const checkDate = new Date(segStartT);
                 
                 // Find the rate block that applies to the segment
                 for (const block of dailyBlocks) {
-                    // Determine the block's actual start and end time in context of the segment's date
                     let blockStart = this.addTime(checkDate, block.from_time);
                     let blockEnd = this.addTime(checkDate, block.to_time);
                     
                     // CRITICAL OVERNIGHT FIX: Map the block's boundaries based on the segment time
                     if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
                         if (checkDate.getHours() < blockEnd.getHours()) {
-                            // Morning segment (e.g., 01:00 AM) -> block started yesterday.
+                            // Morning segment -> block started yesterday.
                             blockStart.setDate(blockStart.getDate() - 1); 
                         } else { 
-                            // Evening segment (e.g., 23:00 PM) -> block ends tomorrow.
+                            // Evening segment -> block ends tomorrow.
                             blockEnd.setDate(blockEnd.getDate() + 1); 
                         }
                     }
@@ -241,21 +292,13 @@ class ParkingFeeComputer {
                     // If the segment starts within the block's time range
                     if (segStartT >= blockStart.getTime() && segStartT < blockEnd.getTime()) {
                         bestBlock = block;
-                        // Since all rates are "Hourly" in this focus, the first matching block is the one.
                         break; 
                     }
                 }
                 
                 if (bestBlock) {
-                    const rateTypeName = bestBlock.rate_type ? String(bestBlock.rate_type).toLowerCase() : '';
-
-                    // Check for "Season" or "Seasonal" rate type to apply $0 fee
-                    if (rateTypeName === 'season' || rateTypeName === 'seasonal') {
-                        // Fee is $0 for this segment
-                    } else {
-                        // Standard hourly calculation for other rate types
-                        dailyFee += calculateHourlyFee(bestBlock, segDurationMinutes);
-                    }
+                    // Apply the hourly calculation using the unit fee from the best block
+                    dailyFee += calculateHourlyFee(bestBlock, segDurationMinutes);
                 }
             }
 
@@ -263,8 +306,10 @@ class ParkingFeeComputer {
             currentDay = nextDay;
         }
 
+        // Return the total fee, formatted to two decimal places.
         return parseFloat(totalFee.toFixed(2));
     }
 }
 
+// Export the class for use in other files
 module.exports = { ParkingFeeComputer };
