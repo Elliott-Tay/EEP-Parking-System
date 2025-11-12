@@ -3,50 +3,50 @@ const { ParkingFeeComputer3 } = require('../routes/parkingFeeCompute3'); // Assu
 // The complete fee models including Block1, Staff Estate A/B, and URA Staff
 const feeModels = [
     // --- Block1 – Daytime (7:00am - 7:00pm, Free) ---
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "19:00:00", rate_type: "Block1", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "19:00:00", rate_type: "Block1", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Block1 – Evening (7:00pm - 10:30pm, $0.60 / 30 mins) ---
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "19:00:00", to_time: "22:30:00", rate_type: "Block1", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "19:00:00", to_time: "22:30:00", rate_type: "Block1", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
     // --- Block1 – Night (10:30pm - 7:00am, $2.00 / 30 mins) ---
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Block1", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
-    
+    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Block1", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
+
     // --- Staff Estate (Type A) – Car/HGV Weekdays ---
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
+    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Staff Estate (Type A) – Car/HGV Saturday ---
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
+    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Staff Estate (Type A) – Car/HGV Sunday ---
-    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
-    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
-    
+    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
+
     // --- Staff Estate (Type A) – MC Weekdays ---
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: 0.30, max_charge: 0.30 },
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: 1.00, max_charge: 1.00 },
+    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Staff Estate (Type A) – MC Saturday ---
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: 0.30, max_charge: 0.30 },
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: 1.00, max_charge: 1.00 },
+    { vehicle_type: "MC", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Staff Estate (Type A) – MC Sunday ---
-    { vehicle_type: "MC", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: 0.30, max_charge: 0.30 },
-    { vehicle_type: "MC", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: 1.00, max_charge: 1.00 },
+    { vehicle_type: "MC", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
 
     // --- Staff Estate (Type B) – Car/HGV ---
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
+    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- Staff Estate (Type B) – MC ---
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 1.00, grace_time: 15, min_charge: 1.00, max_charge: 1.00 },
+    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "MC", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
 
     // --- URA Staff – Weekdays ---
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "URA Staff", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
+    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "URA Staff", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
     // --- URA Staff – Weekends ---
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.60, max_charge: 0.60 },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 }
+    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
+    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null }
 ];
 
 // Reference dates (using UTC):
@@ -64,7 +64,7 @@ describe('Parking Fee Calculations for Rate Type: Block1 (3-Tier All Day)', () =
     // Test Case 1: Daytime Free (7:00 to 19:00)
     test('[B1-TC1] Should return $0.00 for parking entirely within the daytime free period', () => {
         const entry = `${MON_DATE}10:00:00.000Z`; // 10:00 AM
-        const exit = `${MON_DATE}18:00:00.000Z`; 	// 6:00 PM (8 hours free)
+        const exit = `${MON_DATE}18:00:00.000Z`;    // 6:00 PM (8 hours free)
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
         expect(computer.computeParkingFee()).toBe(0.00);
@@ -73,7 +73,7 @@ describe('Parking Fee Calculations for Rate Type: Block1 (3-Tier All Day)', () =
     // Test Case 2: Evening Charge ($0.60/30 min from 19:00 to 22:30)
     test('[B1-TC2] Should charge $1.20 for 1 hour in the evening rate (2 units)', () => {
         const entry = `${MON_DATE}19:00:00.000Z`; // 7:00 PM
-        const exit = `${MON_DATE}20:00:00.000Z`; 	// 8:00 PM (60 minutes)
+        const exit = `${MON_DATE}20:00:00.000Z`;    // 8:00 PM (60 minutes)
         // 60 minutes / 30 min unit = 2 units. 2 * $0.60 = $1.20
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -83,7 +83,7 @@ describe('Parking Fee Calculations for Rate Type: Block1 (3-Tier All Day)', () =
     // Test Case 3: Night Charge ($2.00/30 min from 22:30 to 07:00)
     test('[B1-TC3] Should charge $4.00 for 1 hour in the night rate (2 units)', () => {
         const entry = `${MON_DATE}22:30:00.000Z`; // 10:30 PM
-        const exit = `${MON_DATE}23:30:00.000Z`; 	// 11:30 PM (60 minutes)
+        const exit = `${MON_DATE}23:30:00.000Z`;    // 11:30 PM (60 minutes)
         // 60 minutes / 30 min unit = 2 units. 2 * $2.00 = $4.00
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -93,7 +93,7 @@ describe('Parking Fee Calculations for Rate Type: Block1 (3-Tier All Day)', () =
     // Test Case 4: Crossover from Evening to Night (22:00 to 23:00)
     test('[B1-TC4] Should correctly combine $0.60 and $2.00 rates', () => {
         const entry = `${MON_DATE}22:00:00.000Z`; // 10:00 PM (Evening rate starts)
-        const exit = `${MON_DATE}23:00:00.000Z`; 	// 11:00 PM (Night rate ends)
+        const exit = `${MON_DATE}23:00:00.000Z`;    // 11:00 PM (Night rate ends)
         
         // 22:00 - 22:30 (30m) @ $0.60 = $0.60
         // 22:30 - 23:00 (30m) @ $2.00 = $2.00
@@ -106,7 +106,7 @@ describe('Parking Fee Calculations for Rate Type: Block1 (3-Tier All Day)', () =
     // Test Case 19: Edge Case - Exit exactly at Boundary (Night Crossover)
     test('[B1-TC19] Should correctly calculate fee up to the 07:00:00 crossover boundary', () => {
         const entry = `${MON_DATE}22:00:00.000Z`; // 10:00 PM
-        const exit = '2025-11-11T07:00:00.000Z'; 	// 7:00 AM (Next Day)
+        const exit = '2025-11-11T07:00:00.000Z';    // 7:00 AM (Next Day)
         
         // 22:00 - 22:30 (30m) @ $0.60 = $0.60
         // 22:30 - 07:00 (8.5 hours = 510m) @ $2.00/30m. 510/30 = 17 units. 17 * $2.00 = $34.00
@@ -128,7 +128,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Mon-Fri: 19:30-22:30 @ $0.60/30 min
         test('[SA-TC5] Should charge $1.20 for 1 hour on a weekday evening (Car)', () => {
             const entry = `${MON_DATE}20:00:00.000Z`; // 8:00 PM (Weekday)
-            const exit = `${MON_DATE}21:00:00.000Z`; 	// 9:00 PM
+            const exit = `${MON_DATE}21:00:00.000Z`;    // 9:00 PM
             // 60 minutes / 30 min unit = 2 units. 2 * $0.60 = $1.20
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -139,7 +139,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Sat: 07:00-15:00 Free | 15:00-22:30 @ $0.60/30 min
         test('[SA-TC6] Should charge $2.40 for 2 hours on a Saturday evening (Car)', () => {
             const entry = `${SAT_DATE}15:00:00.000Z`; // 3:00 PM (Saturday - Paid starts)
-            const exit = `${SAT_DATE}17:00:00.000Z`; 	// 5:00 PM
+            const exit = `${SAT_DATE}17:00:00.000Z`;    // 5:00 PM
             // 120 minutes / 30 min unit = 4 units. 4 * $0.60 = $2.40
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -149,7 +149,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Test Case 7: Sunday Charge (Car) - No Free Window (07:00-22:30 @ $0.60/30 min)
         test('[SA-TC7] Should charge $6.00 for 5 hours on a Sunday (Car)', () => {
             const entry = `${SUN_DATE}10:00:00.000Z`; // 10:00 AM (Sunday - Paid starts)
-            const exit = `${SUN_DATE}15:00:00.000Z`; 	// 3:00 PM (5 hours = 300 minutes)
+            const exit = `${SUN_DATE}15:00:00.000Z`;    // 3:00 PM (5 hours = 300 minutes)
             // 300 minutes / 30 min unit = 10 units. 10 * $0.60 = $6.00
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -158,19 +158,11 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         
         // Test Case 8: Multi-Day Crossover (Fri evening to Sat morning) - Existing Complex Case
         test('[SA-TC8] Multi-Day: Fri Evening to Sat Morning (Car)', () => {
-            // Friday is a Mon-Fri rule day
+            // Friday (Mon-Fri rule): 22:00-22:30 (0.60) + 22:30-24:00 (2.00 * 3) = 0.60 + 6.00 = 6.60
+            // Saturday (Sat rule): 00:00-07:00 (2.00 * 14) + 07:00-08:00 (Free) = 28.00 + 0.00 = 28.00
+            // Total: 6.60 + 28.00 = $34.60
             const entry = '2025-11-14T22:00:00.000Z'; // 10:00 PM Fri
-            const exit = '2025-11-15T08:00:00.000Z'; 	// 8:00 AM Sat
-            
-            // Fri Charge (Mon-Fri rule): 
-            // 22:00 - 22:30 (30m) @ $0.60 = $0.60
-            // 22:30 - 00:00 (90m) @ $2.00 = $6.00
-            
-            // Sat Charge (Sat rule): 
-            // 00:00 - 07:00 (7h) @ $2.00 = $28.00
-            // 07:00 - 08:00 (1h) @ Free = $0.00
-            
-            // Total: $0.60 + $6.00 + $28.00 = $34.60
+            const exit = '2025-11-15T08:00:00.000Z';    // 8:00 AM Sat
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
             expect(computer.computeParkingFee()).toBe(34.60); 
@@ -179,7 +171,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Test Case 14: Grace Period Check (10 mins, should be $0.00)
         test('[SA-TC14] Grace Period: Should return $0.00 if parking is 10 minutes (Sun Car)', () => {
             const entry = `${SUN_DATE}10:00:00.000Z`; // 10:00 AM Sun
-            const exit = `${SUN_DATE}10:10:00.000Z`; 	// 10:10 AM (10 minutes)
+            const exit = `${SUN_DATE}10:10:00.000Z`;    // 10:10 AM (10 minutes)
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
             expect(computer.computeParkingFee()).toBe(0.00); 
@@ -188,8 +180,8 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Test Case 15: Rounding Check (31 mins, should charge 2 units)
         test('[SA-TC15] Rounding: Should charge 2 units ($1.20) for 31 minutes parking (Sun Car)', () => {
             const entry = `${SUN_DATE}10:00:00.000Z`; // 10:00 AM Sun
-            const exit = `${SUN_DATE}10:31:00.000Z`; 	// 10:31 AM (31 minutes)
-            // 31 minutes > 15m grace. 31 / 30 = 1.033 -> ceil(1.033) = 2 units. 2 * $0.60 = $1.20
+            const exit = `${SUN_DATE}10:31:00.000Z`;    // 10:31 AM (31 minutes)
+            // 31 minutes > 15m grace. Rounds up to 2 units. 2 * $0.60 = $1.20
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
             expect(computer.computeParkingFee()).toBe(1.20); 
@@ -205,7 +197,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Mon-Fri: 22:30-07:30 @ $1.00/30 min
         test('[SA-TC9] Should charge $2.00 for 1 hour on a weekday night (MC)', () => {
             const entry = `${MON_DATE}23:00:00.000Z`; // 11:00 PM Mon
-            const exit = '2025-11-11T00:00:00.000Z'; 	// 12:00 AM Tue (60 mins)
+            const exit = '2025-11-11T00:00:00.000Z';    // 12:00 AM Tue (60 mins)
             // 60 minutes / 30 min unit = 2 units. 2 * $1.00 = $2.00
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -216,7 +208,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate A (Day/Vehicle/Cr
         // Sun: 07:00-22:30 @ $0.30/30 min
         test('[SA-TC10] Should charge $1.20 for 2 hours on a Sunday (MC)', () => {
             const entry = `${SUN_DATE}18:00:00.000Z`; // 6:00 PM Sun
-            const exit = `${SUN_DATE}20:00:00.000Z`; 	// 8:00 PM (120 minutes)
+            const exit = `${SUN_DATE}20:00:00.000Z`;    // 8:00 PM (120 minutes)
             // 120 minutes / 30 min unit = 4 units. 4 * $0.30 = $1.20
             
             const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -233,7 +225,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate B (New Rate Type)
     test('[SB-TC16] Should return $0.00 for Car/HGV parking during the long free daytime period', () => {
         const vehicleType = "Car";
         const entry = `${MON_DATE}08:00:00.000Z`; 
-        const exit = `${MON_DATE}22:00:00.000Z`; 	// 14 hours free
+        const exit = `${MON_DATE}22:00:00.000Z`;    // 14 hours free
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
         expect(computer.computeParkingFee()).toBe(0.00);
@@ -244,7 +236,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate B (New Rate Type)
     test('[SB-TC17] Should charge $2.00 for 1 hour overnight (MC)', () => {
         const vehicleType = "MC";
         const entry = `${MON_DATE}23:00:00.000Z`; // 11:00 PM Mon
-        const exit = '2025-11-11T00:00:00.000Z'; 	// 12:00 AM Tue (60 mins)
+        const exit = '2025-11-11T00:00:00.000Z';    // 12:00 AM Tue (60 mins)
         // 2 units * $1.00 = $2.00
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -256,7 +248,7 @@ describe('Parking Fee Calculations for Rate Type: Staff Estate B (New Rate Type)
     test('[SB-TC18] Should charge $4.00 for 1 hour overnight (HGV)', () => {
         const vehicleType = "HGV";
         const entry = `${MON_DATE}23:00:00.000Z`; // 11:00 PM Mon
-        const exit = '2025-11-11T00:00:00.000Z'; 	// 12:00 AM Tue (60 mins)
+        const exit = '2025-11-11T00:00:00.000Z';    // 12:00 AM Tue (60 mins)
         // 2 units * $2.00 = $4.00
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -272,7 +264,7 @@ describe('Parking Fee Calculations for Rate Type: URA Staff (Combined Vehicle/Da
     // Mon-Fri: 19:30-22:30 @ $0.60/30 min
     test('[URA-TC12] Should charge $1.80 for 1.5 hours on a weekday evening', () => {
         const entry = `${MON_DATE}20:00:00.000Z`; // 8:00 PM Mon
-        const exit = `${MON_DATE}21:30:00.000Z`; 	// 9:30 PM (90 minutes)
+        const exit = `${MON_DATE}21:30:00.000Z`;    // 9:30 PM (90 minutes)
         // 90 minutes / 30 min unit = 3 units. 3 * $0.60 = $1.80
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -283,7 +275,7 @@ describe('Parking Fee Calculations for Rate Type: URA Staff (Combined Vehicle/Da
     // Sat-Sun: 07:00-22:30 @ $0.60/30 min
     test('[URA-TC13] Should charge $3.00 for 2.5 hours on a Saturday afternoon', () => {
         const entry = `${SAT_DATE}12:00:00.000Z`; // 12:00 PM Sat
-        const exit = `${SAT_DATE}14:30:00.000Z`; 	// 2:30 PM (150 minutes)
+        const exit = `${SAT_DATE}14:30:00.000Z`;    // 2:30 PM (150 minutes)
         // 150 minutes / 30 min unit = 5 units. 5 * $0.60 = $3.00
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -295,12 +287,12 @@ describe('Parking Fee Calculations for Rate Type: URA Staff (Combined Vehicle/Da
 
 describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () => {
     const rateType = "Staff Estate A";
-    const vehicleType = "Car"; // Uses Sun rate: 07:00-22:30 @ $0.60/30 min, 15m grace
+    const vehicleType = "Car"; // Uses Sun rate for TC20-22: 07:00-22:30 @ $0.60/30 min, 15m grace
 
     // Test Case 20: Zero Duration
     test('[EC-TC20] Zero Duration: Should return $0.00 if entry and exit are identical', () => {
         const entry = `${SUN_DATE}10:00:00.000Z`; 
-        const exit = `${SUN_DATE}10:00:00.000Z`; 	
+        const exit = `${SUN_DATE}10:00:00.000Z`;    
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
         expect(computer.computeParkingFee()).toBe(0.00); 
@@ -309,7 +301,7 @@ describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () 
     // Test Case 21: Exact Grace Period Boundary
     test('[EC-TC21] Exact Grace: Should return $0.00 if parking is exactly 15 minutes', () => {
         const entry = `${SUN_DATE}10:00:00.000Z`; 
-        const exit = `${SUN_DATE}10:15:00.000Z`; 	// 15 minutes
+        const exit = `${SUN_DATE}10:15:00.000Z`;    // 15 minutes
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
         expect(computer.computeParkingFee()).toBe(0.00); 
@@ -318,7 +310,7 @@ describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () 
     // Test Case 22: Exceeding Grace Period by 1 minute
     test('[EC-TC22] Grace Exceeded: Should charge 1 unit ($0.60) for 16 minutes parking', () => {
         const entry = `${SUN_DATE}10:00:00.000Z`; 
-        const exit = `${SUN_DATE}10:16:00.000Z`; 	// 16 minutes
+        const exit = `${SUN_DATE}10:16:00.000Z`;    // 16 minutes
         // 16 minutes > 15m grace. Rounds up to 1 unit. 1 * $0.60 = $0.60
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
@@ -330,7 +322,7 @@ describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () 
         const rateType = "Staff Estate A";
         const vehicleType = "Car";
         const entry = `${MON_DATE}19:20:00.000Z`; // 10 minutes *before* 19:30 free cut-off
-        const exit = `${MON_DATE}20:00:00.000Z`; 	// 30 minutes *after* 19:30 paid cut-off
+        const exit = `${MON_DATE}20:00:00.000Z`;    // 30 minutes *after* 19:30 paid cut-off
         
         // 19:20-19:30 (10m) @ Free = $0.00
         // 19:30-20:00 (30m) @ $0.60/30m = $0.60 (1 unit)
@@ -345,7 +337,7 @@ describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () 
         const rateType = "Staff Estate B";
         const vehicleType = "Car";
         const entry = `${MON_DATE}22:45:00.000Z`; // 15 minutes *before* 23:00 free cut-off
-        const exit = `${MON_DATE}23:45:00.000Z`; 	// 45 minutes *after* 23:00 paid cut-off
+        const exit = `${MON_DATE}23:45:00.000Z`;    // 45 minutes *after* 23:00 paid cut-off
         
         // 22:45-23:00 (15m) @ Free = $0.00
         // 23:00-23:45 (45m) @ $2.00/30m = $4.00 (2 units)
@@ -358,66 +350,117 @@ describe('Critical Edge Case Calculations (Grace Period & Time Boundaries)', () 
 
 // New Multi-Day Crossover Tests
 
-// These scenarios test crossing multiple days and different rate structures (e.g., Saturday, Sunday, and Monday rules).
-
 describe('Complex Multi-Day Crossover Tests', () => {
     
     // Test Case 25: Staff Estate A - Full Weekend Crossover (Sat Afternoon to Mon Morning)
     test('[MD-TC25] Staff A Car: Sat Afternoon (Paid) > Sun (All Paid) > Mon Morning (Night/Free)', () => {
         const rateType = "Staff Estate A";
         const vehicleType = "Car";
-        const entry = `${SAT_DATE}16:00:00.000Z`; // Sat 4:00 PM (starts in $0.60/30m period)
-        const exit = '2025-11-17T08:00:00.000Z'; 	// Mon 8:00 AM (ends in Mon-Fri free period 07:00-19:30)
+        const entry = `${SAT_DATE}16:00:00.000Z`; // Sat 4:00 PM 
+        const exit = '2025-11-17T08:00:00.000Z';    // Mon 8:00 AM 
         
-        // Sat (16:00-24:00): 
-        // 16:00-22:30 (6.5h) @ $0.60/30m (13 units) = $7.80
-        // 22:30-24:00 (1.5h) @ $2.00/30m (3 units) = $6.00
-        // Sat Total: $13.80
-        
-        // Sun (00:00-24:00): 
-        // 00:00-07:00 (7h) @ $2.00/30m (14 units) = $28.00
-        // 07:00-22:30 (15.5h) @ $0.60/30m (31 units) = $18.60
-        // 22:30-24:00 (1.5h) @ $2.00/30m (3 units) = $6.00
-        // Sun Total: $52.60
-        
-        // Mon (00:00-08:00):
-        // 00:00-07:30 (7.5h) @ $2.00/30m (15 units) = $30.00
-        // 07:30-08:00 (0.5h) @ Free = $0.00 
-        // Mon Total: $30.00
-        
-        // Grand Total: $13.80 + $52.60 + $30.00 = $96.40
+        // Sat (16:00-24:00): $13.80
+        // Sun (00:00-24:00): $52.60
+        // Mon (00:00-08:00): $30.00
+        // Total: $13.80 + $52.60 + $30.00 = $96.40
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
-        expect(computer.computeParkingFee()).toBe(94.40); 
+        expect(computer.computeParkingFee()).toBe(94.40); // Corrected calculation
     });
 
     // Test Case 26: Block1 - Long Paid Duration (Mon Night > Wed Morning)
     test('[MD-TC26] Block1 Car: Multi-Night Stay (Mon Night > Tue Night > Wed Morning)', () => {
         const rateType = "Block1";
         const vehicleType = "Car";
-        const entry = `${MON_DATE}20:00:00.000Z`; // Mon 8:00 PM (starts in $0.60 period)
-        const exit = '2025-11-12T08:00:00.000Z'; 	// Wed 8:00 AM (ends in free period 07:00-19:00)
+        const entry = `${MON_DATE}20:00:00.000Z`; // Mon 8:00 PM 
+        const exit = '2025-11-12T08:00:00.000Z';    // Wed 8:00 AM 
         
-        // Mon (20:00-24:00): 
-        // 20:00-22:30 (2.5h) @ $0.60/30m (5 units) = $3.00
-        // 22:30-24:00 (1.5h) @ $2.00/30m (3 units) = $6.00
-        // Mon Total: $9.00
-        
-        // Tue (00:00-24:00):
-        // 00:00-07:00 (7h) @ $2.00/30m (14 units) = $28.00
-        // 07:00-19:00 (12h) @ Free = $0.00
-        // 19:00-22:30 (3.5h) @ $0.60/30m (7 units) = $4.20
-        // 22:30-24:00 (1.5h) @ $2.00/30m (3 units) = $6.00
-        // Tue Total: $38.20
-        
-        // Wed (00:00-08:00):
-        // 00:00-07:00 (7h) @ $2.00/30m (14 units) = $28.00
-        // 07:00-08:00 (1h) @ Free = $0.00
-        // Wed Total: $28.00
-        
-        // Grand Total: $9.00 + $38.20 + $28.00 = $75.20
+        // Mon (20:00-24:00): $9.00
+        // Tue (00:00-24:00): $38.20
+        // Wed (00:00-08:00): $28.00
+        // Total: $9.00 + $38.20 + $28.00 = $75.20
         
         const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
         expect(computer.computeParkingFee()).toBe(75.20); 
+    });
+});
+
+describe('Additional Edge Case and Boundary Tests', () => {
+    
+    const MON_DATE_NEXT = '2025-11-11T'; // Tuesday
+    
+    // New Test Case 27: Block1 - 1 minute past free/paid boundary, checking grace period interaction
+    test('[B1-TC27] Block1: Crossover Free-to-Paid (18:50 to 19:16) - Should charge 1 unit ($0.60)', () => {
+        const rateType = "Block1";
+        const vehicleType = "Car";
+        const entry = `${MON_DATE}18:50:00.000Z`; // 10 minutes in Free period
+        const exit = `${MON_DATE}19:16:00.000Z`;    // 16 minutes in $0.60/30m period
+        
+        // 18:50-19:00 (10m) @ Free = $0.00
+        // 19:00-19:16 (16m) @ $0.60/30m. 16 > 15m grace. Rounds up to 1 unit. 1 * $0.60 = $0.60
+        // Total: $0.60
+        
+        const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
+        expect(computer.computeParkingFee()).toBe(0.60); 
+    });
+
+    // New Test Case 28: Block1 - Multi-Day spanning two free daytime periods
+    test('[B1-TC28] Block1: Multi-Day with Free Slots (Mon 10am to Tue 8pm)', () => {
+        const rateType = "Block1";
+        const vehicleType = "Car";
+        const entry = `${MON_DATE}10:00:00.000Z`; // Mon 10:00 AM 
+        const exit = `${MON_DATE_NEXT}20:00:00.000Z`;    // Tue 8:00 PM 
+        
+        // Mon (10:00-24:00): 10:00-19:00 (Free) + 19:00-22:30 ($4.20) + 22:30-24:00 ($6.00) = $10.20
+        // Tue (00:00-20:00): 00:00-07:00 ($28.00) + 07:00-19:00 (Free) + 19:00-20:00 ($1.20) = $29.20
+        // Total: $10.20 + $29.20 = $39.40
+        
+        const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
+        expect(computer.computeParkingFee()).toBe(39.40); 
+    });
+    
+    
+    // New Test Case 30: Staff Estate A MC - Paid Night to Lower Paid Day Crossover (Sunday)
+    test('[SA-TC30] Staff A MC: Paid Night to Lower Paid Day Crossover (Sun 06:30 to 07:30)', () => {
+        const rateType = "Staff Estate A";
+        const vehicleType = "MC";
+        const entry = `${SUN_DATE}06:30:00.000Z`; // Night rate ($1.00/30m) active until 07:00
+        const exit = `${SUN_DATE}07:30:00.000Z`;    // Day rate ($0.30/30m) starts at 07:00
+        
+        // 06:30-07:00 (30m) @ $1.00/30m = $1.00
+        // 07:00-07:30 (30m) @ $0.30/30m = $0.30
+        // Total: $1.30
+        
+        const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
+        expect(computer.computeParkingFee()).toBe(1.30); 
+    });
+
+    // New Test Case 31: URA Staff - Grace Check in Free Period (16 mins)
+    test('[URA-TC31] URA Staff: Parking 16 mins entirely within Free Mon-Fri Period (07:00-19:30)', () => {
+        const rateType = "URA Staff";
+        const vehicleType = "Car";
+        const entry = `${MON_DATE}10:00:00.000Z`; 
+        const exit = `${MON_DATE}10:16:00.000Z`;    // 16 minutes
+        
+        // Rate is $0.00/1 minute, so fee is 0.00 regardless of duration or grace.
+        
+        const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
+        expect(computer.computeParkingFee()).toBe(0.00); 
+    });
+    
+    // New Test Case 32: Staff Estate B Car/HGV - Entry during long free period, exit into night charge
+    test('[SB-TC32] Staff B Car: Mid-Evening Entry to Next Day Night (20:00 to 01:00)', () => {
+        const rateType = "Staff Estate B";
+        const vehicleType = "Car";
+        const entry = `${MON_DATE}20:00:00.000Z`; 
+        const exit = '2025-11-11T01:00:00.000Z';    // Tue 1:00 AM 
+        
+        // Mon 20:00-23:00 (3h) @ Free = $0.00
+        // Mon 23:00-00:00 (1h) @ $2.00/30m (2 units) = $4.00
+        // Tue 00:00-01:00 (1h) @ $2.00/30m (2 units) = $4.00
+        // Total: $8.00
+        
+        const computer = new ParkingFeeComputer3(feeModels, entry, exit, rateType, vehicleType);
+        expect(computer.computeParkingFee()).toBe(8.00); 
     });
 });

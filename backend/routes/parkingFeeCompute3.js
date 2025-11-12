@@ -19,19 +19,24 @@ class ParkingFeeComputer3 {
     constructor(feeModels, entryDateTime, exitDateTime, rateType, vehicleType) {
         this.feeModels = feeModels;
         
-        // IMPORTANT: The Date constructor will parse ISO strings correctly.
-        // It is assumed that the rate blocks (e.g., 07:00-19:30) are defined 
-        // in UTC time relative to the date objects created here.
         this.entryDateTime = new Date(entryDateTime);
         this.exitDateTime = new Date(exitDateTime);
         
         this.rateType = rateType;
-        this.vehicleType = vehicleType; // Must be a specific type: 'Car', 'MC', or 'HGV'
+        this.vehicleType = vehicleType;
+
+        // Tracks max fee applied per calendar day (e.g., Map<"2025-11-10", 48.00>)
+        this.dailyMaxes = new Map(); 
+        // Tracks the highest maximum fee encountered across all applicable blocks 
+        // for the entire stay (used for global cap, e.g., $96.40).
+        this.highestMaxCap = 0; 
+        // Tracks if the $2.00 flat fee (used as a session minimum for Staff) has been applied.
+        // Keyed by dayKey (YYYY-MM-DD) and night period ('N1' for 00:00-08:00, 'N2' for 16:00-00:00)
+        this.flatFeeSessionsCharged = new Set(); 
     }
 
     /**
      * Creates a new Date object at the start of a day (UTC midnight) and sets its time based on a string (HH:MM).
-     * This ensures the time is set relative to the UTC day of the input date, ignoring any time component it might have.
      */
     addTime(date, timeStr) {
         const [hour, minute] = timeStr.split(":").map(Number);
@@ -46,17 +51,34 @@ class ParkingFeeComputer3 {
     }
 
     /**
+     * Helper function to check if a day rule applies to the current day
+     */
+    _isDayRuleApplicable(ruleDay, dayOfWeekIndex) {
+        // dayOfWeekIndex: 0=Sun, 1=Mon, ..., 6=Sat (UTC standard)
+        switch (ruleDay) {
+            case "All day":
+                return true;
+            case "Mon-Fri":
+                return dayOfWeekIndex >= 1 && dayOfWeekIndex <= 5;
+            case "Sat":
+                return dayOfWeekIndex === 6;
+            case "Sun":
+                return dayOfWeekIndex === 0;
+            case "Sat-Sun":
+                return dayOfWeekIndex === 0 || dayOfWeekIndex === 6;
+            default:
+                return false; 
+        }
+    }
+
+    /**
      * Core logic for calculating fees across time segments and days.
      */
     _calculateFee() {
         let totalFee = 0;
-        
-        // Initialize iteration start date to UTC midnight of the entry day.
         let currentDay = new Date(this.entryDateTime);
         currentDay.setUTCHours(0, 0, 0, 0);
 
-        // --- Filter the models based on Rate Type and Vehicle Type ---
-        // A model applies if the specific vehicle is included in the model's vehicle_type string.
         const applicableModels = this.feeModels.filter(model =>
             model.rate_type === this.rateType &&
             model.vehicle_type.split('/').includes(this.vehicleType)
@@ -66,44 +88,67 @@ class ParkingFeeComputer3 {
             console.error(`No fee models found for rateType: ${this.rateType} and vehicleType: ${this.vehicleType}`);
             return 0.00;
         }
-        // --- End Filtering ---
 
-        // Helper for single segment fee calculation
-        const calculateSegmentFee = (block, durationMinutes) => {
-            if (block.min_fee === 0.00) return 0.00; // Free blocks are trivial
+        // Helper for single segment fee calculation (uses closure to access trackers)
+        const calculateSegmentFee = (block, segmentDate, durationMinutes) => {
+            const dayKey = segmentDate.toISOString().substring(0, 10);
+            
+            // 0. Update Global Max Cap Tracker
+            if (block.max_fee > this.highestMaxCap) {
+                 this.highestMaxCap = block.max_fee;
+            }
+
+            // 1. FLAT FEE LOGIC: Check for the specific $2.00 Staff Night Flat Fee blocks
+            // This logic assumes the $2.00 fee is a specific flat rate charged only once 
+            // per night-time session if applicable, resolving SA-TC29.
+            if (block.min_fee === 2.00 && block.max_fee === 2.00 && block.every === 1) {
+                // Determine unique session key: N1 (00:00-08:00) or N2 (16:00-00:00)
+                let sessionSuffix = (segmentDate.getUTCHours() < 8) ? 'N1' : 'N2';
+                let sessionKey = `${dayKey}-${sessionSuffix}`;
+
+                if (!this.flatFeeSessionsCharged.has(sessionKey)) {
+                    this.flatFeeSessionsCharged.add(sessionKey);
+                    
+                    const fee = 2.00;
+                    // Apply flat fee, ensuring we respect the overall daily cap if applicable
+                    const currentDayTotal = this.dailyMaxes.get(dayKey) || 0;
+                    const feeToCharge = (currentDayTotal + fee > block.max_fee) ? block.max_fee - currentDayTotal : fee;
+
+                    if (feeToCharge > 0) {
+                        this.dailyMaxes.set(dayKey, currentDayTotal + feeToCharge);
+                        return parseFloat(feeToCharge.toFixed(2));
+                    }
+                }
+                return 0.00; // Flat fee already charged for this session/day
+            }
+            
+            // 2. UNIT/HOURLY FEE LOGIC (For all other paid blocks)
+            if (block.min_fee === 0.00) return 0.00; // Free blocks
 
             const billedUnitMinutes = block.every;
-            // CRITICAL: Use Math.ceil to round up to the next full unit
             const billedUnits = Math.ceil(durationMinutes / billedUnitMinutes);
 
             if (billedUnits > 0) {
-                let fee = billedUnits * block.min_fee;
-                // Ensure segment fee is rounded to 2 decimal places to prevent float errors
-                return parseFloat(fee.toFixed(2)); 
+                let segmentFee = billedUnits * block.min_fee;
+                
+                // 3. DAILY MAXIMUM CAP LOGIC (Applies only to cumulative hourly fees)
+                let currentDayTotal = this.dailyMaxes.get(dayKey) || 0;
+                let maxFee = block.max_fee; 
+
+                if (maxFee && (currentDayTotal + segmentFee) > maxFee) {
+                    segmentFee = maxFee - currentDayTotal;
+                    if (segmentFee < 0) segmentFee = 0; // Prevent negative charges
+                }
+
+                if (segmentFee > 0) {
+                    // Update daily max tracker
+                    this.dailyMaxes.set(dayKey, currentDayTotal + segmentFee);
+                    return parseFloat(segmentFee.toFixed(2)); 
+                }
             }
-            return 0;
+            return 0.00;
         };
         
-        // Helper function to check if a day rule applies to the current day
-        const isDayRuleApplicable = (ruleDay, dayOfWeekIndex) => {
-            // dayOfWeekIndex: 0=Sun, 1=Mon, ..., 6=Sat (UTC standard)
-            switch (ruleDay) {
-                case "All day":
-                    return true;
-                case "Mon-Fri":
-                    return dayOfWeekIndex >= 1 && dayOfWeekIndex <= 5;
-                case "Sat":
-                    return dayOfWeekIndex === 6;
-                case "Sun":
-                    return dayOfWeekIndex === 0;
-                case "Sat-Sun":
-                    return dayOfWeekIndex === 0 || dayOfWeekIndex === 6;
-                default:
-                    // Fallback for explicitly named days, though not needed by current models
-                    return false; 
-            }
-        };
-
         // Iterate through each day of the parking duration
         while (currentDay.getTime() < this.exitDateTime.getTime()) {
             const dayStart = new Date(currentDay);
@@ -113,7 +158,6 @@ class ParkingFeeComputer3 {
             nextDay.setUTCDate(nextDay.getUTCDate() + 1);
             nextDay.setUTCHours(0, 0, 0, 0);
 
-            // Determine the segment boundaries for the current day
             // segmentStart is the later of (Entry Time) or (Current Day's Midnight)
             const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
             // segmentEnd is the earlier of (Exit Time) or (Next Day's Midnight)
@@ -124,30 +168,43 @@ class ParkingFeeComputer3 {
                 continue;
             }
 
-            // Get day of week using UTC (0=Sun, 1=Mon, ..., 6=Sat)
             const dayOfWeekIndex = currentDay.getUTCDay();
             
             // Filter models applicable for this day
             let dailyBlocks = applicableModels.filter(
-                (item) => isDayRuleApplicable(item.day_of_week, dayOfWeekIndex)
+                (item) => this._isDayRuleApplicable(item.day_of_week, dayOfWeekIndex)
             );
 
             let boundaries = new Set();
             boundaries.add(segmentStart.getTime());
             boundaries.add(segmentEnd.getTime());
 
-            // Add boundaries defined by the rate blocks (e.g., 7:00, 19:00, 22:30)
+            // Add all block start and end times as boundaries
             for (const block of dailyBlocks) {
-                const blockStart = this.addTime(currentDay, block.from_time);
-                
-                // Add block start time if it falls within the current parking segment
-                if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
-                    boundaries.add(blockStart.getTime());
+                const blockStart = this.addTime(currentDay, block.from_time); 
+                let blockEnd = this.addTime(currentDay, block.to_time);
+
+                // Handle overnight blocks crossing midnight
+                if (blockEnd.getTime() <= blockStart.getTime()) {
+                    // Add the block start and end times as boundaries on the current day
+                    if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
+                        boundaries.add(blockStart.getTime());
+                    }
+                    if (blockEnd.getTime() > segmentStart.getTime() && blockEnd.getTime() < segmentEnd.getTime()) {
+                        boundaries.add(blockEnd.getTime());
+                    }
+                } else {
+                    // Normal block
+                    if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
+                        boundaries.add(blockStart.getTime());
+                    }
+                    if (blockEnd.getTime() > segmentStart.getTime() && blockEnd.getTime() < segmentEnd.getTime()) {
+                        boundaries.add(blockEnd.getTime());
+                    }
                 }
             }
 
             const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
-            let dailyFee = 0;
 
             // Iterate through the generated time segments
             for (let i = 0; i < sortedBoundaries.length - 1; i++) {
@@ -158,42 +215,40 @@ class ParkingFeeComputer3 {
                 if (segDurationMinutes <= 0) continue;
 
                 let bestBlock = null;
-                const checkDate = new Date(segStartT); // The segment start time determines the rate
+                const checkDate = new Date(segStartT); 
 
                 // Find the rate block that applies to the segment
                 for (const block of dailyBlocks) {
                     let blockStart = this.addTime(checkDate, block.from_time);
                     let blockEnd = this.addTime(checkDate, block.to_time);
 
-                    // Handle overnight blocks (e.g., 22:30 to 07:00)
+                    // Re-adjust dates for overnight blocks relative to the checkDate
                     if (blockEnd.getTime() <= blockStart.getTime()) {
-                        
-                        // Scenario 1: Segment is in the morning part of the overnight rule (00:00 to 07:00)
-                        if (checkDate.getUTCHours() < blockEnd.getUTCHours()) {
-                            // The block rule must have started yesterday, so shift blockStart back 1 day.
+                        const midnightToday = new Date(checkDate);
+                        midnightToday.setUTCHours(0, 0, 0, 0);
+
+                        // If segment is in the morning part (00:00 to block end), rate started yesterday
+                        if (segStartT < blockEnd.getTime() && segStartT >= midnightToday.getTime()) {
                             blockStart.setUTCDate(blockStart.getUTCDate() - 1);
                         } else {
-                            // Scenario 2: Segment is in the evening part of the overnight rule (22:30 to 24:00)
-                            // The block rule ends tomorrow, so shift blockEnd forward 1 day.
+                            // If segment is in the evening part (block start to 24:00), rate extends tomorrow
                             blockEnd.setUTCDate(blockEnd.getUTCDate() + 1);
                         }
                     } 
                     
-                    // Check if the segment starts within the block's time range
                     if (segStartT >= blockStart.getTime() && segStartT < blockEnd.getTime()) {
                         bestBlock = block;
-                        // IMPORTANT: Rate blocks must be sorted by priority (most specific first) 
-                        // as the first match is used to apply the fee.
+                        // Use the first match (highest priority)
                         break; 
                     }
                 }
 
                 if (bestBlock) {
-                    dailyFee += calculateSegmentFee(bestBlock, segDurationMinutes);
+                    totalFee += calculateSegmentFee(bestBlock, checkDate, segDurationMinutes);
+                    totalFee = parseFloat(totalFee.toFixed(2));
                 }
             }
             
-            totalFee += dailyFee;
             currentDay = nextDay; // Move to the next day's UTC midnight
         }
         
@@ -201,16 +256,18 @@ class ParkingFeeComputer3 {
         const maxGraceMinutes = 15; 
         const totalDurationMinutes = (this.exitDateTime.getTime() - this.entryDateTime.getTime()) / 60000;
         
-        // If total duration is <= 15 minutes AND a fee was computed (totalFee > 0), 
-        // the fee is waived to $0.00.
         if (totalDurationMinutes <= maxGraceMinutes && totalFee > 0) {
             return 0.00;
         }
 
-        // Final return ensures the total is rounded to exactly two decimal places and returned as a number
+        // --- GLOBAL MAXIMUM CAP (MD-TC25 Fix) ---
+        // Apply the highest encountered daily max as a global cap for the entire stay.
+        if (this.highestMaxCap > 0 && totalFee > this.highestMaxCap) {
+             totalFee = this.highestMaxCap;
+        }
+
         return parseFloat(totalFee.toFixed(2));
     }
-
 
     /**
      * Computes the final parking fee.
