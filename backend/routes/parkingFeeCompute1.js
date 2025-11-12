@@ -1,7 +1,7 @@
 /**
  * ParkingFeeComputer
  * Computes parking fees based on entry/exit times and a detailed set of fee models,
- * filtering rates by vehicle type and the requested rate type (e.g., "Hourly", "Day Season", "Block2").
+ * filtering rates by vehicle type and the requested rate type (e.g., "Hourly", "Day Season", "Night Season").
  */
 class ParkingFeeComputer {
     
@@ -278,7 +278,7 @@ class ParkingFeeComputer {
     /**
      * Computes the parking fee based on the duration, vehicle type, and specified rate type.
      * @param {string} vehicleType - The type of vehicle (e.g., 'Car', 'Truck').
-     * @param {string} rate_type - The specific rate type to use (e.g., 'Hourly', 'Day Season', 'Block2').
+     * @param {string} rate_type - The specific rate type to use (e.g., 'Hourly', 'Day Season', 'Night Season').
      * @returns {number} The total parking fee.
      */
     computeParkingFee(vehicleType, rate_type) {
@@ -326,13 +326,13 @@ class ParkingFeeComputer {
         
         // --- 2. Rate Type Dispatcher ---
         const fixedRateTypes = ['season', 'cspt', 'block3', 'authorized'];
-        const segmentedRateTypes = ['hourly', 'day season', 'night season', 'block2']; // Block2 is now treated as segmented
+        const segmentedRateTypes = ['hourly', 'day season', 'night season']; 
         
         if (fixedRateTypes.includes(requestedRateType)) {
             // Category 1: Fixed/Flat Rate Calculation
             return this._calculateFixedFee(vehicleType, requestedRateType);
         } else if (segmentedRateTypes.includes(requestedRateType)) {
-            // Category 2: Standard Segmented Hourly Rate (including Block2, Night Season, etc.)
+            // Category 2: Standard Segmented Hourly Rate (Hourly, Day Season, Night Season, etc.)
             return this._calculateSegmentedHourlyFee(vehicleType, requestedRateType);
         } else {
             // Fallback or unhandled rates

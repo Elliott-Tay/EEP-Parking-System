@@ -1,5 +1,4 @@
-const auth = require('../routes/auth');
-const { ParkingFeeComputer } = require('../routes/parkingFeeCompute'); 
+const { ParkingFeeComputer } = require('../routes/parkingFeeCompute1'); 
 // NOTE: Assuming 'parkingFeeCompute.js' is in the '../routes/' directory. 
 // Change this path if needed for your environment.
 
