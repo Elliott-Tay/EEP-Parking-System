@@ -325,7 +325,7 @@ class ParkingFeeComputer {
         }
         
         // --- 2. Rate Type Dispatcher ---
-        const fixedRateTypes = ['season', 'cspt', 'block3', 'authorized'];
+        const fixedRateTypes = ['season', 'cspt', 'block3', 'authorized', 'class 2'];
         const segmentedRateTypes = ['hourly', 'day season', 'night season']; 
         
         if (fixedRateTypes.includes(requestedRateType)) {
