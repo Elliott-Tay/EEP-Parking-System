@@ -146,77 +146,79 @@ const isValidDate = (dateString) => {
 // --- ROUTE HANDLER WITH ADDED VALIDATION ---
 
 // route to compute parking fee
+// route to compute parking fee
 router.post("/calculate-fee", async (req, res) => {
-    // 1. Extract required parameters from the request body
-    const { 
-        entryDateTime, 
-        exitDateTime, 
-        rateType, 
-        vehicleType, 
-        modelCatalogKey 
-    } = req.body;
+    // 1. Extract required parameters from the request body
+    const { 
+        entryDateTime, 
+        exitDateTime, 
+        rateType, 
+        vehicleType, 
+        modelCatalogKey 
+    } = req.body;
 
-    // 2. Input Validation (Ensure all necessary fields are present)
-    if (!entryDateTime || !exitDateTime || !rateType || !vehicleType || !modelCatalogKey) {
-        return res.status(400).json({ 
-            error: "Missing parameters.",
-            required: ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"]
-        });
-    }
+    // 2. Input Validation (Ensure all necessary fields are present)
+    if (!entryDateTime || !exitDateTime || !rateType || !vehicleType || !modelCatalogKey) {
+        return res.status(400).json({ 
+            error: "Missing parameters.",
+            required: ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"]
+        });
+    }
 
-    // --- START: Date Validation Added ---
+    // --- START: Date Validation Added ---
 
-    // 2.1. Validate date formats
-    if (!isValidDate(entryDateTime)) {
-        return res.status(400).json({ error: "Invalid date format for entryDateTime." });
-    }
-    if (!isValidDate(exitDateTime)) {
-        return res.status(400).json({ error: "Invalid date format for exitDateTime." });
-    }
+    // 2.1. Validate date formats
+    if (!isValidDate(entryDateTime)) {
+        return res.status(400).json({ error: "Invalid date format for entryDateTime." });
+    }
+    if (!isValidDate(exitDateTime)) {
+        return res.status(400).json({ error: "Invalid date format for exitDateTime." });
+    }
 
-    // 2.2. Validate date order (Entry must be strictly before Exit)
-    const entryTime = new Date(entryDateTime).getTime();
-    const exitTime = new Date(exitDateTime).getTime();
+    // 2.2. Validate date order (Entry must be strictly before Exit)
+    const entryTime = new Date(entryDateTime).getTime();
+    const exitTime = new Date(exitDateTime).getTime();
 
-    if (entryTime >= exitTime) {
-        return res.status(400).json({ error: "exitDateTime must be after entryDateTime." });
-    }
-    
-    // --- END: Date Validation Added ---
+    if (entryTime >= exitTime) {
+        return res.status(400).json({ error: "exitDateTime must be after entryDateTime." });
+    }
+    
+    // --- END: Date Validation Added ---
 
-    try {
-        // 3. Create the appropriate fee calculator instance
-        const calculator = createFeeCalculator(
-            entryDateTime,
-            exitDateTime,
-            rateType,
-            vehicleType,
-            modelCatalogKey
-        );
+    try {
+        // 3. Create the appropriate fee calculator instance
+        const calculator = createFeeCalculator(
+            entryDateTime,
+            exitDateTime,
+            rateType,
+            vehicleType,
+            modelCatalogKey
+        );
 
-        // Check if createFeeCalculator returned an error string
-        if (typeof calculator === 'string') {
-            return res.status(400).json({ error: calculator });
-        }
+        // Check if createFeeCalculator returned an error string
+        if (typeof calculator === 'string') {
+            return res.status(400).json({ error: calculator });
+        }
 
-        // 4. Calculate the fee
-        // Note: For PC4, the vehicleType and rateType arguments here are used internally.
-        const totalFee = calculator.computeParkingFee(vehicleType, rateType); 
+        // 4. Calculate the fee
+        const totalFee = calculator.computeParkingFee(vehicleType, rateType); 
 
-        // 5. Send the result back to the client
-        res.status(200).json({
-            status: "success",
-            entry: entryDateTime,
-            exit: exitDateTime,
-            rate_type: rateType,
-            fee_model: modelCatalogKey,
-            total_fee: totalFee
-        });
+        // 5. Send the result back to the client
+        res.status(200).json({
+            status: "success",
+            entry: entryDateTime,
+            exit: exitDateTime,
+            rate_type: rateType,
+            fee_model: modelCatalogKey,
+            // FIX: Use parseFloat() to convert the fixed string back into a number.
+            // This ensures the fee is a number with two decimal places of precision.
+            total_fee: parseFloat(Number(totalFee).toFixed(2))
+        });
 
-    } catch (err) {
-        console.error("Fee calculation error:", err);
-        res.status(500).json({ error: "Internal server error during fee calculation.", details: err.message });
-    }
+    } catch (err) {
+        console.error("Fee calculation error:", err);
+        res.status(500).json({ error: "Internal server error during fee calculation.", details: err.message });
+    }
 });
 
 module.exports = router;
