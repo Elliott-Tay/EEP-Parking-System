@@ -1,78 +1,101 @@
 /**
  * ParkingFeeComputer Class
  * Calculates parking fees based on entry/exit times, rate types, and fee models.
- * This version is specifically optimized to demonstrate Class 1 logic.
+ * This version implements the Class 1 fee logic and handles rate lookup by searching
+ * directly within the provided array of fee models.
  */
 class ParkingFeeComputer4 {
     /**
-     * @param {string} entry ISO date string for entry time.
-     * @param {string} exit ISO date string for exit time.
-     * @param {Array} feeModels The full list of fee models (not strictly used here but kept for API compatibility).
-     * @param {object} rateTypes The specific rate structure to apply (e.g., Class 1).
-     * @param {Array} publicHolidays List of public holidays (not strictly used here but kept for API compatibility).
+     * @param {Array<object>} feeModels The array containing the specific rate objects (e.g., the CLASS1_RATES array).
+     * @param {string} entryDateTime ISO date string for entry time.
+     * @param {string} exitDateTime ISO date string for exit time.
+     * @param {string} rateType The string identifier for the rate (e.g., "Class1").
+     * @param {string} vehicleType The type of vehicle (defaults to "Car/MC/HGV").
      */
-    constructor(entry, exit, feeModels, rateTypes, publicHolidays) {
-        // Convert ISO date strings to Date objects
-        this.entryTime = new Date(entry);
-        this.exitTime = new Date(exit);
-
-        // Retain other properties for completeness
-        this.feeModels = feeModels;
-        this.rateTypes = rateTypes;
-        this.publicHolidays = publicHolidays;
+    constructor(feeModels, entryDateTime, exitDateTime, rateType, vehicleType = "Car/MC/HGV") {
+        // Now expecting the specific rate array as the first argument
+        this.feeModels = feeModels; 
+        this.entryDateTime = new Date(entryDateTime);
+        this.exitDateTime = new Date(exitDateTime);
+        this.rateType = rateType;
+        this.vehicleType = vehicleType;
+        // modelCatalogKey has been removed to meet the 5-argument requirement
     }
 
     /**
      * Helper to reliably calculate the duration between two Date objects in minutes.
-     * @returns {number} The duration in minutes.
+     * @returns {number} The duration in minutes (rounded to nearest minute).
      */
     getDurationInMinutes() {
-        const diffInMilliseconds = this.exitTime.getTime() - this.entryTime.getTime();
-        // Convert milliseconds to minutes and round to the nearest whole minute
+        const diffInMilliseconds = this.exitDateTime.getTime() - this.entryDateTime.getTime();
         return Math.round(diffInMilliseconds / (1000 * 60));
     }
 
     /**
-     * Computes the parking fee based on the Class 1 fee model:
-     * - First 60 minutes are free (grace period).
-     * - Chargeable duration is rounded UP to the next 30-minute block.
-     * - Fee is $0.60 per 30-minute block.
-     *
-     * @param {object} vehicle The vehicle object (unused, but kept for interface compatibility).
-     * @param {object} rateType The Class 1 rate structure containing { gracePeriod: 60, blockDuration: 30, rate: 0.60 }.
-     * @returns {number} The calculated parking fee, formatted to two decimal places.
+     * Helper to find the matching rate object from the fee models array.
+     * Searches directly within the feeModels array (which is now expected to be the specific rates array).
+     * @returns {object | null} The matching rate object or null if not found.
      */
-    computeParkingFee(vehicle, rateType) {
-        // 1. Get total duration
+    findMatchingRate() {
+        const ratesArray = this.feeModels;
+
+        if (!Array.isArray(ratesArray) || ratesArray.length === 0) {
+            console.error("Fee models array is not valid or is empty.");
+            return null;
+        }
+
+        // Search directly within the ratesArray
+        const rateObject = ratesArray.find(rate => 
+            rate.vehicle_type === this.vehicleType &&
+            rate.rate_type === this.rateType
+        );
+
+        if (!rateObject) {
+            console.warn(`No matching rate found for type ${this.rateType} and vehicle ${this.vehicleType}.`);
+            return null;
+        }
+        return rateObject;
+    }
+
+    /**
+     * Computes the parking fee based on the Class 1 fee model.
+     * @returns {number | null} The calculated parking fee, formatted to two decimal places, or null if no rate is found.
+     */
+    computeParkingFee() {
         const totalDurationMinutes = this.getDurationInMinutes();
 
-        // Destructure necessary parameters for Class 1:
-        // gracePeriod should be 60 (minutes free)
-        // blockDuration should be 30 (minutes per block)
-        // rate should be 0.60 (fee per block)
-        const { gracePeriod, blockDuration, rate } = rateType;
+        // 1. Find the necessary rate object internally
+        const rateObject = this.findMatchingRate();
+        if (rateObject === null) {
+            return null;
+        }
 
-        // 2. Determine chargeable duration
-        // This calculates the duration AFTER the first 60 free minutes.
-        const chargeableMinutes = totalDurationMinutes - gracePeriod;
+        // 2. Destructure using the correct data model keys
+        const { grace_time, every, min_fee } = rateObject;
 
-        // 3. Handle grace period and free stays (first hour)
+        // Validation against the data model keys
+        if (typeof grace_time === 'undefined' || typeof every === 'undefined' || typeof min_fee === 'undefined') {
+            console.error("Rate structure is incomplete or missing necessary keys (grace_time, every, min_fee).");
+            return null; 
+        }
+
+        // 3. Determine chargeable duration
+        const chargeableMinutes = totalDurationMinutes - grace_time;
+
+        // 4. Handle grace period (first hour free)
         if (chargeableMinutes <= 0) {
-            // Stay is within the 60-minute grace period or zero/negative duration
             return 0.00;
         }
 
-        // 4. Calculate billing blocks
-        // The chargeable time is rounded up to the nearest block duration (e.g., 31 chargeable mins -> 2 blocks).
-        const numberOfBlocks = Math.ceil(chargeableMinutes / blockDuration);
+        // 5. Calculate billing blocks
+        const numberOfBlocks = Math.ceil(chargeableMinutes / every);
 
-        // 5. Calculate final fee
-        const fee = numberOfBlocks * rate;
+        // 6. Calculate final fee
+        const fee = numberOfBlocks * min_fee;
 
         // Ensure the fee is formatted to two decimal places for currency comparison
         return parseFloat(fee.toFixed(2));
     }
 }
-
 
 module.exports = { ParkingFeeComputer4 };

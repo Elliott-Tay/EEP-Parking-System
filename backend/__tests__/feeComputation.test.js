@@ -3,23 +3,31 @@
 const mockComputeFee1 = jest.fn().mockReturnValue(10.50);
 const mockComputeFee2 = jest.fn().mockReturnValue(20.00);
 const mockComputeFee3 = jest.fn().mockReturnValue(0.00);
+const mockComputeFee4 = jest.fn().mockReturnValue(5.40); // Mock return value for PC4
 
 jest.mock('../routes/parkingFeeCompute1', () => ({
-    ParkingFeeComputer: jest.fn(() => ({
-        computeParkingFee: mockComputeFee1,
-    })),
+    ParkingFeeComputer: jest.fn(() => ({
+        computeParkingFee: mockComputeFee1,
+    })),
 }));
 
 jest.mock('../routes/parkingFeeCompute2', () => ({
-    ParkingFeeComputer2: jest.fn(() => ({
-        computeParkingFee: mockComputeFee2,
-    })),
+    ParkingFeeComputer2: jest.fn(() => ({
+        computeParkingFee: mockComputeFee2,
+    })),
 }));
 
 jest.mock('../routes/parkingFeeCompute3', () => ({
-    ParkingFeeComputer3: jest.fn(() => ({
-        computeParkingFee: mockComputeFee3,
-    })),
+    ParkingFeeComputer3: jest.fn(() => ({
+        computeParkingFee: mockComputeFee3,
+    })),
+}));
+
+// ADDED: Mock ParkingFeeComputer4
+jest.mock('../routes/parkingFeeCompute4', () => ({
+    ParkingFeeComputer4: jest.fn(() => ({
+        computeParkingFee: mockComputeFee4,
+    })),
 }));
 
 
@@ -38,222 +46,304 @@ app.use('/', router);
 const { ParkingFeeComputer } = require('../routes/parkingFeeCompute1');
 const { ParkingFeeComputer2 } = require('../routes/parkingFeeCompute2');
 const { ParkingFeeComputer3 } = require('../routes/parkingFeeCompute3');
+// ADDED: Import ParkingFeeComputer4
+const { ParkingFeeComputer4 } = require('../routes/parkingFeeCompute4'); 
 
 
 describe('POST /calculate-fee', () => {
-    // Standard mock payload for success cases
-    const validPayload1 = {
-        entryDateTime: "2024-03-05T08:00:00.000Z", // Tuesday
-        exitDateTime: "2024-03-05T10:30:00.000Z",
-        rateType: "Hourly",
-        vehicleType: "Car",
-        modelCatalogKey: "COMPREHENSIVE_RATES"
-    };
+    // Standard mock payload for success cases
+    const validPayload1 = {
+        entryDateTime: "2024-03-05T08:00:00.000Z", // Tuesday
+        exitDateTime: "2024-03-05T10:30:00.000Z",
+        rateType: "Hourly",
+        vehicleType: "Car",
+        modelCatalogKey: "COMPREHENSIVE_RATES"
+    };
 
-    beforeEach(() => {
-        // Clear all mock history and reset implementations before each test
-        jest.clearAllMocks();
-    });
+    beforeEach(() => {
+        // Clear all mock history and reset implementations before each test
+        jest.clearAllMocks();
+        // Resetting the mock values for safety, as they can be overridden in tests
+        mockComputeFee1.mockReturnValue(10.50);
+        mockComputeFee2.mockReturnValue(20.00);
+        mockComputeFee3.mockReturnValue(0.00);
+        mockComputeFee4.mockReturnValue(5.40);
+    });
 
-    // --- A. Input Validation Tests (Status 400) ---
-    describe('Input Validation (Missing Fields)', () => {
-        const requiredFields = ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"];
-        
-        requiredFields.forEach(field => {
-            it(`should return 400 if ${field} is missing`, async () => {
-                const invalidPayload = { ...validPayload1 };
-                delete invalidPayload[field];
+    // --- A. Input Validation Tests (Missing Fields) ---
+    describe('Input Validation (Missing Fields)', () => {
+        const requiredFields = ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"];
+        
+        requiredFields.forEach(field => {
+            it(`should return 400 if ${field} is missing`, async () => {
+                const invalidPayload = { ...validPayload1 };
+                delete invalidPayload[field];
 
-                const response = await request(app)
-                    .post('/calculate-fee')
-                    .send(invalidPayload);
+                const response = await request(app)
+                    .post('/calculate-fee')
+                    .send(invalidPayload);
 
-                expect(response.statusCode).toBe(400);
-                expect(response.body.error).toBe("Missing parameters.");
-                expect(response.body.required).toEqual(expect.arrayContaining(requiredFields));
-            });
-        });
+                expect(response.statusCode).toBe(400);
+                expect(response.body.error).toBe("Missing parameters.");
+                expect(response.body.required).toEqual(expect.arrayContaining(requiredFields));
+            });
+        });
 
-        it('should return 400 if modelCatalogKey is invalid', async () => {
-            const invalidPayload = { ...validPayload1, modelCatalogKey: "NON_EXISTENT_RATES" };
+        it('should return 400 if modelCatalogKey is invalid', async () => {
+            const invalidPayload = { ...validPayload1, modelCatalogKey: "NON_EXISTENT_RATES" };
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(invalidPayload);
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid modelCatalogKey");
-        });
-    });
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toContain("Invalid modelCatalogKey");
+        });
+    });
     
     // --- A1. Date and Time Validation Tests (Status 400) ---
-    describe('Input Validation (Date/Time Logic)', () => {
-        it('should return 400 if entryDateTime is after exitDateTime', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                entryDateTime: "2024-03-05T10:30:00.000Z", // Entry is LATER
-                exitDateTime: "2024-03-05T08:00:00.000Z", 
-            };
+    describe('Input Validation (Date/Time Logic)', () => {
+        it('should return 400 if entryDateTime is after exitDateTime', async () => {
+            const invalidPayload = {
+                ...validPayload1,
+                entryDateTime: "2024-03-05T10:30:00.000Z", // Entry is LATER
+                exitDateTime: "2024-03-05T08:00:00.000Z", 
+            };
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(invalidPayload);
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toBe("exitDateTime must be after entryDateTime.");
-        });
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toBe("exitDateTime must be after entryDateTime.");
+        });
 
-        it('should return 400 if entryDateTime is not a valid ISO date string', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                entryDateTime: "not-a-real-date", 
-            };
+        it('should return 400 if entryDateTime is not a valid ISO date string', async () => {
+            const invalidPayload = {
+                ...validPayload1,
+                entryDateTime: "not-a-real-date", 
+            };
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(invalidPayload);
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid date format for entryDateTime");
-        });
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toContain("Invalid date format for entryDateTime");
+        });
         
         it('should return 400 if exitDateTime is not a valid ISO date string', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                exitDateTime: "another-fake-date", 
-            };
+            const invalidPayload = {
+                ...validPayload1,
+                exitDateTime: "another-fake-date", 
+            };
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(invalidPayload);
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid date format for exitDateTime");
-        });
-    });
+            expect(response.statusCode).toBe(400);
+            expect(response.body.error).toContain("Invalid date format for exitDateTime");
+        });
+    });
 
-    // --- C. Calculator 2 (ParkingFeeComputer2) Tests ---
-    describe('Special Rate Calculator (ParkingFeeComputer2)', () => {
-        const specialPayload = {
-            entryDateTime: "2024-03-05T23:00:00.000Z",
-            exitDateTime: "2024-03-06T00:30:00.000Z",
-            rateType: "Special",
-            vehicleType: "HGV",
-            modelCatalogKey: "BLOCK2_SPECIAL_RATES"
-        };
-        
-        it('should use ParkingFeeComputer2 for "Special" rate type', async () => {
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(specialPayload);
+    // --- C. Calculator 2 (ParkingFeeComputer2) Tests ---
+    describe('Special Rate Calculator (ParkingFeeComputer2)', () => {
+        const specialPayload = {
+            entryDateTime: "2024-03-05T23:00:00.000Z",
+            exitDateTime: "2024-03-06T00:30:00.000Z",
+            rateType: "Special",
+            vehicleType: "HGV",
+            modelCatalogKey: "BLOCK2_SPECIAL_RATES"
+        };
+        
+        it('should use ParkingFeeComputer2 for "Special" rate type', async () => {
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(specialPayload);
 
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
-            
-            // 2. Assert Calculator Instantiation
-            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
-            expect(ParkingFeeComputer).not.toHaveBeenCalled();
-            expect(ParkingFeeComputer3).not.toHaveBeenCalled();
+            // 1. Assert Status
+            expect(response.statusCode).toBe(200);
+            
+            // 2. Assert Calculator Instantiation
+            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
+            expect(ParkingFeeComputer).not.toHaveBeenCalled();
+            expect(ParkingFeeComputer3).not.toHaveBeenCalled();
 
-            // 3. Assert Constructor Arguments for PC2 (Custom Signature)
-            expect(ParkingFeeComputer2).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels
-                specialPayload.entryDateTime,
-                specialPayload.exitDateTime,
-                specialPayload.rateType,
-                specialPayload.vehicleType
-            );
+            // 3. Assert Constructor Arguments for PC2 (Custom Signature)
+            expect(ParkingFeeComputer2).toHaveBeenCalledWith(
+                expect.any(Array), // feeModels
+                specialPayload.entryDateTime,
+                specialPayload.exitDateTime,
+                specialPayload.rateType,
+                specialPayload.vehicleType
+            );
 
-            // 4. Assert Response Body
-            expect(response.body.total_fee).toBe(20.00);
-        });
+            // 4. Assert Response Body
+            expect(response.body.total_fee).toBe(20.00);
+        });
 
-        it('should use ParkingFeeComputer2 for "Block2" rate type', async () => {
-            const payload = { ...specialPayload, rateType: "Block2" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
+        it('should use ParkingFeeComputer2 for "Block2" rate type', async () => {
+            const payload = { ...specialPayload, rateType: "Block2" };
+            
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(payload);
 
-            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
-    });
+            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
+            expect(response.statusCode).toBe(200);
+        });
+    });
 
-    // --- D. Calculator 3 (ParkingFeeComputer3) Tests ---
-    describe('Staff Estate Calculator (ParkingFeeComputer3)', () => {
-        const staffPayload = {
-            entryDateTime: "2024-03-04T09:00:00.000Z", // Monday
-            exitDateTime: "2024-03-04T11:00:00.000Z",
-            rateType: "Staff Estate A",
-            vehicleType: "MC",
-            modelCatalogKey: "STAFF_ESTATE_RATES"
-        };
-        
-        it('should use ParkingFeeComputer3 for "Staff Estate A" rate type', async () => {
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(staffPayload);
+    // --- D. Calculator 3 (ParkingFeeComputer3) Tests ---
+    describe('Staff Estate Calculator (ParkingFeeComputer3)', () => {
+        const staffPayload = {
+            entryDateTime: "2024-03-04T09:00:00.000Z", // Monday
+            exitDateTime: "2024-03-04T11:00:00.000Z",
+            rateType: "Staff Estate A",
+            vehicleType: "MC",
+            modelCatalogKey: "STAFF_ESTATE_RATES"
+        };
+        
+        it('should use ParkingFeeComputer3 for "Staff Estate A" rate type', async () => {
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(staffPayload);
 
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
+            // 1. Assert Status
+            expect(response.statusCode).toBe(200);
 
-            // 2. Assert Calculator Instantiation
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(ParkingFeeComputer).not.toHaveBeenCalled();
-            expect(ParkingFeeComputer2).not.toHaveBeenCalled();
+            // 2. Assert Calculator Instantiation
+            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
+            expect(ParkingFeeComputer).not.toHaveBeenCalled();
+            expect(ParkingFeeComputer2).not.toHaveBeenCalled();
 
-            // 3. Assert Constructor Arguments for PC3 (Custom Signature)
-            expect(ParkingFeeComputer3).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels
-                staffPayload.entryDateTime,
-                staffPayload.exitDateTime,
-                staffPayload.rateType,
-                staffPayload.vehicleType
-            );
+            // 3. Assert Constructor Arguments for PC3 (Custom Signature)
+            expect(ParkingFeeComputer3).toHaveBeenCalledWith(
+                expect.any(Array), // feeModels
+                staffPayload.entryDateTime,
+                staffPayload.exitDateTime,
+                staffPayload.rateType,
+                staffPayload.vehicleType
+            );
 
-            // 4. Assert Response Body
-            expect(response.body.total_fee).toBe(0.00); // Mocked return value for PC3
-        });
-        
-        it('should use ParkingFeeComputer3 for "URA Staff" rate type', async () => {
-            const payload = { ...staffPayload, rateType: "URA Staff" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
+            // 4. Assert Response Body
+            expect(response.body.total_fee).toBe(0.00); // Mocked return value for PC3
+        });
+        
+        it('should use ParkingFeeComputer3 for "URA Staff" rate type', async () => {
+            const payload = { ...staffPayload, rateType: "URA Staff" };
+            
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(payload);
 
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
+            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
+            expect(response.statusCode).toBe(200);
+        });
         
         it('should use ParkingFeeComputer3 for "Staff Estate B" rate type', async () => {
-            const payload = { ...staffPayload, rateType: "Staff Estate B" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
+            const payload = { ...staffPayload, rateType: "Staff Estate B" };
+            
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(payload);
 
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
-    });
+            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
+            expect(response.statusCode).toBe(200);
+        });
+    });
 
-    // --- E. Error Handling Test (Status 500) ---
-    describe('Error Handling (Internal)', () => {
-        it('should return 500 if the calculator throws an internal error', async () => {
-            // Mock the default calculator's computeParkingFee to throw an error
-            mockComputeFee1.mockImplementationOnce(() => {
-                throw new Error("Date parsing failed");
-            });
+    // --- E. Calculator 4 (ParkingFeeComputer4) Tests ---
+    describe('Class1 Rate Calculator (ParkingFeeComputer4)', () => {
+        const class1PayloadLong = {
+            entryDateTime: "2024-03-05T09:00:00.000Z",
+            exitDateTime: "2024-03-05T12:00:00.000Z", // 3 hours
+            rateType: "Class1",
+            vehicleType: "Car/MC/HGV",
+            modelCatalogKey: "CLASS1_RATES" // Added required key for API call
+        };
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(validPayload1);
+        const class1PayloadShort = {
+            entryDateTime: "2024-03-05T09:00:00.000Z",
+            exitDateTime: "2024-03-05T09:59:00.000Z", // 59 minutes
+            rateType: "Class1",
+            vehicleType: "Car/MC/HGV",
+            modelCatalogKey: "CLASS1_RATES" // Added required key for API call
+        };
+        
+        it('should use ParkingFeeComputer4 for "Class1" rate type (Long Stay - Mock $5.40)', async () => {
+            // Test case for a fee being charged (after grace period)
+            mockComputeFee4.mockReturnValue(5.40);
+            
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(class1PayloadLong);
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body.error).toBe("Internal server error during fee calculation.");
-            expect(response.body.details).toBe("Date parsing failed");
-        });
-    });
+            // 1. Assert Status
+            expect(response.statusCode).toBe(200);
+
+            // 2. Assert Calculator Instantiation
+            expect(ParkingFeeComputer4).toHaveBeenCalledTimes(1);
+            expect(ParkingFeeComputer2).not.toHaveBeenCalled();
+
+            // 3. Assert Constructor Arguments for PC4 (5 arguments)
+            expect(ParkingFeeComputer4).toHaveBeenCalledWith(
+                expect.any(Array), // feeModels (CLASS1_RATES array)
+                class1PayloadLong.entryDateTime,
+                class1PayloadLong.exitDateTime,
+                class1PayloadLong.rateType,
+                class1PayloadLong.vehicleType,
+                class1PayloadLong.modelCatalogKey
+            );
+
+            // 4. Assert Response Body
+            expect(response.body.total_fee).toBe(5.40); 
+        });
+
+        it('should return 0.00 for stays within the 60 minute grace period (Short Stay)', async () => {
+            // Override mock for this specific test to simulate the 0.00 fee return
+            mockComputeFee4.mockReturnValue(0.00); 
+
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(class1PayloadShort);
+
+            // 1. Assert Status
+            expect(response.statusCode).toBe(200);
+            
+            // 2. Assert Constructor Arguments for PC4 (5 arguments)
+            expect(ParkingFeeComputer4).toHaveBeenCalledWith(
+                expect.any(Array), // feeModels (CLASS1_RATES array)
+                class1PayloadShort.entryDateTime,
+                class1PayloadShort.exitDateTime,
+                class1PayloadShort.rateType,
+                class1PayloadShort.vehicleType,
+                class1PayloadShort.modelCatalogKey
+            );
+
+            // 3. Assert Response Body
+            expect(response.body.total_fee).toBe(0.00); 
+            expect(ParkingFeeComputer4).toHaveBeenCalled(); 
+        });
+    });
+
+
+    // --- F. Error Handling Test (Status 500) ---
+    describe('Error Handling (Internal)', () => {
+        it('should return 500 if the calculator throws an internal error', async () => {
+            // Mock the default calculator's computeParkingFee to throw an error
+            mockComputeFee1.mockImplementationOnce(() => {
+                throw new Error("Date parsing failed");
+            });
+
+            const response = await request(app)
+                .post('/calculate-fee')
+                .send(validPayload1);
+
+            expect(response.statusCode).toBe(500);
+            expect(response.body.error).toBe("Internal server error during fee calculation.");
+            expect(response.body.details).toBe("Date parsing failed");
+        });
+    });
 });
