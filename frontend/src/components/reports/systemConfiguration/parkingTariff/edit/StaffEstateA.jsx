@@ -81,7 +81,7 @@ export default function TariffSetupStaffEstateA() {
       const fetchTariff = async () => {
         try {
           const token = localStorage.getItem("token");
-          const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Staff Estate (Type A)`, {
+          const response = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/tariff/tariff-rates?rateType=Staff Estate A`, {
             headers: { "Content-Type": "application/json", Authorization: token ? `Bearer ${token}` : "" },
             credentials: "include",
           });
@@ -109,14 +109,14 @@ export default function TariffSetupStaffEstateA() {
               vehicleType: slot.vehicle_type || "Car/Van",
               from: parseTimeSG(slot.from_time),
               to: parseTimeSG(slot.to_time),
-              rate_type: slot.rate_type || dynamicRateTypes[0] || "Staff Estate (Type A)",
+              rate_type: slot.rate_type || dynamicRateTypes[0] || "Staff Estate A",
               every: slot.every || 60,
               minFee: slot.min_fee || 0,
               graceTime: slot.grace_time || 0,
               firstMinFee: slot.first_min_fee || 0,
               min: slot.min_charge || 0,
               max: slot.max_charge || 0,
-              contractClass: slot.rate_type || dynamicRateTypes[0] || "Staff Estate (Type A)",
+              contractClass: slot.rate_type || dynamicRateTypes[0] || "Staff Estate A",
             };
             const label = slot.day_of_week;
             if (!newRates[label]) newRates[label] = [];
@@ -142,7 +142,7 @@ export default function TariffSetupStaffEstateA() {
       });
     };
   
-    const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Staff Estate (Type A)") => {
+    const addCarTimeSlot = (day, vehicleType = "Car/HGV", rateType = "Staff Estate A") => {
       const newSlot = {
         vehicleType,
         from: "08:00",
@@ -163,7 +163,7 @@ export default function TariffSetupStaffEstateA() {
       }));
     };
   
-    const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Staff Estate (Type A)") => {
+    const addMCycleTimeSlot = (day, vehicleType = "MC", rateType = "Staff Estate A") => {
       const newSlot = {
         vehicleType,
         from: "08:00",
@@ -184,7 +184,7 @@ export default function TariffSetupStaffEstateA() {
       }));
     };
 
-    const addAllTimeSlot = (day, vehicleType = "Car/HGV/MC", rateType = "Staff Estate (Type A)") => {
+    const addAllTimeSlot = (day, vehicleType = "Car/HGV/MC", rateType = "Staff Estate A") => {
       const newSlot = {
         vehicleType,
         from: "08:00",
@@ -249,7 +249,7 @@ export default function TariffSetupStaffEstateA() {
         vehicleType: slot.vehicleType,
         from: normalizeTime(slot.from),
         to: normalizeTime(slot.to),
-        rateType: slot.rate_type || slot.rateType || "Staff Estate (Type A)",
+        rateType: slot.rate_type || slot.rateType || "Staff Estate A",
         every: Number(slot.every),
         minFee: Number(slot.minFee),
         graceTime: Number(slot.graceTime),
@@ -400,7 +400,7 @@ export default function TariffSetupStaffEstateA() {
     // ---------- Render ----------
     return (
       <div className="min-h-screen bg-gray-50 p-8">
-        <h1 className="text-2xl font-bold mb-4">Tariff Setup for Staff Estate (Type A) Rates</h1>
+        <h1 className="text-2xl font-bold mb-4">Tariff Setup for Staff Estate A Rates</h1>
   
         {/* Effective Dates */}
         <div className="grid grid-cols-2 gap-4 mb-6">

@@ -148,7 +148,6 @@ const isValidDate = (dateString) => {
 // --- ROUTE HANDLER WITH ADDED VALIDATION ---
 
 // route to compute parking fee
-// route to compute parking fee
 router.post("/calculate-fee", async (req, res) => {
     // 1. Extract required parameters from the request body
     const { 
