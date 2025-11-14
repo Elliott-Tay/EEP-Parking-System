@@ -93,6 +93,7 @@ function App() {
   const TariffSetupStaffTypeA = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateA'));
   const TariffSetupStaffTypeB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/StaffEstateB'));
   const TariffSetupClass1 = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/class1'));
+  const TariffSetupClass2 = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/class2'));
   const TariffSetupHourlyB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/HourlyRateTariffB'));
   const TariffSetupSeasonB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SeasonRateTariffB'));
   const TariffSetupSpecialB = lazy(() => import('./components/reports/systemConfiguration/parkingTariff/edit/SpecialRateTariffB'));
@@ -190,6 +191,7 @@ function App() {
     { path: "/tariff/edit/staff-a", element: <TariffSetupStaffTypeA /> },
     { path: "/tariff/edit/staff-b", element: <TariffSetupStaffTypeB /> },
     { path: "/tariff/edit/class1", element: <TariffSetupClass1 /> },
+    { path: "/tariff/edit/class2", element: <TariffSetupClass2 /> },
     { path: "/tariff/edit/hourly-rates", element: <HourlyRate/> },
     { path: "/tariff/edit/car-van-b", element: <TariffSetupHourlyB /> },
     { path: "/tariff/edit/lorry-b", element: <TariffSetupSeasonB /> },
