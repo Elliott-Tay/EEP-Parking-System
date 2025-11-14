@@ -65,6 +65,7 @@ export default function ParkingTariffConfiguration() {
     { name: "Tariff setup for Authorized", path: "/tariff/edit/authorized" },
     { name: "Tariff setup for Staff Estate (Type A)", path: "/tariff/edit/staff-a" },
     { name: "Tariff setup for Staff Estate (Type B)", path: "/tariff/edit/staff-b" },
+    { name: "Tarriff setup for Class 1 Rates", path: "/tariff/edit/class1" },
     { name: "Tariff setup for Hourly (B)", path: "/tariff/edit/car-van-b" },
     { name: "Tariff setup for Season (B)", path: "/tariff/edit/lorry-b" },
     { name: "Tariff setup for Special (B)", path: "/tariff/edit/mcycle-b" },
