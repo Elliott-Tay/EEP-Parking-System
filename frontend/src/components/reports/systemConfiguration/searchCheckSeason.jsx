@@ -58,6 +58,46 @@ export default function SearchCheckSeason() {
     return 'bg-blue-100 text-blue-800 border-blue-300';
   };
 
+  const handleDelete = async (seasonNo) => {
+    if (!seasonNo) {
+      toast.error("Invalid Season No");
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete Season No: ${seasonNo}?`
+    );
+    if (!confirmDelete) return;
+
+    const env_backend = process.env.REACT_APP_BACKEND_API_URL;
+
+    try {
+      const res = await fetch(`${env_backend}/api/seasons/${seasonNo}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`, // adjust if you store JWT differently
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to delete");
+        return;
+      }
+
+      toast.success(`Season ${seasonNo} deleted successfully!`);
+
+      // Refresh results after deletion
+      setResults(results.filter((r) => r.season_no !== seasonNo));
+
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("Error deleting. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 relative overflow-hidden">
       {/* Background Pattern */}
@@ -209,6 +249,9 @@ export default function SearchCheckSeason() {
                             Status
                           </div>
                         </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 bg-gray-50">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -233,6 +276,15 @@ export default function SearchCheckSeason() {
                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusBadgeColor(row.season_status)}`}>
                               {row.season_status || 'Unknown'}
                             </span>
+                          </td>
+
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleDelete(row.season_no)}
+                              className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition"
+                            >
+                              Delete
+                            </button>
                           </td>
                         </tr>
                       ))}

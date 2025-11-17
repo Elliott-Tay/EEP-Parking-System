@@ -19,9 +19,7 @@ router.get("/", authenticateJWT, async (req, res) => {
 
 // GET /api/seasons/:season_id/transactions?search=term
 router.get("/:season_id/transactions", authenticateJWT, async (req, res) => {
-  const { season_id } = req.params;
-  const { search } = req.query; // <-- get search query
-
+  const { season_id } = google.comgoogl
   try {
     const pool = await sql.connect(config);
     let query = "SELECT * FROM SeasonHolders WHERE season_no = @season_id";
@@ -265,6 +263,38 @@ router.put("/update", authenticateJWT, async (req, res) => {
     res.json({ message: "Season holder updated successfully!" });
   } catch (err) {
     console.error("Error updating season holder:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+});
+
+// DELETE season holder by season_no
+router.delete("/:season_no", authenticateJWT, async (req, res) => {
+  const { season_no } = req.params;
+
+  if (!season_no) {
+    return res.status(400).json({ error: "season_no is required" });
+  }
+
+  try {
+    const pool = await sql.connect(config);
+
+    const query = `
+      DELETE FROM SeasonHolders
+      WHERE season_no = @season_no
+    `;
+
+    const result = await pool
+      .request()
+      .input("season_no", sql.NVarChar, season_no)
+      .query(query);
+
+    if (result.rowsAffected[0] === 0) {
+      return res.status(404).json({ error: "Season holder not found" });
+    }
+
+    res.json({ message: "Season holder deleted successfully!" });
+  } catch (err) {
+    console.error("Error deleting season holder:", err);
     res.status(500).json({ error: "Internal server error", details: err.message });
   }
 });
