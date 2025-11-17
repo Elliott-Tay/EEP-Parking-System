@@ -264,7 +264,7 @@ export default function SearchCheckSeason() {
                             <span className="font-mono text-sm text-gray-900">{row.season_no || '-'}</span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="font-medium text-sm text-gray-900">{row.vehicle_no || '-'}</span>
+                            <span className="font-medi um text-sm text-gray-900">{row.vehicle_no || '-'}</span>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-sm text-gray-900">{row.holder_name || '-'}</span>

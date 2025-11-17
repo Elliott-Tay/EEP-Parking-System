@@ -11,7 +11,7 @@ The purpose of this project is to be the software side that manages the carpark 
 
 - Devops: Circle CI for CI/CD and Docker if there is a need for package management. 
 
-This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system. 
+This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system or the central database for shared information. 
 
 ## Setup of repo
 
@@ -74,4 +74,6 @@ To ensure that everything is working correctly, ensure that you create test case
 npm test
 ```
 
-Ensure that the test cases pass first before pushing into the repo and into CI/CD configurations or merging it into master if we are working with various software engineers. Please use feature branching method when 
+Ensure that the test cases pass first before pushing into the repo and into CI/CD configurations or merging it into master if we are working with various software engineers. Please use feature branching method when you are creating new features or fixing bugs so that when we check it, we can do a trace back of which merge might cause issues if it happens. 
+
+You can refer to the EEP documentation for more of the hardware version as the software part documentations are in here.
