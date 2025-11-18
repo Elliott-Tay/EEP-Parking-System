@@ -214,7 +214,7 @@ router.put("/tariff-slot", async (req, res) => {
 });
 
 // GET Tariff setup (view)
-router.get("/tariff-setup", authenticateJWT, async (req, res) => {
+router.get("/tariff-setup", async (req, res) => {
   const { vehicleType } = req.query;
 
   if (!vehicleType) {

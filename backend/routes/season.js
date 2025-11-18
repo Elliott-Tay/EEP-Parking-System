@@ -46,7 +46,7 @@ router.get("/:season_id/transactions", async (req, res) => {
 });
 
 // GET /api/seasons/to-be-expired
-router.get("/to-be-expired", authenticateJWT, async (req, res) => {
+router.get("/to-be-expired", async (req, res) => {
   try {
     const pool = await sql.connect(config);
     const query = `
