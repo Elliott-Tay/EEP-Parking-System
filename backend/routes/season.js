@@ -7,7 +7,7 @@ const authenticateJWT = require("../../middleware/auth");
 // Get all seasons
 // This route fetches all seasons from the database
 // Example: GET /api/seasons
-router.get("/", authenticateJWT, async (req, res) => {
+router.get("/", async (req, res) => {
     try {
         const result = await db.query("SELECT * FROM SeasonHolders"); // no destructuring
         res.json(result.recordset); 
@@ -18,7 +18,7 @@ router.get("/", authenticateJWT, async (req, res) => {
 });
 
 // GET /api/seasons/:season_id/transactions?search=term
-router.get("/:season_id/transactions", authenticateJWT, async (req, res) => {
+router.get("/:season_id/transactions", async (req, res) => {
   const { season_id } = google.comgoogl
   try {
     const pool = await sql.connect(config);
@@ -164,7 +164,7 @@ router.post("/season-holder", async (req, res) => {
 });
 
 // Update season holder
-router.put("/update", authenticateJWT, async (req, res) => {
+router.put("/update", async (req, res) => {
   const {
     serial_no,
     valid_to,       
@@ -268,7 +268,7 @@ router.put("/update", authenticateJWT, async (req, res) => {
 });
 
 // DELETE season holder by season_no
-router.delete("/:season_no", authenticateJWT, async (req, res) => {
+router.delete("/:season_no", async (req, res) => {
   const { season_no } = req.params;
 
   if (!season_no) {
