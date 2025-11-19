@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.51.1",
     "@headlessui/react": "^2.2.7",
     "@reduxjs/toolkit": "^2.8.2",
     "@testing-library/dom": "^10.4.1",

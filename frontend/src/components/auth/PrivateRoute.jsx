@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import React, { useEffect, useState, useCallback } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 
 const PrivateRoute = ({ children, requiredRole }) => {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
+  const navigate = useNavigate();
 
   const decodeToken = (token) => {
     try {
@@ -17,7 +18,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/auth/refresh`, {
         method: "POST",
-        credentials: "include", // include cookies if refresh token is stored in cookie
+        credentials: "include",
       });
 
       if (!res.ok) throw new Error("Token refresh failed");
@@ -27,16 +28,23 @@ const PrivateRoute = ({ children, requiredRole }) => {
       return data.token;
     } catch (err) {
       console.error("Token refresh error:", err);
-      localStorage.removeItem("token"); // remove expired/invalid token
+      localStorage.removeItem("token");
       return null;
     }
   };
+
+  // 🔥 Logout function used by idle timeout
+  const logoutDueToIdle = useCallback(() => {
+    localStorage.removeItem("token");
+    alert("You have been logged out due to 10 minutes of inactivity.");
+    navigate("/", { replace: true });
+  }, [navigate]);
 
   useEffect(() => {
     const checkAuth = async () => {
       let token = localStorage.getItem("token");
 
-      // ✅ No token at all → unauthorized
+      // No token → unauthorized
       if (!token) {
         setAuthorized(false);
         setLoading(false);
@@ -46,7 +54,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
       let payload = decodeToken(token);
       const now = Math.floor(Date.now() / 1000);
 
-      // ✅ Expired or invalid token → try refresh
+      // Expired token → try refresh
       if (!payload || (payload.exp && payload.exp < now)) {
         token = await refreshToken();
         if (!token) {
@@ -57,7 +65,7 @@ const PrivateRoute = ({ children, requiredRole }) => {
         payload = decodeToken(token);
       }
 
-      // ✅ Role check (if required)
+      // Role check
       if (requiredRole && payload?.role !== requiredRole) {
         alert("Access denied: insufficient role");
         setAuthorized(false);
@@ -71,10 +79,34 @@ const PrivateRoute = ({ children, requiredRole }) => {
     checkAuth();
   }, [requiredRole]);
 
-  // ✅ Show loading while verifying
+  // 🔥 Idle Timeout Logic (10 minutes)
+  useEffect(() => {
+    if (!authorized) return;
+
+    const IDLE_LIMIT = 10 * 60 * 1000; // 10 minutes
+    let idleTimeout = setTimeout(logoutDueToIdle, IDLE_LIMIT);
+
+    const resetIdleTimer = () => {
+      clearTimeout(idleTimeout);
+      idleTimeout = setTimeout(logoutDueToIdle, IDLE_LIMIT);
+    };
+
+    window.addEventListener("mousemove", resetIdleTimer);
+    window.addEventListener("keydown", resetIdleTimer);
+    window.addEventListener("click", resetIdleTimer);
+
+    return () => {
+      clearTimeout(idleTimeout);
+      window.removeEventListener("mousemove", resetIdleTimer);
+      window.removeEventListener("keydown", resetIdleTimer);
+      window.removeEventListener("click", resetIdleTimer);
+    };
+  }, [authorized, logoutDueToIdle]);
+
+  // Loading screen
   if (loading) return <div>Loading...</div>;
 
-  // ✅ Redirect home if not authorized
+  // Not authorized → redirect
   if (!authorized) return <Navigate to="/" replace />;
 
   return React.cloneElement(children);
