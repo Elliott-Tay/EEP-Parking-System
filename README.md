@@ -77,3 +77,31 @@ npm test
 Ensure that the test cases pass first before pushing into the repo and into CI/CD configurations or merging it into master if we are working with various software engineers. Please use feature branching method when you are creating new features or fixing bugs so that when we check it, we can do a trace back of which merge might cause issues if it happens. 
 
 You can refer to the EEP documentation for more of the hardware version as the software part documentations are in here.
+
+## Encryption of env files
+
+To encrypt the env files, we first need to install this dotenvx library
+
+```
+npm install @dotenvx/dotenvx
+```
+
+Afterwards we need to encrypt both the backend and the frontend env files, we can encrypt all the environment variables except the ones pointing to the frontend and the backend url. So either copy them out and paste them back later or if you have any other solutions, you can do so.
+
+You can run this to encrypt the dotenv files
+```
+npx dotenvx encrypt
+```
+
+Put this inside the package.json file or whatever private key is given after the encryption
+```
+{
+  "scripts": {
+    "decryption": "DOTENV_PRIVATE_KEY='821327d6fdecd6fddb7b542f4f7955508b94c3f1448fb57568e39d92a194fe75' dotenvx run -- node app.js"
+  }
+}
+```
+To debug issues, see if there is an issue with the backend or server error when you are doing things. If so, it is most likely you also encrypted the frontend and backend urls and you need to write the backend and frontend in plaintext and not in an encrypted format as somehow it cannot read encrypted frontend and backend urls. 
+
+If there are any issues, you can slowly debug it by console logging to see where the issue lies.
+
