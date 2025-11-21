@@ -21,7 +21,11 @@ require("dotenv").config();
 const app = express();
 
 app.use(cors({
-  origin: `${process.env.FRONTEND_URL}`,
+  origin: [
+    `${process.env.FRONTEND_URL}` || "http://localhost:3000",
+    "http://10.2.127.179:3000",
+    "http://10.2.127.179:5000"
+  ],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
