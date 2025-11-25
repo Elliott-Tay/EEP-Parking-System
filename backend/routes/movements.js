@@ -196,13 +196,14 @@ router.post("/entry-movements", async (req, res) => {
 
     const pool = await sql.connect(config);
 
-    // Call the stored procedure instead of raw INSERT
+    // Call the stored procedure with OBU_number
     await pool.request()
       .input("vehicle_number", sql.NVarChar, data.VehicleNo)
       .input("entry_station_id", sql.NVarChar, data.Station)
       .input("entry_datetime", sql.DateTime, data.Time)
       .input("entry_datetime_detect", sql.DateTime, new Date()) // detection time = now
       .input("entry_trans_type", sql.NVarChar, data.Status) // or map OK/ERROR to a type
+      .input("OBU_number", sql.NVarChar, data.OBU_number) // new OBU input
       .execute("sp_InsertEntryMovement"); // <-- call the stored procedure
 
     res.json({ success: true, ack: "ACK", data });
@@ -249,7 +250,7 @@ router.post("/entry-movements", async (req, res) => {
 
 router.post("/exit-movements", async (req, res) => {
   try {
-    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance } = req.body;
+    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance, OBU_number } = req.body;
 
     if (!Station || !Time || !VehicleNo) {
       return res.status(400).json({
@@ -261,7 +262,7 @@ router.post("/exit-movements", async (req, res) => {
 
     const pool = await sql.connect(config);
 
-    // Call stored procedure instead of manual SELECT + UPDATE
+    // Call stored procedure with OBU_number
     await pool.request()
       .input("VehicleNo", sql.NVarChar, VehicleNo)
       .input("Station", sql.NVarChar, Station)
@@ -269,6 +270,7 @@ router.post("/exit-movements", async (req, res) => {
       .input("PaymentCardNo", sql.NVarChar, PaymentCardNo || null)
       .input("Fee", sql.Decimal(10, 2), Fee || 0)
       .input("Balance", sql.Decimal(10, 2), Balance || 0)
+      .input("OBU_number", sql.NVarChar, OBU_number || null) // <-- added OBU_number
       .execute("sp_UpdateExitMovement"); 
 
     res.json({
@@ -1310,10 +1312,12 @@ router.get("/stream/exits", (req, res) => {
 
 // Broadcast helpers
 function broadcastEntry(data) {
+  console.log("Broadcasting entry:", data);
   entryClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
 function broadcastExit(data) {
+  console.log("Broadcasting exit:", data);
   exitClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
@@ -1381,29 +1385,28 @@ router.post("/entry-station", async (req, res) => {
   try {
     const data = req.body;
 
-    // Broadcast normally
-    broadcastEntry(data);
+    // Map keys to match frontend expectation
+    const payload = {
+      VehicleNo: data.VehicleNo,
+      Station: data.Station,
+      Time: data.Time,
+      Status: data.Status || "OK",
+      ObuNo: data.OBU_number || null
+    };
 
-    // Check if status indicates an error
+    broadcastEntry(payload); // send mapped payload
+
     if (data.Status && data.Status.toUpperCase() === "ERROR") {
       const errors = Array.isArray(data.errors) ? data.errors : [data.errors || "Unknown error"];
       for (const errMsg of errors) {
-        await logStationError(
-          data.Station || "Unknown Station",
-          errMsg,
-        );
+        await logStationError(data.Station || "Unknown Station", errMsg);
       }
     }
 
-    res.json({ success: true, ack: "ACK", data });
+    res.json({ success: true, ack: "ACK", data: payload });
   } catch (error) {
     console.error("Error in /entry-station:", error);
-    
-    await logStationError(
-      req.body.Station || "Unknown Station",
-      error.message,
-    );
-
+    await logStationError(req.body.Station || "Unknown Station", error.message);
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
@@ -1436,10 +1439,20 @@ router.post("/exit-station", async (req, res) => {
   try {
     const data = req.body;
 
-    // Push to SSE immediately, including errors if present
-    broadcastExit(data);
+    // Map keys to match frontend
+    const payload = {
+      VehicleNo: data.VehicleNo,
+      Station: data.Station,
+      Time: data.Time,
+      Status: data.Status || "OK",
+      ObuNo: data.OBU_number || null,
+      PaymentCardNo: data.PaymentCardNo || null,
+      Fee: data.Fee || 0,
+      Balance: data.Balance || 0
+    };
 
-    // Also log to database if Status is ERROR
+    broadcastExit(payload);
+
     if (data.Status && data.Status.toUpperCase() === "ERROR") {
       const errors = Array.isArray(data.errors) ? data.errors : [data.errors || "Unknown error"];
       for (const errMsg of errors) {
@@ -1447,17 +1460,13 @@ router.post("/exit-station", async (req, res) => {
       }
     }
 
-    res.json({ success: true, ack: "ACK", data });
+    res.json({ success: true, ack: "ACK", data: payload });
   } catch (error) {
     console.error("Error in /exit-station:", error);
-
-    // Log internal server errors too
     await logStationError(req.body.Station || "Unknown Station", error.message);
-
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
-
 /**
  * Helper function to update lot status for entry or exit
  */

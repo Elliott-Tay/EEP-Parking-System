@@ -53,7 +53,8 @@ export default function OverviewTab() {
             VehicleNo: data.VehicleNo,
             Station: data.Station,
             Time: data.Time,
-            Status: data.Status || "OK"
+            Status: data.Status || "OK",
+            OBU_number: data.OBU_number || null
           })
         });
 
@@ -90,7 +91,8 @@ export default function OverviewTab() {
             PaymentCardNo: data.PaymentCardNo,
             Fee: data.Fee,
             Balance: data.Balance,
-            Status: data.Status || "OK"
+            Status: data.Status || "OK",
+            OBU_number: data.OBU_number || null
           })
         });
 
@@ -125,8 +127,8 @@ export default function OverviewTab() {
 
 function StationCard({ title, icon, rows, error, isEntry = true }) {
   const headers = isEntry
-    ? ["Station", "Time", "Vehicle No", "Status"]
-    : ["Station", "Time", "Vehicle No", "Payment Card No", "Fee", "Balance", "Status"];
+    ? ["Station", "Time", "Vehicle No", "Obu No", "Status"]
+    : ["Station", "Time", "Vehicle No", "Obu No", "Payment Card No", "Fee", "Balance", "Status"];
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -168,6 +170,7 @@ function StationCard({ title, icon, rows, error, isEntry = true }) {
                         <td className="px-4 py-2 text-blue-700">{row.Station || row.name}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Time || row.time}</td>
                         <td className="px-4 py-2 text-blue-700">{row.VehicleNo || row.vehicle}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.ObuNo || row.Obu}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Status || row.status}</td>
                       </>
                     ) : (
@@ -175,7 +178,8 @@ function StationCard({ title, icon, rows, error, isEntry = true }) {
                         <td className="px-4 py-2 text-blue-700">{row.Station || row.name}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Time || row.time}</td>
                         <td className="px-4 py-2 text-blue-700">{row.VehicleNo || row.vehicle}</td>
-                        <td className="px-4 py-2 text-blue-700">{row.PaymentCard || row.card}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.ObuNo || row.Obu}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.PaymentCardNo || row.card}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Fee || row.fee}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Balance || row.balance}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Status || row.status}</td>
