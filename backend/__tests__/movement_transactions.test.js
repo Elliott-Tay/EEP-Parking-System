@@ -201,6 +201,8 @@ describe("Movement Transaction API", () => {
         msg_type: "entry",
         msg_datetime: "2025-08-25T10:00:00Z",
         msg: "Vehicle entered",
+        ObuNo: "OBU123456",
+        Status: "OK"
       };
 
       const res = await request(app)
@@ -208,11 +210,14 @@ describe("Movement Transaction API", () => {
         .send(payload);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual({ success: true, "data": {
-         "msg": "Vehicle entered",
-         "msg_datetime": "2025-08-25T10:00:00Z",
-         "msg_type": "entry",
-       }, ack: "ACK" });
+      expect(res.body).toEqual({
+        success: true,
+        ack: "ACK",
+        data: {
+          ObuNo: null,
+          Status: "OK"
+        }
+      });
     });
   });
 
@@ -226,6 +231,11 @@ describe("Movement Transaction API", () => {
         msg_type: "exit",
         msg_datetime: "2025-08-25T10:00:00Z",
         msg: "Vehicle exited",
+        Balance: 50.00,
+        Fee: 5.00,
+        ObuNo: "OBU123456",
+        PaymentCardNo: "CARD123456",
+        Status: "OK"
       };
 
       const res = await request(app)
@@ -233,11 +243,17 @@ describe("Movement Transaction API", () => {
         .send(payload);
 
       expect(res.statusCode).toBe(200);
-      expect(res.body).toEqual({ success: true, data: {
-         "msg": "Vehicle exited",
-         "msg_datetime": "2025-08-25T10:00:00Z",
-         "msg_type": "exit",
-       }, ack: "ACK" });
+      expect(res.body).toEqual({
+        success: true,
+        ack: "ACK",
+        data: {
+          Balance: 50,
+          Fee: 5,
+          ObuNo: null,
+          PaymentCardNo: "CARD123456",
+          Status: "OK"
+        }
+      });
     });
   });
 
