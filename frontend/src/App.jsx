@@ -42,6 +42,7 @@ function App() {
   const ChangeSeasonIU = lazy(() => import('./components/reports/systemConfiguration/changeSeasonNo'));
   const SearchCheckSeason = lazy(() => import('./components/reports/systemConfiguration/searchCheckSeason'));
   const MovementTransaction = lazy(() => import('./components/reports/enquiry/movementTransactions'));
+  const AdminMovementTransaction = lazy(() => import('./components/reports/enquiry/adminMovements'));
   const EntryTransaction = lazy(() => import('./components/reports/enquiry/entryTransactions'));
   const ExitValidTransaction = lazy(() => import('./components/reports/enquiry/exitValidTransaction'));
   const ExitInvalidTransactionDetail = lazy(() => import('./components/reports/enquiry/exitInvalidTransactions'));
@@ -141,6 +142,7 @@ function App() {
     { path: "/config/check-search-season", element: <SearchCheckSeason /> },
     { path: "/config/authorized-cars", element: <ConfigurationAuthorizedCars />},
     { path: "/enquiry/movement-transaction", element: <MovementTransaction /> },
+    { path: "/enquiry/admin-movement-transaction", element: <AdminMovementTransaction />, requiredRole: "admin" },
     { path: "/enquiry/entry-transaction", element: <EntryTransaction /> },
     { path: "/enquiry/exit-valid-transaction", element: <ExitValidTransaction /> },
     { path: "/enquiry/exit-invalid-detail", element: <ExitInvalidTransactionDetail /> },
