@@ -712,29 +712,22 @@ router.get("/station-error-history", async (req, res) => {
   }
 });
 
-router.post("/entry", async (req, res) => {
+// --- POST create or update entry transaction with upserts --- 
+router.post("/entry-transaction", async (req, res) => {
   const {
+    transaction_id,
     vehicle_id,
-    entry_trans_type,
+    vehicle_number,
+    card_number,
     entry_station_id,
     entry_datetime,
-    entry_datetime_detect,
-    exit_trans_type,
-    exit_station_id,
-    exit_datetime,
-    exit_datetime_detect,
-    parking_duration,
     parking_charges,
     paid_amount,
-    card_type,
-    card_number,
-    vehicle_number,
-    ticket_type,
-    ticket_id,
     receipt_bit
   } = req.body;
 
-  if (!vehicle_id || !entry_trans_type || !entry_station_id || !entry_datetime) {
+  // Validate required fields
+  if (!transaction_id || !vehicle_id || !entry_station_id || !entry_datetime) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -742,111 +735,29 @@ router.post("/entry", async (req, res) => {
     const pool = await sql.connect(config);
     const request = pool.request();
 
-    // Upsert entry_trans_type
-    if (entry_trans_type) {
-      await request
-        .input("log_id", sql.Int, entry_trans_type)
-        .input("trans_desc", sql.NVarChar, "Unknown")
-        .query(`
-          INSERT INTO transtypemaster (log_id, trans_desc, status, updated_by, updated_datetime)
-          VALUES (@log_id, @trans_desc, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE log_id=log_id
-        `);
-    }
-
-    // Upsert exit_trans_type
-    if (exit_trans_type) {
-      await request
-        .input("log_id", sql.Int, exit_trans_type)
-        .input("trans_desc", sql.NVarChar, "Unknown")
-        .query(`
-          INSERT INTO transtypemaster (log_id, trans_desc, status, updated_by, updated_datetime)
-          VALUES (@log_id, @trans_desc, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE log_id=log_id
-        `);
-    }
-
-    // Upsert entry_station
-    if (entry_station_id) {
-      await request
-        .input("station_id", sql.NVarChar, entry_station_id)
-        .query(`
-          INSERT INTO stationinfomaster (station_id, station_type, station_desc, station_ipaddress, zone_id, status, update_by, update_datetime)
-          VALUES (@station_id, 1, 'Unknown', '', 1, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE station_id=station_id
-        `);
-    }
-
-    // Upsert exit_station
-    if (exit_station_id) {
-      await request
-        .input("station_id", sql.NVarChar, exit_station_id)
-        .query(`
-          INSERT INTO stationinfomaster (station_id, station_type, station_desc, station_ipaddress, zone_id, status, update_by, update_datetime)
-          VALUES (@station_id, 2, 'Unknown', '', 1, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE station_id=station_id
-        `);
-    }
-
-    // Upsert card_type
-    if (card_type) {
-      await request
-        .input("card_id", sql.Int, card_type)
-        .query(`
-          INSERT INTO cardtypemaster (card_id, card_desc, status, updated_by, updated_datetime)
-          VALUES (@card_id, 'Unknown', 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE card_id=card_id
-        `);
-    }
-
-    // Upsert ticket
-    if (ticket_id) {
-      await request
-        .input("ticket_id", sql.Int, ticket_id)
-        .input("ticket_type", sql.Int, ticket_type || 1)
-        .query(`
-          INSERT INTO ticketmaster (ticket_id, ticket_type, ticket_no, valid_datetime, expire_datetime, status)
-          VALUES (@ticket_id, @ticket_type, 'Unknown', GETDATE(), GETDATE(), 0)
-          ON DUPLICATE KEY UPDATE ticket_id=ticket_id
-        `);
-    }
-
-    // Insert movement transaction
     const result = await request
+      .input("transaction_id", sql.Int, transaction_id)
       .input("vehicle_id", sql.Int, vehicle_id)
-      .input("entry_trans_type", sql.Int, entry_trans_type)
+      .input("vehicle_number", sql.NVarChar, vehicle_number || null)
+      .input("card_number", sql.NVarChar, card_number || null)
       .input("entry_station_id", sql.NVarChar, entry_station_id)
       .input("entry_datetime", sql.DateTime, entry_datetime)
-      .input("entry_datetime_detect", sql.DateTime, entry_datetime_detect || null)
-      .input("exit_trans_type", sql.Int, exit_trans_type || null)
-      .input("exit_station_id", sql.NVarChar, exit_station_id || null)
-      .input("exit_datetime", sql.DateTime, exit_datetime || null)
-      .input("exit_datetime_detect", sql.DateTime, exit_datetime_detect || null)
-      .input("parking_duration", sql.Int, parking_duration || null)
-      .input("parking_charges", sql.Decimal(10,2), parking_charges || null)
-      .input("paid_amount", sql.Decimal(10,2), paid_amount || null)
-      .input("card_type", sql.Int, card_type || null)
-      .input("card_number", sql.NVarChar, card_number || null)
-      .input("vehicle_number", sql.NVarChar, vehicle_number || null)
-      .input("ticket_type", sql.Int, ticket_type || null)
-      .input("ticket_id", sql.Int, ticket_id || null)
-      .input("receipt_bit", sql.Bit, receipt_bit !== undefined ? receipt_bit : 0)
+      .input("parking_charges", sql.Decimal(10,2), parking_charges || 0)
+      .input("paid_amount", sql.Decimal(10,2), paid_amount || 0)
+      .input("receipt_bit", sql.Bit, receipt_bit || 0)
       .query(`
-        INSERT INTO movement_transactions 
-        (vehicle_id, entry_trans_type, entry_station_id, entry_datetime, entry_datetime_detect,
-         exit_trans_type, exit_station_id, exit_datetime, exit_datetime_detect,
-         parking_duration, parking_charges, paid_amount, card_type, card_number,
-         vehicle_number, ticket_type, ticket_id, receipt_bit)
-        VALUES 
-        (@vehicle_id, @entry_trans_type, @entry_station_id, @entry_datetime, @entry_datetime_detect,
-         @exit_trans_type, @exit_station_id, @exit_datetime, @exit_datetime_detect,
-         @parking_duration, @parking_charges, @paid_amount, @card_type, @card_number,
-         @vehicle_number, @ticket_type, @ticket_id, @receipt_bit);
+        INSERT INTO SuccessfulTransactions
+        (transaction_id, vehicle_id, vehicle_number, card_number, entry_station_id, entry_datetime, parking_charges, paid_amount, receipt_bit)
+        VALUES
+        (@transaction_id, @vehicle_id, @vehicle_number, @card_number, @entry_station_id, @entry_datetime, @parking_charges, @paid_amount, @receipt_bit);
 
-        SELECT SCOPE_IDENTITY() AS log_id;
+        SELECT SCOPE_IDENTITY() AS id;
       `);
 
-    res.status(201).json({ message: "Transaction created successfully", log_id: result.recordset[0].log_id });
+    res.status(201).json({
+      message: "Entry transaction logged successfully",
+      id: result.recordset[0].id
+    });
 
   } catch (error) {
     console.error(error);
@@ -854,103 +765,60 @@ router.post("/entry", async (req, res) => {
   }
 });
 
-router.post("/exit", async (req, res) => {
+// --- POST update exit transaction with upserts ---
+router.post("/exit-transaction", async (req, res) => {
   const {
     vehicle_id,
-    exit_trans_type,
     exit_station_id,
     exit_datetime,
-    exit_datetime_detect,
-    parking_duration,
     parking_charges,
     paid_amount,
     receipt_bit
   } = req.body;
 
-  if (!vehicle_id || !exit_trans_type || !exit_station_id || !exit_datetime) {
-    return res.status(400).json({ error: "Missing required fields for exit" });
+  if (!vehicle_id || !exit_station_id || !exit_datetime) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
-  let pool;
-  const transaction = new sql.Transaction();
   try {
-    pool = await sql.connect(config);
-    await transaction.begin(pool);
+    const pool = await sql.connect(config);
+    const request = pool.request();
 
-    // Find the latest movement transaction for this vehicle
-    const result = await pool.request()
+    request
       .input("vehicle_id", sql.Int, vehicle_id)
-      .query(`
-        SELECT TOP 1 *
-        FROM movement_transactions
-        WHERE vehicle_id = @vehicle_id
-        ORDER BY entry_datetime DESC
-      `);
-
-    if (result.recordset.length === 0) {
-      await transaction.rollback();
-      return res.status(404).json({ error: "No entry found for this vehicle" });
-    }
-
-    const latest = result.recordset[0];
-
-    if (latest.exit_datetime) {
-      await transaction.rollback();
-      return res.status(400).json({ error: "Exit already recorded for the latest entry" });
-    }
-
-    // Upsert exit_trans_type
-    if (exit_trans_type) {
-      await pool.request()
-        .input("log_id", sql.Int, exit_trans_type)
-        .input("trans_desc", sql.NVarChar, "Unknown")
-        .query(`
-          INSERT INTO transtypemaster (log_id, trans_desc, status, updated_by, updated_datetime)
-          VALUES (@log_id, @trans_desc, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE log_id=log_id
-        `);
-    }
-
-    // Upsert exit_station
-    if (exit_station_id) {
-      await pool.request()
-        .input("station_id", sql.NVarChar, exit_station_id)
-        .query(`
-          INSERT INTO stationinfomaster (station_id, station_type, station_desc, station_ipaddress, zone_id, status, update_by, update_datetime)
-          VALUES (@station_id, 2, 'Unknown', '', 1, 1, 1, GETDATE())
-          ON DUPLICATE KEY UPDATE station_id=station_id
-        `);
-    }
-
-    // Update exit details in the latest transaction
-    await pool.request()
-      .input("exit_trans_type", sql.Int, exit_trans_type)
       .input("exit_station_id", sql.NVarChar, exit_station_id)
       .input("exit_datetime", sql.DateTime, exit_datetime)
-      .input("exit_datetime_detect", sql.DateTime, exit_datetime_detect || null)
-      .input("parking_duration", sql.Int, parking_duration || null)
       .input("parking_charges", sql.Decimal(10,2), parking_charges || null)
       .input("paid_amount", sql.Decimal(10,2), paid_amount || null)
-      .input("receipt_bit", sql.Bit, receipt_bit !== undefined ? receipt_bit : 1)
-      .input("log_id", sql.Int, latest.log_id)
-      .query(`
-        UPDATE movement_transactions
-        SET exit_trans_type=@exit_trans_type,
-            exit_station_id=@exit_station_id,
-            exit_datetime=@exit_datetime,
-            exit_datetime_detect=@exit_datetime_detect,
-            parking_duration=@parking_duration,
-            parking_charges=@parking_charges,
-            paid_amount=@paid_amount,
-            receipt_bit=@receipt_bit
-        WHERE log_id=@log_id
-      `);
+      .input("receipt_bit", sql.Bit, receipt_bit !== undefined ? receipt_bit : 0);
 
-    await transaction.commit();
-    res.json({ message: "Exit recorded successfully", log_id: latest.log_id });
+    // Update the latest open entry for this vehicle
+    const result = await request.query(`
+      UPDATE SuccessfulTransactions
+      SET 
+        exit_station_id = @exit_station_id,
+        exit_datetime = @exit_datetime,
+        parking_charges = @parking_charges,
+        paid_amount = @paid_amount,
+        receipt_bit = @receipt_bit
+      WHERE id = (
+        SELECT TOP 1 id
+        FROM SuccessfulTransactions
+        WHERE vehicle_id = @vehicle_id
+          AND exit_datetime IS NULL
+        ORDER BY entry_datetime DESC
+      );
+
+      SELECT @@ROWCOUNT AS updatedRows;
+    `);
+
+    if (result.recordset[0].updatedRows === 0) {
+      return res.status(404).json({ error: "No matching open entry transaction found" });
+    }
+
+    res.status(200).json({ message: "Exit transaction logged successfully" });
 
   } catch (error) {
-    await transaction.rollback();
     console.error(error);
     res.status(500).json({ error: "Database error", details: error.message });
   }
