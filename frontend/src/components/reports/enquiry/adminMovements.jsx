@@ -89,6 +89,60 @@ const AdminMovements = () => {
     return `$${parseFloat(amount).toFixed(2)}`;
   };
 
+  const handleExportCSV = () => {
+    if (!data || data.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      "Vehicle ID",
+      "Vehicle Number",
+      "Card Number",
+      "Entry Station",
+      "Entry Time",
+      "Exit Time",
+      "Parking Charges",
+      "Paid Amount"
+    ];
+
+    // Convert rows to CSV lines
+    const rows = data.map(row => [
+      row.vehicle_id || "-",
+      row.vehicle_number || "-",
+      row.card_number || "-",
+      row.entry_station_id || "-",
+      formatDateTime(row.entry_datetime),
+      formatDateTime(row.exit_datetime),
+      row.parking_charges ?? "-",
+      row.paid_amount ?? "-"
+    ]);
+
+    // Build CSV text with escaping
+    const csvContent = [
+      headers.join(","), 
+      ...rows.map(r =>
+        r
+          .map(value => `"${String(value).replace(/"/g, '""')}"`)
+          .join(",")
+      ),
+    ].join("\n");
+
+    // Create downloadable Blob
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `movements_page_${page}.csv`);
+    link.click();
+
+    URL.revokeObjectURL(url);
+
+    toast.success("CSV exported successfully");
+  };
+
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
@@ -239,6 +293,29 @@ const AdminMovements = () => {
         <div className="bg-gray-50 rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Transaction Records</h2>
+                <p className="text-gray-700 text-sm mt-1">
+                  {data.length > 0 && `Showing ${data.length} records`}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Export CSV Button */}
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-md"
+                >
+                  <FileText className="w-4 h-4" />
+                  Export CSV
+                </button>
+
+                {/* Page Counter */}
+                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 rounded-lg border border-red-500/30">
+                  <Calendar className="w-5 h-5 text-red-400" />
+                  <span className="text-gray-900 font-medium">Page {page} of {totalPages}</span>
+                </div>
+              </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">Transaction Records</h2>
                 <p className="text-gray-700 text-sm mt-1">
