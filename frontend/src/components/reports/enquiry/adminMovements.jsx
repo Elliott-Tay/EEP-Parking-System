@@ -16,6 +16,8 @@ const AdminMovements = () => {
   const [cardNumber, setCardNumber] = useState("");
   const [entryStation, setEntryStation] = useState("");
   const [exitStation, setExitStation] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
+  const [date, setDate] = useState("");
 
   const fetchData = async () => {
     try {
@@ -25,16 +27,19 @@ const AdminMovements = () => {
       const params = {
         page,
         limit,
+        vehicle_id: vehicleId || undefined,
         vehicle_number: vehicleNumber || undefined,
         card_number: cardNumber || undefined,
         entry_station_id: entryStation || undefined,
         exit_station_id: exitStation || undefined,
+        entry_from: date ? `${date}T00:00:00` : undefined,
+        entry_to: date ? `${date}T23:59:59` : undefined,
       };
 
       const res = await axios.get(`${process.env.REACT_APP_BACKEND_API_URL}/api/movements/admin`, { params });
       setData(res.data.data);
       setTotalPages(res.data.total_pages);
-      
+
       if (res.data.data.length === 0) {
         toast.info("No records found matching your criteria");
       }
@@ -85,32 +90,59 @@ const AdminMovements = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-red-950 to-slate-900 p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-red-500/20 rounded-xl backdrop-blur-sm border border-red-500/30">
+            <div className="p-3 bg-red-500/20 rounded-xl border border-red-500/30">
               <FileText className="w-6 h-6 text-red-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Movement Transactions</h1>
-              <p className="text-gray-400 mt-1">Admin Portal - Monitor and manage all vehicle movements</p>
+              <h1 className="text-3xl font-bold text-gray-900">Movement Transactions</h1>
+              <p className="text-gray-700 mt-1">Admin Portal - Monitor and manage all vehicle movements</p>
             </div>
           </div>
         </div>
 
         {/* Filters Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 mb-6 shadow-2xl">
+        <div className="bg-gray-100 rounded-2xl border border-gray-200 p-6 mb-6 shadow-lg">
           <div className="flex items-center gap-2 mb-4">
             <Search className="w-5 h-5 text-red-400" />
-            <h2 className="text-xl font-semibold text-white">Search Filters</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Search Filters</h2>
           </div>
-          
+
+          {/* Vehicle ID */}
+          <div className="relative mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Vehicle ID
+            </label>
+            <input
+              type="text"
+              placeholder="Enter vehicle ID"
+              value={vehicleId}
+              onChange={(e) => setVehicleId(e.target.value)}
+              className="w-full pl-3 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {/* Date */}
+          <div className="relative mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full pl-3 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* Vehicle Number */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Vehicle Number
               </label>
               <div className="relative">
@@ -120,14 +152,14 @@ const AdminMovements = () => {
                   placeholder="e.g., ABC1234X"
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
             {/* Card Number */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Card Number
               </label>
               <div className="relative">
@@ -137,14 +169,14 @@ const AdminMovements = () => {
                   placeholder="Enter card number"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
             {/* Entry Station */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Entry Station
               </label>
               <div className="relative">
@@ -154,14 +186,14 @@ const AdminMovements = () => {
                   placeholder="Station ID"
                   value={entryStation}
                   onChange={(e) => setEntryStation(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
 
             {/* Exit Station */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Exit Station
               </label>
               <div className="relative">
@@ -171,7 +203,7 @@ const AdminMovements = () => {
                   placeholder="Station ID"
                   value={exitStation}
                   onChange={(e) => setExitStation(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
@@ -191,11 +223,11 @@ const AdminMovements = () => {
               )}
               Apply Filters
             </button>
-            
+
             <button
               onClick={handleClearFilters}
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all border border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-900 rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCcw className="w-5 h-5" />
               Clear Filters
@@ -204,37 +236,34 @@ const AdminMovements = () => {
         </div>
 
         {/* Table Card */}
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
-          <div className="p-6 border-b border-white/10">
+        <div className="bg-gray-50 rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-white">Transaction Records</h2>
-                <p className="text-gray-400 text-sm mt-1">
+                <h2 className="text-xl font-semibold text-gray-900">Transaction Records</h2>
+                <p className="text-gray-700 text-sm mt-1">
                   {data.length > 0 && `Showing ${data.length} records`}
                 </p>
               </div>
-              
-              {/* Stats Badge */}
+
               <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 rounded-lg border border-red-500/30">
                 <Calendar className="w-5 h-5 text-red-400" />
-                <span className="text-white font-medium">Page {page} of {totalPages}</span>
+                <span className="text-gray-900 font-medium">Page {page} of {totalPages}</span>
               </div>
             </div>
           </div>
 
-          {/* Loading State */}
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-12 h-12 text-red-500 animate-spin mb-4" />
-              <p className="text-gray-400">Loading transaction data...</p>
+              <p className="text-gray-700">Loading transaction data...</p>
             </div>
           ) : error ? (
-            // Error State
             <div className="flex flex-col items-center justify-center py-20">
               <div className="p-4 bg-red-500/20 rounded-full mb-4">
                 <AlertCircle className="w-12 h-12 text-red-400" />
               </div>
-              <p className="text-red-400 text-lg">{error}</p>
+              <p className="text-red-600 text-lg">{error}</p>
               <button
                 onClick={fetchData}
                 className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
@@ -243,94 +272,92 @@ const AdminMovements = () => {
               </button>
             </div>
           ) : data.length === 0 ? (
-            // Empty State
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="p-4 bg-white/5 rounded-full mb-4">
+              <div className="p-4 bg-gray-200 rounded-full mb-4">
                 <FileText className="w-12 h-12 text-gray-400" />
               </div>
-              <p className="text-gray-400 text-lg">No movement transactions found</p>
+              <p className="text-gray-700 text-lg">No movement transactions found</p>
               <p className="text-gray-500 text-sm mt-2">Try adjusting your search filters</p>
             </div>
           ) : (
-            // Table
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-white/5 border-b border-white/10">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                  <tr className="bg-gray-100 border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Vehicle ID
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Vehicle Number
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Card Number
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Entry Station
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Entry Time
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Exit Time
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Parking Charges
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Paid Amount
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-gray-200">
                   {data.map((row, index) => (
                     <tr
                       key={row.vehicle_id + row.entry_datetime + index}
-                      className="hover:bg-white/5 transition-colors"
+                      className="hover:bg-gray-100 transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <span className="text-white font-medium">{row.vehicle_id || "-"}</span>
+                        <span className="text-gray-900 font-medium">{row.vehicle_id || "-"}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Car className="w-4 h-4 text-gray-400" />
-                          <span className="text-white">{row.vehicle_number || "-"}</span>
+                          <Car className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-900">{row.vehicle_number || "-"}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-gray-400" />
-                          <span className="text-gray-300">{row.card_number || "-"}</span>
+                          <CreditCard className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700">{row.card_number || "-"}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm border border-blue-500/30">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-lg text-sm border border-blue-200">
                           {row.entry_station_id || "-"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <LogIn className="w-4 h-4 text-green-400" />
-                          <span className="text-gray-300 text-sm">{formatDateTime(row.entry_datetime)}</span>
+                          <LogIn className="w-4 h-4 text-green-500" />
+                          <span className="text-gray-700 text-sm">{formatDateTime(row.entry_datetime)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <LogOut className="w-4 h-4 text-red-400" />
-                          <span className="text-gray-300 text-sm">{formatDateTime(row.exit_datetime)}</span>
+                          <LogOut className="w-4 h-4 text-red-500" />
+                          <span className="text-gray-700 text-sm">{formatDateTime(row.exit_datetime)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-yellow-400" />
-                          <span className="text-white font-medium">{formatCurrency(row.parking_charges)}</span>
+                          <DollarSign className="w-4 h-4 text-yellow-500" />
+                          <span className="text-gray-900 font-medium">{formatCurrency(row.parking_charges)}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-green-400" />
-                          <span className="text-green-300 font-medium">{formatCurrency(row.paid_amount)}</span>
+                          <DollarSign className="w-4 h-4 text-green-500" />
+                          <span className="text-green-700 font-medium">{formatCurrency(row.paid_amount)}</span>
                         </div>
                       </td>
                     </tr>
@@ -342,23 +369,23 @@ const AdminMovements = () => {
 
           {/* Pagination */}
           {!loading && !error && data.length > 0 && (
-            <div className="p-6 border-t border-white/10">
+            <div className="p-6 border-t border-gray-200">
               <div className="flex items-center justify-between">
-                <div className="text-gray-400 text-sm">
-                  Showing page <span className="text-white font-medium">{page}</span> of{" "}
-                  <span className="text-white font-medium">{totalPages}</span>
+                <div className="text-gray-700 text-sm">
+                  Showing page <span className="text-gray-900 font-medium">{page}</span> of{" "}
+                  <span className="text-gray-900 font-medium">{totalPages}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     disabled={page <= 1}
                     onClick={() => setPage(page - 1)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/10"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-200"
                   >
                     <ChevronLeft className="w-5 h-5" />
                     Previous
                   </button>
-                  
+
                   <div className="hidden sm:flex items-center gap-2">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       let pageNum;
@@ -371,15 +398,15 @@ const AdminMovements = () => {
                       } else {
                         pageNum = page - 2 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => setPage(pageNum)}
-                          className={`px-4 py-2 rounded-lg transition-all ${
-                            page === pageNum
-                              ? "bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg"
-                              : "bg-white/10 text-gray-300 hover:bg-white/20 border border-white/20"
+                          className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                            pageNum === page
+                              ? "bg-red-600 text-white"
+                              : "bg-gray-200 text-gray-900 hover:bg-gray-300 transition-all"
                           }`}
                         >
                           {pageNum}
@@ -387,11 +414,11 @@ const AdminMovements = () => {
                       );
                     })}
                   </div>
-                  
+
                   <button
                     disabled={page >= totalPages}
                     onClick={() => setPage(page + 1)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all border border-white/20 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/10"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-lg hover:bg-gray-300 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-200"
                   >
                     Next
                     <ChevronRight className="w-5 h-5" />

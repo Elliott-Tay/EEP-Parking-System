@@ -78,6 +78,12 @@ router.get("/admin", async (req, res) => {
       request.input("exit_station_id", sql.VarChar, req.query.exit_station_id);
     }
 
+    // ⭐ NEW: Filter by vehicle_id
+    if (req.query.vehicle_id) {
+      conditions.push("vehicle_id = @vehicle_id");
+      request.input("vehicle_id", sql.Int, req.query.vehicle_id);
+    }
+
     // Date range filters
     if (req.query.entry_from) {
       conditions.push("entry_datetime >= @entry_from");
@@ -98,11 +104,10 @@ router.get("/admin", async (req, res) => {
     }
 
     // Build WHERE clause
-    const whereClause = conditions.length > 0 
-      ? "WHERE " + conditions.join(" AND ") 
-      : "";
+    const whereClause =
+      conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
 
-    // Query total count (for pagination)
+    // Query total count
     const totalResult = await request.query(`
       SELECT COUNT(*) AS total
       FROM MovementTrans
@@ -115,7 +120,7 @@ router.get("/admin", async (req, res) => {
     request.input("limit", sql.Int, limit);
     request.input("offset", sql.Int, offset);
 
-    // Final data query
+    // Final data SELECT
     const dataResult = await request.query(`
       SELECT 
         vehicle_id,
@@ -138,7 +143,7 @@ router.get("/admin", async (req, res) => {
       limit,
       total,
       total_pages: Math.ceil(total / limit),
-      data: dataResult.recordset
+      data: dataResult.recordset,
     });
 
   } catch (err) {
