@@ -4,15 +4,17 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files first (better caching)
 COPY package*.json ./
-RUN npm install
 
-# Copy rest of the code
+# Install only production dependencies
+RUN npm install --production
+
+# Copy the rest of the code
 COPY . .
 
-# Expose the port your app runs on
+# Expose backend port
 EXPOSE 8000
 
-# Start the server
-CMD ["npm", "run", "dev"]  # Replace with your start script if different
+# Start the backend in production mode
+CMD ["npm", "start"]

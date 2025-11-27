@@ -152,9 +152,9 @@ export default function TariffSetupAuthorizedB() {
         every: 60,
         minFee: 200,
         graceTime: 15,
-        firstMinFee: 100,
-        min: 200,
-        max: 2000,
+        firstMinFee: 1,
+        min: 2,
+        max: 100,
       };
   
       setRates(prev => ({
@@ -173,9 +173,9 @@ export default function TariffSetupAuthorizedB() {
         every: 60,
         minFee: 200,
         graceTime: 15,
-        firstMinFee: 100,
-        min: 200,
-        max: 2000,
+        firstMinFee: 1,
+        min: 2,
+        max: 40,
       };
   
       setRates(prev => ({
@@ -192,11 +192,11 @@ export default function TariffSetupAuthorizedB() {
         rateType,          // <-- use consistent property
         contractClass: rateType,
         every: 60,
-        minFee: 200,
+        minFee: 2,
         graceTime: 15,
-        firstMinFee: 100,
-        min: 200,
-        max: 2000,
+        firstMinFee: 1,
+        min: 20,
+        max: 200,
       };
   
       setRates(prev => ({
