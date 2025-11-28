@@ -1,224 +1,283 @@
 const express = require("express");
 const router = express.Router();
+// Imported Calculator classes (assuming their paths and names are correct)
 const { ParkingFeeComputer } = require('../routes/parkingFeeCompute1'); 
 const { ParkingFeeComputer2 } = require('../routes/parkingFeeCompute2'); 
 const { ParkingFeeComputer3 } = require('../routes/parkingFeeCompute3'); 
-const { ParkingFeeComputer4 } = require('../routes/parkingFeeCompute4'); // Imported
+const { ParkingFeeComputer4 } = require('../routes/parkingFeeCompute4'); 
 
-// 1. Model Set 1: COMPREHENSIVE_RATES
-const feeModels_Comprehensive = [
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Hourly", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Hourly", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Hourly", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Hourly", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "PH", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 3.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Season", every: 60, min_fee: 0.00, grace_time: 15, min_charge: 0, max_charge: 0 },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "00:00:00", to_time: "23:59:00", rate_type: "Hourly", every: 60, min_fee: 1.00, grace_time: 15, min_charge: 0, max_charge: 0 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Day Season", every: 1, min_fee: 0, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Day Season", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "CSPT", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Block3", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Authorized", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Night Season", every: 30, min_fee: 0.60, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Night Season", every: 30, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Block2", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Block2", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-];
+// --- Configuration for Dynamic Data Fetching ---
+// Define the API endpoint that returns a flat array of tariff objects.
+const TARIFF_API_URL = `${process.env.BACKEND_URL}/api/tariff/tariff-rates`; 
 
-// 2. Model Set 2: BLOCK2_SPECIAL_RATES
-const feeModels_Block2Special = [
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Special", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Special", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Block2", every: 1, min_fee: 0.00, grace_time: 15, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Block2", every: 30, min_fee: 2.00, grace_time: 15, min_charge: 2.00, max_charge: 2.00 },
-];
+// --- CORE TARIFF MAPPING LOGIC ---
+const RATE_TYPE_TO_MODEL_MAP = {
+    // COMPREHENSIVE_RATES
+    "Hourly": "COMPREHENSIVE_RATES",
+    "Season": "COMPREHENSIVE_RATES",
+    "Day Season": "COMPREHENSIVE_RATES",
+    "CSPT": "COMPREHENSIVE_RATES",
+    "Block3": "COMPREHENSIVE_RATES",
+    "Authorized": "COMPREHENSIVE_RATES",
+    "Night Season": "COMPREHENSIVE_RATES",
 
-// 3. Model Set 3: STAFF_ESTATE_RATES
-const feeModels_StaffEstate = [
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "19:00:00", rate_type: "Block1", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "19:00:00", to_time: "22:30:00", rate_type: "Block1", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Block1", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "07:00:00", to_time: "15:00:00", rate_type: "Staff Estate A", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "15:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Sat", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "Staff Estate A", every: 30, min_fee: 0.30, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "Staff Estate A", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "23:00:00", rate_type: "Staff Estate B", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "23:00:00", to_time: "07:00:00", rate_type: "Staff Estate B", every: 30, min_fee: 1.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "07:00:00", to_time: "19:30:00", rate_type: "URA Staff", every: 1, min_fee: 0.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "19:30:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Mon-Fri", from_time: "22:30:00", to_time: "07:30:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "07:00:00", to_time: "22:30:00", rate_type: "URA Staff", every: 30, min_fee: 0.60, grace_time: 15, min_charge: null, max_charge: null },
-    { vehicle_type: "Car/HGV/MC", day_of_week: "Sat-Sun", from_time: "22:30:00", to_time: "07:00:00", rate_type: "URA Staff", every: 30, min_fee: 2.00, grace_time: 15, min_charge: null, max_charge: null }
-];
+    // BLOCK2_SPECIAL_RATES 
+    "Special": "BLOCK2_SPECIAL_RATES",
+    "Block2": "BLOCK2_SPECIAL_RATES", 
 
-// 3. Model Set 4: CLASS1_RATES
-const feeModels_Class1 = [
-    { vehicle_type: "Car/MC/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Class1", every: 30, min_fee: 0.60, grace_time: 60, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "Car/HGV", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Class1", every: 30, min_fee: 0.60, grace_time: 60, min_charge: 0.00, max_charge: 0.00 },
-    { vehicle_type: "MC", day_of_week: "All day", from_time: "07:00:00", to_time: "07:00:00", rate_type: "Class1", every: 30, min_fee: 0.60, grace_time: 60, min_charge: 0.00, max_charge: 0.00 },
-]
+    // STAFF_ESTATE-RATES
+    "Block1": "STAFF_ESTATE_RATES",
+    "Staff Estate A": "STAFF_ESTATE_RATES",
+    "Staff Estate B": "STAFF_ESTATE_RATES",
+    "URA Staff": "STAFF_ESTATE_RATES",
 
-const FeeModelCatalog = {
-    COMPREHENSIVE_RATES: feeModels_Comprehensive,
-    BLOCK2_SPECIAL_RATES: feeModels_Block2Special,
-    STAFF_ESTATE_RATES: feeModels_StaffEstate,
-    CLASS1_RATES: feeModels_Class1,
+    // CLASS1_RATES
+    "Class1": "CLASS1_RATES",
+    "Class2": "CLASS1_RATES", 
 };
 
-function createFeeCalculator(entryDateTime, exitDateTime, rateType, vehicleType, modelCatalogKey) {
-    const selectedFeeModels = FeeModelCatalog[modelCatalogKey];
-    const requestedRateType = rateType; // Alias for clarity
+/**
+ * Helper function to clean tariff data: extracts only the time part (HH:mm:ss) 
+ * if the full timestamp uses the 1970-01-01 base date, as seen in the log.
+ * @param {string} timestamp The tariff's from_time or to_time string.
+ * @returns {string} Cleaned time string (HH:mm:ss) or the original string.
+ */
+function cleanTimeFormat(timestamp) {
+    if (typeof timestamp === 'string' && timestamp.includes('1970-01-01T')) {
+        // Use a regular expression to extract the HH:mm:ss part
+        const match = timestamp.match(/T(\d{2}:\d{2}:\d{2})/);
+        if (match && match[1]) {
+            return match[1]; // Returns "09:00:00"
+        }
+    }
+    return timestamp; // Return original if no 1970 date is detected or it's not a string
+}
 
-    if (!selectedFeeModels) {
-        console.error(`Invalid modelCatalogKey: ${modelCatalogKey}. Cannot create calculator.`);
-        return "Invalid modelCatalogKey. Cannot calculate fee. Please select a valid fee model.";
-    }
 
-    // Arguments for ALL constructors must match the expected signature:
-    // (entry, exit, feeModels, rate_types_map (null), publicHolidays (default: []))
+/**
+ * Takes a flat array of tariff objects (from API) and organizes them
+ * into the required FeeModelCatalog structure (grouped by Model Key).
+ * Also cleans the time format of from_time and to_time fields.
+ * @param {Array<Object>} allTariffs - The raw list of tariffs from the API.
+ * @returns {Object} The structured FeeModelCatalog.
+ */
+function buildFeeModelCatalog(allTariffs) {
+    const catalog = {
+        COMPREHENSIVE_RATES: [],
+        BLOCK2_SPECIAL_RATES: [],
+        STAFF_ESTATE_RATES: [],
+        CLASS1_RATES: [],
+    };
+    
+    if (!Array.isArray(allTariffs)) {
+        console.error("API response is not a valid tariff array. Received:", typeof allTariffs);
+        return catalog;
+    }
 
-    // Note: The specific rate type ('rateType') and vehicle type ('vehicleType') 
-    // must be passed to the .calculate() method in the route handler.
+    allTariffs.forEach(tariff => {
+        // 1. Clean Time Format before use
+        const cleanedTariff = { ...tariff };
+        cleanedTariff.from_time = cleanTimeFormat(tariff.from_time);
+        cleanedTariff.to_time = cleanTimeFormat(tariff.to_time);
 
-    if (requestedRateType === "Special" || requestedRateType === "Block2") {
-        // ParkingFeeComputer2 constructor signature: (feeModels, entry, exit, rateType, vehicleType)
-        return new ParkingFeeComputer2(
-            selectedFeeModels, // 1st arg: feeModels (The Array)
-            entryDateTime,     // 2nd arg: entryDateTime
-            exitDateTime,      // 3rd arg: exitDateTime
-            requestedRateType, // 4th arg: rateType
-            vehicleType        // 5th arg: vehicleType
-        );
-    } else if (["Block1", "Staff Estate A", "Staff Estate B", "URA Staff"].includes(requestedRateType)) {
-        // Assuming ParkingFeeComputer3 uses the SAME custom constructor as PC2:
-        // Signature: (feeModels, entry, exit, rateType, vehicleType)
-        return new ParkingFeeComputer3(
-            selectedFeeModels, // 1st arg: feeModels (The Array)
-            entryDateTime,     // 2nd arg: entryDateTime
-            exitDateTime,      // 3rd arg: exitDateTime
-            requestedRateType, // 4th arg: rateType (was null placeholder)
-            vehicleType        // 5th arg: vehicleType (was [] placeholder)
-        );
-    } else if (requestedRateType === "Class1") {
-        // Use ParkingFeeComputer4 for the flat-rate Class1 logic
-        // Signature MUST MATCH PC4: (feeModels, entry, exit, rateType, vehicleType, modelCatalogKey)
-        return new ParkingFeeComputer4(
-            selectedFeeModels,     // 1st arg: The ENTIRE catalog object is required by PC4's findMatchingRate()
-            entryDateTime,       // 2nd arg: entryDateTime
-            exitDateTime,        // 3rd arg: exitDateTime
-            requestedRateType,   // 4th arg: rateType (Class1)
-            vehicleType,         // 5th arg: vehicleType
-            modelCatalogKey      // 6th arg: modelCatalogKey (CLASS1_RATES)
-        );
+        // 2. Map to Model
+        const rateType = cleanedTariff.rate_type; 
+        const modelKey = RATE_TYPE_TO_MODEL_MAP[rateType];
+
+        if (modelKey && catalog.hasOwnProperty(modelKey)) {
+            // Push the cleaned tariff object into the correct array in the catalog
+            catalog[modelKey].push(cleanedTariff);
+        } else {
+            console.warn(`Tariff with unknown or unmapped rate_type: '${rateType}' skipped during catalog build.`);
+        }
+    });
+
+    return catalog;
+}
+
+/**
+ * Asynchronously fetches the full catalog of parking tariff rates from the API endpoint.
+ * This function handles API call, transient network failures, and data cleaning.
+ * @returns {Promise<Object>} A promise that resolves to the FeeModelCatalog object.
+ */
+async function fetchTariffRates() {
+    const maxRetries = 3;
+    for (let i = 0; i < maxRetries; i++) {
+        const delay = 2 ** i * 1000; 
+
+        if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        try {
+            console.log(`Attempting to fetch tariff data (Attempt ${i + 1}/${maxRetries}) from: ${TARIFF_API_URL}`);
+            
+            const response = await fetch(TARIFF_API_URL, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+
+            if (!response.ok) {
+                if (i < maxRetries - 1) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                } else {
+                    const errorDetails = await response.text();
+                    throw new Error(`API call failed after ${maxRetries} attempts. Status: ${response.status}.`);
+                }
+            }
+
+            let rawTariffs = await response.json();
+            
+            // FIX: Unwrap API Response if it's an object (e.g., { data: [...] })
+            if (rawTariffs && typeof rawTariffs === 'object' && !Array.isArray(rawTariffs) && rawTariffs.data) {
+                console.log("Response detected as wrapped object. Extracting tariffs from 'data' property.");
+                rawTariffs = rawTariffs.data;
+            }
+
+            // Build the FeeModelCatalog from the raw data, which now includes time cleaning
+            const fullFeeCatalog = buildFeeModelCatalog(rawTariffs);
+            
+            console.log("Tariff data successfully fetched, parsed, grouped, and time formats cleaned.");
+            return fullFeeCatalog;
+
+        } catch (error) {
+            if (i === maxRetries - 1) {
+                console.error("Critical error fetching tariff rates after all retries:", error.message);
+                throw new Error("Failed to load parking tariff data from API after multiple attempts.");
+            }
+        }
+    }
+}
+
+
+/**
+ * Creates the appropriate fee calculator instance based on the requested rate type.
+ * @param {string} entryDateTime - The entry date and time.
+ * @param {string} exitDateTime - The exit date and time.
+ * @param {string} rateType - The specific rate type (e.g., 'Special', 'Block1').
+ * @param {string} vehicleType - The type of vehicle (e.g., 'Car/HGV').
+ * @param {string} modelCatalogKey - The key corresponding to the fee model set (e.g., 'STAFF_ESTATE_RATES').
+ * @param {Object} fullFeeCatalog - The dynamically fetched catalog of all fee models.
+ * @returns {ParkingFeeComputer|ParkingFeeComputer2|ParkingFeeComputer3|ParkingFeeComputer4|string} The calculator instance or an error string.
+ */
+function createFeeCalculator(entryDateTime, exitDateTime, rateType, vehicleType, modelCatalogKey, fullFeeCatalog) {
+    const selectedFeeModels = fullFeeCatalog[modelCatalogKey];
+    const requestedRateType = rateType;
+
+    if (!selectedFeeModels) {
+        console.error(`Invalid modelCatalogKey: ${modelCatalogKey}. Cannot create calculator.`);
+        return `Invalid modelCatalogKey: ${modelCatalogKey}. Please select a valid fee model.`;
+    }
+
+    // Determine which calculator class to instantiate based on the rate type
+    if (requestedRateType === "Special" || requestedRateType === "Block2") {
+        return new ParkingFeeComputer2(selectedFeeModels, entryDateTime, exitDateTime, requestedRateType, vehicleType);
     } 
-    else {
-        // Default calculator (ParkingFeeComputer)
-        return new ParkingFeeComputer(
-            entryDateTime, 
-            exitDateTime, 
-            selectedFeeModels, 
-            null, // rate_types_map
-            []    // publicHolidays
-        );
-    }
+    
+    if (["Block1", "Staff Estate A", "Staff Estate B", "URA Staff"].includes(requestedRateType)) {
+        return new ParkingFeeComputer3(selectedFeeModels, entryDateTime, exitDateTime, requestedRateType, vehicleType);
+    } 
+    
+    if (requestedRateType === "Class1" || requestedRateType === "Class2") { 
+        return new ParkingFeeComputer4(selectedFeeModels, entryDateTime, exitDateTime, requestedRateType, vehicleType, modelCatalogKey);
+    } 
+    
+    // Default calculator (ParkingFeeComputer)
+    {
+        // Filter the comprehensive tariff set by the specific rate type and vehicle type 
+        const filteredFeeModels = selectedFeeModels.filter(
+            tariff => tariff.rate_type === requestedRateType && tariff.vehicle_type === vehicleType
+        );
+
+        console.log(`Diagnostic: Found ${filteredFeeModels.length} specific tariffs for rateType: ${requestedRateType} in model: ${modelCatalogKey}`);
+        
+        // Log the tariffs being passed with the *cleaned* time format
+        if (filteredFeeModels.length > 0) {
+            console.log(`Debug: Tariffs passed to ParkingFeeComputer (First 2): ${JSON.stringify(filteredFeeModels.slice(0, 2), null, 2)}`);
+        } else {
+            console.log("Debug: No specific tariffs were found to pass to ParkingFeeComputer.");
+        }
+
+        return new ParkingFeeComputer(
+            entryDateTime, 
+            exitDateTime, 
+            filteredFeeModels, // Pass the filtered list with cleaned time formats
+            null, // rate_types_map
+            []    // publicHolidays
+        );
+    }
 }
 
 // Helper function to validate if a string can be reliably parsed as a date
 const isValidDate = (dateString) => {
-    if (!dateString) return false;
-    const date = new Date(dateString);
-    // Check if parsing succeeded (not "Invalid Date") and if the timestamp is not NaN
-    return date.toString() !== 'Invalid Date' && !isNaN(date.getTime());
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    return date.toString() !== 'Invalid Date' && !isNaN(date.getTime());
 };
 
-// --- ROUTE HANDLER WITH ADDED VALIDATION ---
+// --- ROUTE HANDLER ---
 
 // route to compute parking fee
 router.post("/calculate-fee", async (req, res) => {
-    // 1. Extract required parameters from the request body
-    const { 
-        entryDateTime, 
-        exitDateTime, 
-        rateType, 
-        vehicleType, 
-        modelCatalogKey 
-    } = req.body;
+    const { entryDateTime, exitDateTime, rateType, vehicleType, modelCatalogKey } = req.body;
 
-    // 2. Input Validation (Ensure all necessary fields are present)
+    console.log("--- Fee Calculation Request ---");
+    console.log(`Input: Entry=${entryDateTime}, Exit=${exitDateTime}`);
+    console.log(`Input: RateType=${rateType}, VehicleType=${vehicleType}, ModelKey=${modelCatalogKey}`);
+
     if (!entryDateTime || !exitDateTime || !rateType || !vehicleType || !modelCatalogKey) {
-        return res.status(400).json({ 
-            error: "Missing parameters.",
-            required: ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"]
-        });
+        return res.status(400).json({ error: "Missing parameters." });
     }
 
-    // --- START: Date Validation Added ---
-
-    // 2.1. Validate date formats
-    if (!isValidDate(entryDateTime)) {
-        return res.status(400).json({ error: "Invalid date format for entryDateTime." });
+    // Validation
+    if (!isValidDate(entryDateTime) || !isValidDate(exitDateTime)) {
+        return res.status(400).json({ error: "Invalid date format for entryDateTime or exitDateTime." });
     }
-    if (!isValidDate(exitDateTime)) {
-        return res.status(400).json({ error: "Invalid date format for exitDateTime." });
-    }
-
-    // 2.2. Validate date order (Entry must be strictly before Exit)
     const entryTime = new Date(entryDateTime).getTime();
     const exitTime = new Date(exitDateTime).getTime();
-
     if (entryTime >= exitTime) {
         return res.status(400).json({ error: "exitDateTime must be after entryDateTime." });
     }
     
-    // --- END: Date Validation Added ---
-
     try {
-        // 3. Create the appropriate fee calculator instance
+        // ASYNC STEP: Fetch, group, and CLEAN the tariff catalog from the API
+        const fullFeeCatalog = await fetchTariffRates();
+
+        const loadedTariffsCount = fullFeeCatalog[modelCatalogKey]?.length || 0;
+        console.log(`Diagnostic: Tariffs loaded for model ${modelCatalogKey}: ${loadedTariffsCount}`);
+
+        // Create the appropriate fee calculator instance
         const calculator = createFeeCalculator(
             entryDateTime,
             exitDateTime,
             rateType,
             vehicleType,
-            modelCatalogKey
+            modelCatalogKey,
+            fullFeeCatalog
         );
 
-        // Check if createFeeCalculator returned an error string
         if (typeof calculator === 'string') {
+            console.error(`Error creating calculator for ${modelCatalogKey}: ${calculator}`);
             return res.status(400).json({ error: calculator });
         }
 
-        // 4. Calculate the fee
-        const totalFee = calculator.computeParkingFee(vehicleType, rateType); 
+        console.log(`Attempting to compute fee using calculator: ${calculator.constructor.name}`);
 
-        // 5. Send the result back to the client
+        // Calculate the fee
+        const totalFee = calculator.computeParkingFee(vehicleType, rateType); 
+        
+        console.log(`Fee calculation complete. Raw totalFee: ${totalFee}`);
+
+        // Send the result back to the client
         res.status(200).json({
             status: "success",
             entry: entryDateTime,
             exit: exitDateTime,
             rate_type: rateType,
             fee_model: modelCatalogKey,
-            // FIX: Use parseFloat() to convert the fixed string back into a number.
-            // This ensures the fee is a number with two decimal places of precision.
             total_fee: parseFloat(Number(totalFee).toFixed(2))
         });
 
     } catch (err) {
-        console.error("Fee calculation error:", err);
-        res.status(500).json({ error: "Internal server error during fee calculation.", details: err.message });
+        console.error("Processing error:", err);
+        res.status(500).json({ error: "Internal server error during processing.", details: err.message });
     }
 });
 
