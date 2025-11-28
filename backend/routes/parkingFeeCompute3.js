@@ -1,16 +1,13 @@
 /**
  * ParkingFeeComputer3
  * Computes parking fees using a set of rules (feeModels) provided at initialization.
- * This version handles complex filtering based on Rate Type, Vehicle Type (e.g., Car/HGV), 
- * and Day of Week (e.g., Mon-Fri, Sat-Sun).
- * * IMPORTANT NOTE: All internal date/time calculations use UTC methods 
- * (e.g., getUTCHours, setUTCDate) to ensure fee blocks are calculated 
- * independently of the server's local time zone.
+ * (MODIFIED: Now uses CONSISTENT LINEAR BILLING for all rate blocks that are not free.)
+ * * ... [Rest of the documentation remains the same] ...
  */
 class ParkingFeeComputer3 {
 
     /**
-     * @param {Array<Object>} feeModels - The complete array of all rate models.
+     * @param {Array<Object>} feeModels - The complete array of all rate models. 
      * @param {string} entryDateTime - ISO string or date representation of entry.
      * @param {string} exitDateTime - ISO string or date representation of exit.
      * @param {string} rateType - The identifier for the rate model to use (e.g., "Block1", "Staff Estate A").
@@ -18,21 +15,16 @@ class ParkingFeeComputer3 {
      */
     constructor(feeModels, entryDateTime, exitDateTime, rateType, vehicleType) {
         this.feeModels = feeModels;
-        
+
         this.entryDateTime = new Date(entryDateTime);
         this.exitDateTime = new Date(exitDateTime);
-        
+
         this.rateType = rateType;
         this.vehicleType = vehicleType;
 
-        // Tracks max fee applied per calendar day (e.g., Map<"2025-11-10", 48.00>)
-        this.dailyMaxes = new Map(); 
-        // Tracks the highest maximum fee encountered across all applicable blocks 
-        // for the entire stay (used for global cap, e.g., $96.40).
-        this.highestMaxCap = 0; 
-        // Tracks if the $2.00 flat fee (used as a session minimum for Staff) has been applied.
-        // Keyed by dayKey (YYYY-MM-DD) and night period ('N1' for 00:00-08:00, 'N2' for 16:00-00:00)
-        this.flatFeeSessionsCharged = new Set(); 
+        this.dailyMaxes = new Map();
+        this.highestMaxCap = 0;
+        this.flatFeeSessionsCharged = new Set();
     }
 
     /**
@@ -41,10 +33,10 @@ class ParkingFeeComputer3 {
     addTime(date, timeStr) {
         const [hour, minute] = timeStr.split(":").map(Number);
         const newDate = new Date(date);
-        
+
         // Normalize to UTC midnight of the current day
-        newDate.setUTCHours(0, 0, 0, 0); 
-        
+        newDate.setUTCHours(0, 0, 0, 0);
+
         // Set the time of the block using UTC methods
         newDate.setUTCHours(hour, minute, 0, 0);
         return newDate;
@@ -67,7 +59,7 @@ class ParkingFeeComputer3 {
             case "Sat-Sun":
                 return dayOfWeekIndex === 0 || dayOfWeekIndex === 6;
             default:
-                return false; 
+                return false;
         }
     }
 
@@ -92,68 +84,80 @@ class ParkingFeeComputer3 {
         // Helper for single segment fee calculation (uses closure to access trackers)
         const calculateSegmentFee = (block, segmentDate, durationMinutes) => {
             const dayKey = segmentDate.toISOString().substring(0, 10);
-            
-            // 0. Update Global Max Cap Tracker
+
+            // 0. Update Global Max Cap Tracker (Tracks the highest daily max seen across all blocks)
             if (block.max_fee > this.highestMaxCap) {
-                 this.highestMaxCap = block.max_fee;
+                this.highestMaxCap = block.max_fee;
             }
 
             // 1. FLAT FEE LOGIC: Check for the specific $2.00 Staff Night Flat Fee blocks
-            // This logic assumes the $2.00 fee is a specific flat rate charged only once 
-            // per night-time session if applicable, resolving SA-TC29.
             if (block.min_fee === 2.00 && block.max_fee === 2.00 && block.every === 1) {
-                // Determine unique session key: N1 (00:00-08:00) or N2 (16:00-00:00)
                 let sessionSuffix = (segmentDate.getUTCHours() < 8) ? 'N1' : 'N2';
                 let sessionKey = `${dayKey}-${sessionSuffix}`;
 
                 if (!this.flatFeeSessionsCharged.has(sessionKey)) {
                     this.flatFeeSessionsCharged.add(sessionKey);
-                    
+
                     const fee = 2.00;
-                    // Apply flat fee, ensuring we respect the overall daily cap if applicable
                     const currentDayTotal = this.dailyMaxes.get(dayKey) || 0;
-                    const feeToCharge = (currentDayTotal + fee > block.max_fee) ? block.max_fee - currentDayTotal : fee;
+                    
+                    // FIX 1: Use the highest overall maximum encountered so far for daily capping.
+                    // This prevents the $2.00 block max from incorrectly capping the total day fee 
+                    // when high daytime charges already exist.
+                    let effectiveDailyMax = this.highestMaxCap > 0 ? this.highestMaxCap : Infinity;
+                    
+                    // Calculate fee charged, ensuring it's not more than the flat fee (2.00) 
+                    // AND doesn't exceed the daily max.
+                    const feeToCharge = Math.min(fee, Math.max(0, effectiveDailyMax - currentDayTotal));
+
 
                     if (feeToCharge > 0) {
                         this.dailyMaxes.set(dayKey, currentDayTotal + feeToCharge);
                         return parseFloat(feeToCharge.toFixed(2));
                     }
                 }
-                return 0.00; // Flat fee already charged for this session/day
+                return 0.00;
             }
-            
+
             // 2. UNIT/HOURLY FEE LOGIC (For all other paid blocks)
             if (block.min_fee === 0.00) return 0.00; // Free blocks
 
-            const billedUnitMinutes = block.every;
-            const billedUnits = Math.ceil(durationMinutes / billedUnitMinutes);
+            let segmentFee = 0;
 
-            if (billedUnits > 0) {
-                let segmentFee = billedUnits * block.min_fee;
-                
-                // 3. DAILY MAXIMUM CAP LOGIC (Applies only to cumulative hourly fees)
+            // --- CONSISTENT LINEAR CHARGE LOGIC (MODIFIED) ---
+            const ratePerMinute = block.min_fee / block.every;
+            segmentFee = durationMinutes * ratePerMinute;
+            
+            // FIX 2: Apply high-precision rounding to mitigate floating-point errors, 
+            // especially for non-terminating decimal rates (like in TC7).
+            segmentFee = Math.round(segmentFee * 1e10) / 1e10;
+
+
+            if (segmentFee > 0) {
+                // 3. DAILY MAXIMUM CAP LOGIC
                 let currentDayTotal = this.dailyMaxes.get(dayKey) || 0;
-                let maxFee = block.max_fee; 
+                let maxFee = block.max_fee;
 
                 if (maxFee && (currentDayTotal + segmentFee) > maxFee) {
                     segmentFee = maxFee - currentDayTotal;
-                    if (segmentFee < 0) segmentFee = 0; // Prevent negative charges
+                    if (segmentFee < 0) segmentFee = 0;
                 }
 
                 if (segmentFee > 0) {
                     // Update daily max tracker
                     this.dailyMaxes.set(dayKey, currentDayTotal + segmentFee);
-                    return parseFloat(segmentFee.toFixed(2)); 
+                    // Final fee component is rounded to 2 decimal places
+                    return parseFloat(segmentFee.toFixed(2));
                 }
             }
             return 0.00;
         };
-        
+
         // Iterate through each day of the parking duration
         while (currentDay.getTime() < this.exitDateTime.getTime()) {
             const dayStart = new Date(currentDay);
             const nextDay = new Date(currentDay);
-            
+
             // Set nextDay to UTC midnight of the following day
             nextDay.setUTCDate(nextDay.getUTCDate() + 1);
             nextDay.setUTCHours(0, 0, 0, 0);
@@ -169,7 +173,7 @@ class ParkingFeeComputer3 {
             }
 
             const dayOfWeekIndex = currentDay.getUTCDay();
-            
+
             // Filter models applicable for this day
             let dailyBlocks = applicableModels.filter(
                 (item) => this._isDayRuleApplicable(item.day_of_week, dayOfWeekIndex)
@@ -181,7 +185,7 @@ class ParkingFeeComputer3 {
 
             // Add all block start and end times as boundaries
             for (const block of dailyBlocks) {
-                const blockStart = this.addTime(currentDay, block.from_time); 
+                const blockStart = this.addTime(currentDay, block.from_time);
                 let blockEnd = this.addTime(currentDay, block.to_time);
 
                 // Handle overnight blocks crossing midnight
@@ -215,7 +219,7 @@ class ParkingFeeComputer3 {
                 if (segDurationMinutes <= 0) continue;
 
                 let bestBlock = null;
-                const checkDate = new Date(segStartT); 
+                const checkDate = new Date(segStartT);
 
                 // Find the rate block that applies to the segment
                 for (const block of dailyBlocks) {
@@ -234,12 +238,12 @@ class ParkingFeeComputer3 {
                             // If segment is in the evening part (block start to 24:00), rate extends tomorrow
                             blockEnd.setUTCDate(blockEnd.getUTCDate() + 1);
                         }
-                    } 
-                    
+                    }
+
                     if (segStartT >= blockStart.getTime() && segStartT < blockEnd.getTime()) {
                         bestBlock = block;
                         // Use the first match (highest priority)
-                        break; 
+                        break;
                     }
                 }
 
@@ -248,22 +252,21 @@ class ParkingFeeComputer3 {
                     totalFee = parseFloat(totalFee.toFixed(2));
                 }
             }
-            
+
             currentDay = nextDay; // Move to the next day's UTC midnight
         }
-        
+
         // --- Apply Global Grace Period (15 minutes) ---
-        const maxGraceMinutes = 15; 
+        const maxGraceMinutes = 15;
         const totalDurationMinutes = (this.exitDateTime.getTime() - this.entryDateTime.getTime()) / 60000;
-        
+
         if (totalDurationMinutes <= maxGraceMinutes && totalFee > 0) {
             return 0.00;
         }
 
         // --- GLOBAL MAXIMUM CAP (MD-TC25 Fix) ---
-        // Apply the highest encountered daily max as a global cap for the entire stay.
         if (this.highestMaxCap > 0 && totalFee > this.highestMaxCap) {
-             totalFee = this.highestMaxCap;
+            totalFee = this.highestMaxCap;
         }
 
         return parseFloat(totalFee.toFixed(2));

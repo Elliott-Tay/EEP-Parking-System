@@ -135,144 +135,170 @@ class ParkingFeeComputer {
      * This handles multi-day, multi-segment calculation with daily maximums.
      */
     _calculateSegmentedHourlyFee(vehicleType, requestedRateType) {
-        let totalFee = 0;
-        let currentDay = new Date(this.entryDateTime);
-        currentDay.setHours(0, 0, 0, 0);
+    let totalFee = 0;
+    let currentDay = new Date(this.entryDateTime);
+    currentDay.setHours(0, 0, 0, 0);
+    
+    // Helper for single segment fee calculation
+    const calculateSegmentFee = (block, durationMinutes) => {
+        // If the rate is explicitly 0, return 0 immediately.
+        if (block.min_fee === 0.00) return 0.00; 
+
+        const billedUnitMinutes = block.every;
         
-        // Helper for single segment fee calculation
-        const calculateSegmentFee = (block, durationMinutes) => {
-            // If the rate is explicitly 0, return 0 immediately.
-            if (block.min_fee === 0.00) return 0.00; 
+        // --- START OF MODIFICATION FOR LINEAR BILLING ---
+        if (billedUnitMinutes <= 0) return 0.00; // Prevent division by zero
 
-            const billedUnitMinutes = block.every;
-            // CRITICAL: Use Math.ceil to round up to the next full unit
-            const billedUnits = Math.ceil(durationMinutes / billedUnitMinutes);
-            
-            if (billedUnits > 0) {
-                let fee = billedUnits * block.min_fee;
-                
-                // Apply minimum charge if specified
-                if (block.min_charge > 0 && fee < block.min_charge) {
-                    fee = block.min_charge;
-                }
-                
-                // Max charge is applied *daily*, not per segment, so we omit the max_charge check here.
-                return fee;
-            }
-            return 0;
-        };
+        // Calculate the rate per minute: fee / unit size (in minutes)
+        const ratePerMinute = block.min_fee / billedUnitMinutes;
+
+        // Calculate the fee linearly based on the exact duration
+        let fee = ratePerMinute * durationMinutes;
         
-        while (currentDay.getTime() < this.exitDateTime.getTime()) {
-            const dayStart = new Date(currentDay);
-            const nextDay = new Date(currentDay);
-            nextDay.setDate(nextDay.getDate() + 1);
-            nextDay.setHours(0, 0, 0, 0);
-            
-            // Determine the segment boundaries for the current day
-            const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
-            const segmentEnd = this.exitDateTime.getTime() < nextDay.getTime() ? this.exitDateTime : nextDay;
+        // Intermediate rounding to high precision to prevent floating-point accumulation errors 
+        // that affect long stays and small segment calculations.
+        fee = parseFloat(fee.toFixed(10)); 
 
-            if (segmentStart.getTime() >= segmentEnd.getTime()) {
-                currentDay = nextDay;
-                continue;
+        // IMPORTANT: The linear model doesn't use billed units, so Math.ceil is removed.
+        // --- END OF MODIFICATION FOR LINEAR BILLING ---
+
+        if (fee > 0) {
+            // Apply minimum charge if specified (this still applies to the linear total)
+            if (block.min_charge > 0 && fee < block.min_charge) {
+                fee = block.min_charge;
             }
+            
+            // Max charge is applied *daily*, not per segment, so we omit the max_charge check here.
+            return fee;
+        }
+        return 0;
+    };
+    
+    while (currentDay.getTime() < this.exitDateTime.getTime()) {
+        const dayStart = new Date(currentDay);
+        const nextDay = new Date(currentDay);
+        nextDay.setDate(nextDay.getDate() + 1);
+        nextDay.setHours(0, 0, 0, 0);
+        
+        // Determine the segment boundaries for the current day
+        const segmentStart = this.entryDateTime.getTime() > dayStart.getTime() ? this.entryDateTime : dayStart;
+        const segmentEnd = this.exitDateTime.getTime() < nextDay.getTime() ? this.exitDateTime : nextDay;
 
-            const dateStr = this.getLocalISODate(currentDay);
-            const isPublicHoliday = this.publicHolidays.includes(dateStr);
-            const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
+        if (segmentStart.getTime() >= segmentEnd.getTime()) {
+            currentDay = nextDay;
+            continue;
+        }
 
-            // Filter blocks for the correct vehicle, day, AND requested rate type 
-            let dailyBlocks = this.feeModels.filter(
-                (item) => item.vehicle_type === vehicleType 
+        const dateStr = this.getLocalISODate(currentDay);
+        const isPublicHoliday = this.publicHolidays.includes(dateStr);
+        const dayOfWeek = isPublicHoliday ? "PH" : currentDay.toLocaleString("en-US", { weekday: "short" });
+
+        // Filter blocks for the correct vehicle, day, AND requested rate type 
+        let dailyBlocks = this.feeModels.filter(
+            (item) => item.vehicle_type === vehicleType 
                 && item.day_of_week === dayOfWeek
                 && String(item.rate_type || '').toLowerCase() === requestedRateType
-            );
-            
-            // Adjust filtering for actual day name vs. PH block definitions
-            if (!isPublicHoliday) {
-                dailyBlocks = dailyBlocks.filter(block => block.day_of_week !== "PH");
-            } else {
-                dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
+        );
+        
+        // Adjust filtering for actual day name vs. PH block definitions
+        if (!isPublicHoliday) {
+            dailyBlocks = dailyBlocks.filter(block => block.day_of_week !== "PH");
+        } else {
+            dailyBlocks = dailyBlocks.filter(block => block.day_of_week === "PH");
+        }
+        
+        let boundaries = new Set();
+        boundaries.add(segmentStart.getTime());
+        boundaries.add(segmentEnd.getTime());
+        
+        let maxDailyCharge = 0;
+
+        for (const block of dailyBlocks) {
+            maxDailyCharge = Math.max(maxDailyCharge, block.max_charge || 0);
+
+            const blockStart = this.addTime(dayStart, block.from_time);
+            let blockEnd = this.addTime(dayStart, block.to_time);
+
+            // Normalize blockEnd for blocks that wrap overnight
+            if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
+                blockEnd.setDate(blockEnd.getDate() + 1);
             }
-            
-            let boundaries = new Set();
-            boundaries.add(segmentStart.getTime());
-            boundaries.add(segmentEnd.getTime());
-            
-            let maxDailyCharge = 0;
 
+            // --- CORRECTED BOUNDARY LOGIC ---
+            // Include block start time if it falls strictly within the daily segment
+            if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
+                boundaries.add(blockStart.getTime());
+            }
+            // Include block end time if it falls strictly within the daily segment
+            // This is CRUCIAL for capturing rate transitions (like 22:00 or 07:00)
+            if (blockEnd.getTime() > segmentStart.getTime() && blockEnd.getTime() < segmentEnd.getTime()) {
+                boundaries.add(blockEnd.getTime()); 
+            }
+            // --- END CORRECTED BOUNDARY LOGIC ---
+        }
+        
+        const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
+        let dailyFee = 0;
+
+        // Iterate through the generated time segments
+        for (let i = 0; i < sortedBoundaries.length - 1; i++) {
+            const segStartT = sortedBoundaries[i];
+            const segEndT = sortedBoundaries[i + 1];
+
+            const segDurationMinutes = (segEndT - segStartT) / 60000;
+            if (segDurationMinutes <= 0) continue;
+            
+            let bestBlock = null;
+            const checkDate = new Date(segStartT);
+            
+            // Find the rate block that applies to the segment
             for (const block of dailyBlocks) {
-                maxDailyCharge = Math.max(maxDailyCharge, block.max_charge || 0);
+                let blockStart = this.addTime(dayStart, block.from_time);
+                let blockEnd = this.addTime(dayStart, block.to_time);
+                
+                const isOvernight = blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time;
 
-                const blockStart = this.addTime(currentDay, block.from_time);
-                let blockEnd = this.addTime(currentDay, block.to_time);
-
-                if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
+                // Normalize blockEnd for overnight blocks
+                if (isOvernight) {
                     blockEnd.setDate(blockEnd.getDate() + 1);
                 }
 
-                if (blockStart.getTime() > segmentStart.getTime() && blockStart.getTime() < segmentEnd.getTime()) {
-                    boundaries.add(blockStart.getTime());
-                }
-            }
-            
-            const sortedBoundaries = Array.from(boundaries).sort((a, b) => a - b);
-            let dailyFee = 0;
-
-            // Iterate through the generated time segments
-            for (let i = 0; i < sortedBoundaries.length - 1; i++) {
-                const segStartT = sortedBoundaries[i];
-                const segEndT = sortedBoundaries[i + 1];
-
-                const segDurationMinutes = (segEndT - segStartT) / 60000;
-                if (segDurationMinutes <= 0) continue;
+                // --- SIMPLIFIED OVERNIGHT BLOCK CHECK ---
+                let effectiveBlockStart = new Date(blockStart);
+                let effectiveBlockEnd = new Date(blockEnd);
                 
-                let bestBlock = null;
-                const checkDate = new Date(segStartT);
-                
-                // Find the rate block that applies to the segment
-                for (const block of dailyBlocks) {
-                    let blockStart = this.addTime(checkDate, block.from_time);
-                    let blockEnd = this.addTime(checkDate, block.to_time);
-                    
-                    // Adjust for overnight blocks
-                    if (blockEnd.getTime() <= blockStart.getTime() && block.to_time !== block.from_time) {
-                        // Check if the current segment falls within the overnight block's wrap
-                        let effectiveBlockStart = new Date(blockStart);
-                        let effectiveBlockEnd = new Date(blockEnd);
-                        
-                        if (checkDate.getHours() >= blockStart.getHours()) {
-                            effectiveBlockEnd.setDate(effectiveBlockEnd.getDate() + 1);
-                        } else if (checkDate.getHours() < blockEnd.getHours()) {
-                            effectiveBlockStart.setDate(effectiveBlockStart.getDate() - 1);
-                        }
-
-                        if (segStartT >= effectiveBlockStart.getTime() && segStartT < effectiveBlockEnd.getTime()) {
-                            bestBlock = block;
-                            break; 
-                        }
-                    } else if (segStartT >= blockStart.getTime() && segStartT < blockEnd.getTime()) {
-                        bestBlock = block;
-                        break; 
+                if (isOvernight) {
+                    // Check if segment is in the next day portion (e.g., 00:00 - 07:00)
+                    // If the segment starts before the block end time on Day 1,
+                    // we shift the block start back to Day 0 for accurate range comparison.
+                    if (checkDate.getHours() < blockEnd.getHours()) {
+                        effectiveBlockStart.setDate(effectiveBlockStart.getDate() - 1);
                     }
                 }
                 
-                if (bestBlock) {
-                    dailyFee += calculateSegmentFee(bestBlock, segDurationMinutes);
+                // Final check: segment start is within the effective block time [start, end)
+                if (segStartT >= effectiveBlockStart.getTime() && segStartT < effectiveBlockEnd.getTime()) {
+                    bestBlock = block;
+                    break; 
                 }
             }
-
-            // Apply daily maximum charge if defined
-            if (maxDailyCharge > 0 && dailyFee > maxDailyCharge) {
-                dailyFee = maxDailyCharge;
+            
+            if (bestBlock) {
+                dailyFee += calculateSegmentFee(bestBlock, segDurationMinutes);
             }
-
-            totalFee += dailyFee;
-            currentDay = nextDay;
         }
 
-        return parseFloat(totalFee.toFixed(2));
+        // Apply daily maximum charge if defined
+        if (maxDailyCharge > 0 && dailyFee > maxDailyCharge) {
+            dailyFee = maxDailyCharge;
+        }
+
+        totalFee += dailyFee;
+        currentDay = nextDay;
     }
+
+    return parseFloat(totalFee.toFixed(2));
+}
 
 
     /**

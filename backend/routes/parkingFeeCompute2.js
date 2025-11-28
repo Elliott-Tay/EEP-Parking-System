@@ -1,7 +1,7 @@
 /**
  * ParkingFeeComputer2
  * Computes parking fees using a set of rules (feeModels) provided at initialization.
- * The calculation logic remains the same, but the rate data is external.
+ * MODIFIED: The fee calculation now uses a **linear minute charge** based on the rate structure.
  */
 class ParkingFeeComputer2 {
 
@@ -70,18 +70,20 @@ class ParkingFeeComputer2 {
 
         // Helper for single segment fee calculation
         const calculateSegmentFee = (block, durationMinutes) => {
-            if (block.min_fee === 0.00) return 0.00;
+            // If the rate is explicitly 0 or the unit is zero, return 0 immediately.
+            if (block.min_fee === 0.00 || block.every === 0) return 0.00;
 
             const billedUnitMinutes = block.every;
-            // CRITICAL: Use Math.ceil to round up to the next full unit
-            const billedUnits = Math.ceil(durationMinutes / billedUnitMinutes);
+            
+            // 1. Calculate the rate per minute: fee / unit size (in minutes)
+            const ratePerMinute = block.min_fee / billedUnitMinutes;
 
-            if (billedUnits > 0) {
-                let fee = billedUnits * block.min_fee;
-                // Ensure segment fee is rounded to 2 decimal places to prevent float errors
-                return parseFloat(fee.toFixed(2)); 
-            }
-            return 0;
+            // 2. Calculate the fee linearly based on the exact duration
+            // This is the linear minute charging mechanism. No Math.ceil rounding.
+            let fee = ratePerMinute * durationMinutes;
+            
+            // Return high-precision fee for aggregation before final rounding
+            return fee;
         };
 
         // Iterate through each day of the parking duration
@@ -166,6 +168,7 @@ class ParkingFeeComputer2 {
                 }
 
                 if (bestBlock) {
+                    // Accumulate high-precision segment fee
                     dailyFee += calculateSegmentFee(bestBlock, segDurationMinutes);
                 }
             }

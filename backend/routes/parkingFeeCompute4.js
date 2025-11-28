@@ -1,8 +1,8 @@
 /**
  * ParkingFeeComputer Class
  * Calculates parking fees based on entry/exit times, rate types, and fee models.
- * This version implements the Class 1 fee logic and handles rate lookup by searching
- * directly within the provided array of fee models.
+ * This version implements strictly linear minute-based billing (rate per minute)
+ * and includes a fix for JavaScript floating-point rounding errors.
  */
 class ParkingFeeComputer4 {
     /**
@@ -13,27 +13,24 @@ class ParkingFeeComputer4 {
      * @param {string} vehicleType The type of vehicle (defaults to "Car/MC/HGV").
      */
     constructor(feeModels, entryDateTime, exitDateTime, rateType, vehicleType = "Car/MC/HGV") {
-        // Now expecting the specific rate array as the first argument
         this.feeModels = feeModels; 
         this.entryDateTime = new Date(entryDateTime);
         this.exitDateTime = new Date(exitDateTime);
         this.rateType = rateType;
         this.vehicleType = vehicleType;
-        // modelCatalogKey has been removed to meet the 5-argument requirement
     }
 
     /**
      * Helper to reliably calculate the duration between two Date objects in minutes.
-     * @returns {number} The duration in minutes (rounded to nearest minute).
+     * @returns {number} The duration in minutes (precise float).
      */
     getDurationInMinutes() {
         const diffInMilliseconds = this.exitDateTime.getTime() - this.entryDateTime.getTime();
-        return Math.round(diffInMilliseconds / (1000 * 60));
+        return diffInMilliseconds / (1000 * 60); 
     }
 
     /**
      * Helper to find the matching rate object from the fee models array.
-     * Searches directly within the feeModels array (which is now expected to be the specific rates array).
      * @returns {object | null} The matching rate object or null if not found.
      */
     findMatchingRate() {
@@ -44,7 +41,6 @@ class ParkingFeeComputer4 {
             return null;
         }
 
-        // Search directly within the ratesArray
         const rateObject = ratesArray.find(rate => 
             rate.vehicle_type === this.vehicleType &&
             rate.rate_type === this.rateType
@@ -58,42 +54,44 @@ class ParkingFeeComputer4 {
     }
 
     /**
-     * Computes the parking fee based on the Class 1 fee model.
-     * @returns {number | null} The calculated parking fee, formatted to two decimal places, or null if no rate is found.
+     * Computes the parking fee using strictly linear (rate per minute) billing.
+     * @returns {number | null} The calculated parking fee, accurately rounded to two decimal places, or null if no rate is found.
      */
     computeParkingFee() {
         const totalDurationMinutes = this.getDurationInMinutes();
 
-        // 1. Find the necessary rate object internally
         const rateObject = this.findMatchingRate();
         if (rateObject === null) {
             return null;
         }
 
-        // 2. Destructure using the correct data model keys
         const { grace_time, every, min_fee } = rateObject;
 
-        // Validation against the data model keys
         if (typeof grace_time === 'undefined' || typeof every === 'undefined' || typeof min_fee === 'undefined') {
             console.error("Rate structure is incomplete or missing necessary keys (grace_time, every, min_fee).");
             return null; 
         }
 
-        // 3. Determine chargeable duration
         const chargeableMinutes = totalDurationMinutes - grace_time;
 
-        // 4. Handle grace period (first hour free)
         if (chargeableMinutes <= 0) {
             return 0.00;
         }
 
-        // 5. Calculate billing blocks
-        const numberOfBlocks = Math.ceil(chargeableMinutes / every);
+        // Linear Billing Logic (Rate per Minute)
+        // min_fee is the price for 'every' minutes.
+        const ratePerMinute = min_fee / every; 
+        
+        // Calculate the raw fee
+        const rawFee = chargeableMinutes * ratePerMinute;
+        
+        // --- Floating Point Rounding Fix ---
+        // 1. Multiply by 100 (shifts decimal to the right by 2 places)
+        // 2. Use Math.round() for accurate rounding (e.g., 180.5 rounds up to 181)
+        // 3. Divide by 100 to shift the decimal back
+        const fee = Math.round(rawFee * 100) / 100;
+        // --- End Rounding Fix ---
 
-        // 6. Calculate final fee
-        const fee = numberOfBlocks * min_fee;
-
-        // Ensure the fee is formatted to two decimal places for currency comparison
         return parseFloat(fee.toFixed(2));
     }
 }
