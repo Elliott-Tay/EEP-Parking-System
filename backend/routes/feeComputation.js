@@ -222,11 +222,11 @@ router.post("/calculate-fee", async (req, res) => {
     console.log(`Input: Entry=${entryDateTime}, Exit=${exitDateTime}`);
     console.log(`Input: RateType=${rateType}, VehicleType=${vehicleType}, ModelKey=${modelCatalogKey}`);
 
+    // --- 1. Basic Input Validation (400 Bad Request) ---
     if (!entryDateTime || !exitDateTime || !rateType || !vehicleType || !modelCatalogKey) {
         return res.status(400).json({ error: "Missing parameters." });
     }
 
-    // Validation
     if (!isValidDate(entryDateTime) || !isValidDate(exitDateTime)) {
         return res.status(400).json({ error: "Invalid date format for entryDateTime or exitDateTime." });
     }
@@ -238,6 +238,7 @@ router.post("/calculate-fee", async (req, res) => {
     
     try {
         // ASYNC STEP: Fetch, group, and CLEAN the tariff catalog from the API
+        // NOTE: If fetchTariffRates fails due to network/API server error, this catch block handles it as a 500.
         const fullFeeCatalog = await fetchTariffRates();
 
         const loadedTariffsCount = fullFeeCatalog[modelCatalogKey]?.length || 0;
@@ -253,9 +254,19 @@ router.post("/calculate-fee", async (req, res) => {
             fullFeeCatalog
         );
 
+        // --- 2. Calculator/Model Creation Error (400/404) ---
         if (typeof calculator === 'string') {
-            console.error(`Error creating calculator for ${modelCatalogKey}: ${calculator}`);
-            return res.status(400).json({ error: calculator });
+            const errorMessage = calculator;
+            console.error(`Error creating calculator: ${errorMessage}`);
+            
+            let statusCode = 400; // Default: bad client key/parameter (e.g., Invalid modelCatalogKey)
+            
+            // If the error message indicates a resource/data not found, use 404
+            if (errorMessage.includes("No parking tariffs found") || errorMessage.includes("No matching tariff found")) {
+                statusCode = 404;
+            }
+            
+            return res.status(statusCode).json({ error: errorMessage });
         }
 
         console.log(`Attempting to compute fee using calculator: ${calculator.constructor.name}`);
@@ -276,6 +287,10 @@ router.post("/calculate-fee", async (req, res) => {
         });
 
     } catch (err) {
+        // --- 3. Internal Server Error (500) ---
+        // This handles:
+        // - Catastrophic failure in fetchTariffRates (e.g., network timeout, API server down).
+        // - Uncaught exception during calculator.computeParkingFee execution.
         console.error("Processing error:", err);
         res.status(500).json({ error: "Internal server error during processing.", details: err.message });
     }

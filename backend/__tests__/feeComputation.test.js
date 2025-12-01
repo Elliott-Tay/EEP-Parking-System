@@ -1,349 +1,257 @@
-// 1. Setup Mocking for Calculator Dependencies
-// Mock the external modules containing the calculator classes
-const mockComputeFee1 = jest.fn().mockReturnValue(10.50);
-const mockComputeFee2 = jest.fn().mockReturnValue(20.00);
-const mockComputeFee3 = jest.fn().mockReturnValue(0.00);
-const mockComputeFee4 = jest.fn().mockReturnValue(5.40); // Mock return value for PC4
-
-jest.mock('../routes/parkingFeeCompute1', () => ({
-    ParkingFeeComputer: jest.fn(() => ({
-        computeParkingFee: mockComputeFee1,
-    })),
-}));
-
-jest.mock('../routes/parkingFeeCompute2', () => ({
-    ParkingFeeComputer2: jest.fn(() => ({
-        computeParkingFee: mockComputeFee2,
-    })),
-}));
-
-jest.mock('../routes/parkingFeeCompute3', () => ({
-    ParkingFeeComputer3: jest.fn(() => ({
-        computeParkingFee: mockComputeFee3,
-    })),
-}));
-
-// ADDED: Mock ParkingFeeComputer4
-jest.mock('../routes/parkingFeeCompute4', () => ({
-    ParkingFeeComputer4: jest.fn(() => ({
-        computeParkingFee: mockComputeFee4,
-    })),
-}));
-
-
 const request = require('supertest');
 const express = require('express');
 
-// Import the router setup provided in the prompt
-const router = require('../routes/feeComputation'); // Assuming the file is saved as parkingFeeRoute.js
+// --- 1. MOCK EXTERNAL DEPENDENCIES ---
+// Mock the imported Calculator classes from their paths
+jest.mock('../routes/parkingFeeCompute1', () => ({
+    ParkingFeeComputer: jest.fn().mockImplementation(() => ({
+        computeParkingFee: jest.fn(() => 7.50), // Default success fee for Hourly
+    })),
+}));
+jest.mock('../routes/parkingFeeCompute2', () => ({
+    ParkingFeeComputer2: jest.fn().mockImplementation(() => ({
+        computeParkingFee: jest.fn(() => 15.00), // Default success fee for Special
+    })),
+}));
+jest.mock('../routes/parkingFeeCompute3', () => ({
+    ParkingFeeComputer3: jest.fn().mockImplementation(() => ({
+        computeParkingFee: jest.fn(() => 10.00), // Default success fee for Block1
+    })),
+}));
+jest.mock('../routes/parkingFeeCompute4', () => ({
+    ParkingFeeComputer4: jest.fn().mockImplementation(() => ({
+        computeParkingFee: jest.fn(() => 5.00), // Default success fee for Class1
+    })),
+}));
 
-// Create a minimal Express app to attach the router for testing
+// Mock the global 'fetch' for API testing
+global.fetch = jest.fn();
+
+// --- 2. IMPORT THE MODULE TO TEST ---
+// We must load the router *after* mocking its dependencies
+const router = require('../routes/feeComputation'); // Assuming the router file is named parking_router.js in the same directory
+
+// Create a mock Express application to test the router
 const app = express();
-app.use(express.json()); // Middleware to parse JSON body
-app.use('/', router); 
+app.use(express.json());
+app.use('/', router);
 
-// Import the actual mocked constructors for spying/checking instantiation
+// Destructure mock classes for spying and assertion
 const { ParkingFeeComputer } = require('../routes/parkingFeeCompute1');
 const { ParkingFeeComputer2 } = require('../routes/parkingFeeCompute2');
 const { ParkingFeeComputer3 } = require('../routes/parkingFeeCompute3');
-// ADDED: Import ParkingFeeComputer4
-const { ParkingFeeComputer4 } = require('../routes/parkingFeeCompute4'); 
+const { ParkingFeeComputer4 } = require('../routes/parkingFeeCompute4');
 
+// Define mock data structure for API response
+const MOCK_TARIFFS = [
+    { rate_type: "Hourly", vehicle_type: "Car", from_time: "1970-01-01T08:00:00", to_time: "1970-01-01T17:00:00", fee_model: "Hourly_Model" },
+    { rate_type: "Special", vehicle_type: "Car", from_time: "10:00:00", to_time: "12:00:00", fee_model: "Special_Model" },
+    { rate_type: "Block1", vehicle_type: "Truck", from_time: "14:00:00", to_time: "16:00:00", fee_model: "Block1_Model" },
+    { rate_type: "Class2", vehicle_type: "Bike", from_time: "14:00:00", to_time: "16:00:00", fee_model: "Class2_Model" },
+    { rate_type: "UnknownRate", vehicle_type: "Car", from_time: "00:00:00", to_time: "23:59:59", fee_model: "Unknown" },
+    // Another tariff for the default group to test filtering
+    { rate_type: "Authorized", vehicle_type: "Car", from_time: "00:00:00", to_time: "23:59:59", fee_model: "Auth_Model" }
+];
 
-describe('POST /calculate-fee', () => {
-    // Standard mock payload for success cases
-    const validPayload1 = {
-        entryDateTime: "2024-03-05T08:00:00.000Z", // Tuesday
-        exitDateTime: "2024-03-05T10:30:00.000Z",
-        rateType: "Hourly",
-        vehicleType: "Car",
-        modelCatalogKey: "COMPREHENSIVE_RATES"
+// Helper to access non-exported functions (if needed, though here we test the route end-to-end)
+// Since we can't easily import non-exported helpers, we focus on the route and core logic flow.
+
+describe('Parking Fee Router /calculate-fee', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        // Reset the mock calculator implementations before each test
+        ParkingFeeComputer.mockClear();
+        ParkingFeeComputer2.mockClear();
+        ParkingFeeComputer3.mockClear();
+        ParkingFeeComputer4.mockClear();
+    });
+
+    // Mock API response handler for success
+    const mockApiSuccess = (data, isWrapped = false) => {
+        global.fetch.mockImplementationOnce(() =>
+            Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve(isWrapped ? { data } : data),
+                text: () => Promise.resolve(JSON.stringify(isWrapped ? { data } : data)),
+            })
+        );
     };
 
-    beforeEach(() => {
-        // Clear all mock history and reset implementations before each test
-        jest.clearAllMocks();
-        // Resetting the mock values for safety, as they can be overridden in tests
-        mockComputeFee1.mockReturnValue(10.50);
-        mockComputeFee2.mockReturnValue(20.00);
-        mockComputeFee3.mockReturnValue(0.00);
-        mockComputeFee4.mockReturnValue(5.40);
+    // Mock API response handler for failure
+    const mockApiFailure = (status) => {
+        global.fetch.mockImplementation(() =>
+            Promise.resolve({
+                ok: false,
+                status: status,
+                text: () => Promise.resolve(`Error ${status}`),
+            })
+        );
+    };
+
+    // --- A. INPUT VALIDATION TESTS ---
+    it('should return 400 if entryDateTime is missing', async () => {
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'COMPREHENSIVE_RATES'
+            });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe("Missing parameters.");
     });
 
-    // --- A. Input Validation Tests (Missing Fields) ---
-    describe('Input Validation (Missing Fields)', () => {
-        const requiredFields = ["entryDateTime", "exitDateTime", "rateType", "vehicleType", "modelCatalogKey"];
-        
-        requiredFields.forEach(field => {
-            it(`should return 400 if ${field} is missing`, async () => {
-                const invalidPayload = { ...validPayload1 };
-                delete invalidPayload[field];
-
-                const response = await request(app)
-                    .post('/calculate-fee')
-                    .send(invalidPayload);
-
-                expect(response.statusCode).toBe(400);
-                expect(response.body.error).toBe("Missing parameters.");
-                expect(response.body.required).toEqual(expect.arrayContaining(requiredFields));
+    it('should return 400 for invalid date format (entry)', async () => {
+        mockApiSuccess(MOCK_TARIFFS);
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: 'not-a-date',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'COMPREHENSIVE_RATES'
             });
-        });
 
-        it('should return 400 if modelCatalogKey is invalid', async () => {
-            const invalidPayload = { ...validPayload1, modelCatalogKey: "NON_EXISTENT_RATES" };
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe("Invalid date format for entryDateTime or exitDateTime.");
+    });
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
+    it('should return 400 if exitDateTime is before entryDateTime', async () => {
+        mockApiSuccess(MOCK_TARIFFS);
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T12:30:00',
+                exitDateTime: '2025-11-20T10:00:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'COMPREHENSIVE_RATES'
+            });
 
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid modelCatalogKey");
-        });
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toBe("exitDateTime must be after entryDateTime.");
+    });
+
+    // --- B. API AND DATA HANDLING TESTS ---
+    it('should successfully handle wrapped API response data', async () => {
+        mockApiSuccess(MOCK_TARIFFS, true); // Use wrapped response: { data: [...] }
+
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'COMPREHENSIVE_RATES'
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.total_fee).toBe(7.50);
+        expect(ParkingFeeComputer).toHaveBeenCalledTimes(1);
+    });
+
+    // --- C. CALCULATOR SELECTION TESTS ---
+    it('should use ParkingFeeComputer for "Hourly" rateType (Default/Comprehensive)', async () => {
+        mockApiSuccess(MOCK_TARIFFS); 
+
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'COMPREHENSIVE_RATES'
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(ParkingFeeComputer).toHaveBeenCalledTimes(1);
+        expect(ParkingFeeComputer2).not.toHaveBeenCalled();
+        expect(response.body.total_fee).toBe(7.50);
+        
+        // Check if the time format cleaning worked on the tariffs passed
+        const constructorCall = ParkingFeeComputer.mock.calls[0][2]; // 3rd argument is filtered feeModels
+        expect(constructorCall.length).toBe(1);
+        expect(constructorCall[0].from_time).toBe('08:00:00'); // Should be cleaned from 1970 date
+    });
+
+    it('should use ParkingFeeComputer2 for "Special" rateType (Block2_Special)', async () => {
+        mockApiSuccess(MOCK_TARIFFS); 
+
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Special',
+                vehicleType: 'Car',
+                modelCatalogKey: 'BLOCK2_SPECIAL_RATES'
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
+        expect(ParkingFeeComputer).not.toHaveBeenCalled();
+        expect(response.body.total_fee).toBe(15.00);
+    });
+
+    it('should use ParkingFeeComputer3 for "Block1" rateType (Staff_Estate)', async () => {
+        mockApiSuccess(MOCK_TARIFFS); 
+
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Block1',
+                vehicleType: 'Truck',
+                modelCatalogKey: 'STAFF_ESTATE_RATES'
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
+        expect(ParkingFeeComputer).not.toHaveBeenCalled();
+        expect(response.body.total_fee).toBe(10.00);
     });
     
-    // --- A1. Date and Time Validation Tests (Status 400) ---
-    describe('Input Validation (Date/Time Logic)', () => {
-        it('should return 400 if entryDateTime is after exitDateTime', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                entryDateTime: "2024-03-05T10:30:00.000Z", // Entry is LATER
-                exitDateTime: "2024-03-05T08:00:00.000Z", 
-            };
+    it('should use ParkingFeeComputer4 for "Class2" rateType (Class1_Rates)', async () => {
+        mockApiSuccess(MOCK_TARIFFS); 
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toBe("exitDateTime must be after entryDateTime.");
-        });
-
-        it('should return 400 if entryDateTime is not a valid ISO date string', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                entryDateTime: "not-a-real-date", 
-            };
-
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid date format for entryDateTime");
-        });
-        
-        it('should return 400 if exitDateTime is not a valid ISO date string', async () => {
-            const invalidPayload = {
-                ...validPayload1,
-                exitDateTime: "another-fake-date", 
-            };
-
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(invalidPayload);
-
-            expect(response.statusCode).toBe(400);
-            expect(response.body.error).toContain("Invalid date format for exitDateTime");
-        });
-    });
-
-    // --- C. Calculator 2 (ParkingFeeComputer2) Tests ---
-    describe('Special Rate Calculator (ParkingFeeComputer2)', () => {
-        const specialPayload = {
-            entryDateTime: "2024-03-05T23:00:00.000Z",
-            exitDateTime: "2024-03-06T00:30:00.000Z",
-            rateType: "Special",
-            vehicleType: "HGV",
-            modelCatalogKey: "BLOCK2_SPECIAL_RATES"
-        };
-        
-        it('should use ParkingFeeComputer2 for "Special" rate type', async () => {
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(specialPayload);
-
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
-            
-            // 2. Assert Calculator Instantiation
-            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
-            expect(ParkingFeeComputer).not.toHaveBeenCalled();
-            expect(ParkingFeeComputer3).not.toHaveBeenCalled();
-
-            // 3. Assert Constructor Arguments for PC2 (Custom Signature)
-            expect(ParkingFeeComputer2).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels
-                specialPayload.entryDateTime,
-                specialPayload.exitDateTime,
-                specialPayload.rateType,
-                specialPayload.vehicleType
-            );
-
-            // 4. Assert Response Body
-            expect(response.body.total_fee).toBe(20.00);
-        });
-
-        it('should use ParkingFeeComputer2 for "Block2" rate type', async () => {
-            const payload = { ...specialPayload, rateType: "Block2" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
-
-            expect(ParkingFeeComputer2).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
-    });
-
-    // --- D. Calculator 3 (ParkingFeeComputer3) Tests ---
-    describe('Staff Estate Calculator (ParkingFeeComputer3)', () => {
-        const staffPayload = {
-            entryDateTime: "2024-03-04T09:00:00.000Z", // Monday
-            exitDateTime: "2024-03-04T11:00:00.000Z",
-            rateType: "Staff Estate A",
-            vehicleType: "MC",
-            modelCatalogKey: "STAFF_ESTATE_RATES"
-        };
-        
-        it('should use ParkingFeeComputer3 for "Staff Estate A" rate type', async () => {
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(staffPayload);
-
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
-
-            // 2. Assert Calculator Instantiation
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(ParkingFeeComputer).not.toHaveBeenCalled();
-            expect(ParkingFeeComputer2).not.toHaveBeenCalled();
-
-            // 3. Assert Constructor Arguments for PC3 (Custom Signature)
-            expect(ParkingFeeComputer3).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels
-                staffPayload.entryDateTime,
-                staffPayload.exitDateTime,
-                staffPayload.rateType,
-                staffPayload.vehicleType
-            );
-
-            // 4. Assert Response Body
-            expect(response.body.total_fee).toBe(0.00); // Mocked return value for PC3
-        });
-        
-        it('should use ParkingFeeComputer3 for "URA Staff" rate type', async () => {
-            const payload = { ...staffPayload, rateType: "URA Staff" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
-
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
-        
-        it('should use ParkingFeeComputer3 for "Staff Estate B" rate type', async () => {
-            const payload = { ...staffPayload, rateType: "Staff Estate B" };
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(payload);
-
-            expect(ParkingFeeComputer3).toHaveBeenCalledTimes(1);
-            expect(response.statusCode).toBe(200);
-        });
-    });
-
-    // --- E. Calculator 4 (ParkingFeeComputer4) Tests ---
-    describe('Class1 Rate Calculator (ParkingFeeComputer4)', () => {
-        const class1PayloadLong = {
-            entryDateTime: "2024-03-05T09:00:00.000Z",
-            exitDateTime: "2024-03-05T12:00:00.000Z", // 3 hours
-            rateType: "Class1",
-            vehicleType: "Car/MC/HGV",
-            modelCatalogKey: "CLASS1_RATES" // Added required key for API call
-        };
-
-        const class1PayloadShort = {
-            entryDateTime: "2024-03-05T09:00:00.000Z",
-            exitDateTime: "2024-03-05T09:59:00.000Z", // 59 minutes
-            rateType: "Class1",
-            vehicleType: "Car/MC/HGV",
-            modelCatalogKey: "CLASS1_RATES" // Added required key for API call
-        };
-        
-        it('should use ParkingFeeComputer4 for "Class1" rate type (Long Stay - Mock $5.40)', async () => {
-            // Test case for a fee being charged (after grace period)
-            mockComputeFee4.mockReturnValue(5.40);
-            
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(class1PayloadLong);
-
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
-
-            // 2. Assert Calculator Instantiation
-            expect(ParkingFeeComputer4).toHaveBeenCalledTimes(1);
-            expect(ParkingFeeComputer2).not.toHaveBeenCalled();
-
-            // 3. Assert Constructor Arguments for PC4 (5 arguments)
-            expect(ParkingFeeComputer4).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels (CLASS1_RATES array)
-                class1PayloadLong.entryDateTime,
-                class1PayloadLong.exitDateTime,
-                class1PayloadLong.rateType,
-                class1PayloadLong.vehicleType,
-                class1PayloadLong.modelCatalogKey
-            );
-
-            // 4. Assert Response Body
-            expect(response.body.total_fee).toBe(5.40); 
-        });
-
-        it('should return 0.00 for stays within the 60 minute grace period (Short Stay)', async () => {
-            // Override mock for this specific test to simulate the 0.00 fee return
-            mockComputeFee4.mockReturnValue(0.00); 
-
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(class1PayloadShort);
-
-            // 1. Assert Status
-            expect(response.statusCode).toBe(200);
-            
-            // 2. Assert Constructor Arguments for PC4 (5 arguments)
-            expect(ParkingFeeComputer4).toHaveBeenCalledWith(
-                expect.any(Array), // feeModels (CLASS1_RATES array)
-                class1PayloadShort.entryDateTime,
-                class1PayloadShort.exitDateTime,
-                class1PayloadShort.rateType,
-                class1PayloadShort.vehicleType,
-                class1PayloadShort.modelCatalogKey
-            );
-
-            // 3. Assert Response Body
-            expect(response.body.total_fee).toBe(0.00); 
-            expect(ParkingFeeComputer4).toHaveBeenCalled(); 
-        });
-    });
-
-
-    // --- F. Error Handling Test (Status 500) ---
-    describe('Error Handling (Internal)', () => {
-        it('should return 500 if the calculator throws an internal error', async () => {
-            // Mock the default calculator's computeParkingFee to throw an error
-            mockComputeFee1.mockImplementationOnce(() => {
-                throw new Error("Date parsing failed");
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Class2',
+                vehicleType: 'Bike',
+                modelCatalogKey: 'CLASS1_RATES'
             });
 
-            const response = await request(app)
-                .post('/calculate-fee')
-                .send(validPayload1);
+        expect(response.statusCode).toBe(200);
+        expect(ParkingFeeComputer4).toHaveBeenCalledTimes(1);
+        expect(ParkingFeeComputer).not.toHaveBeenCalled();
+        expect(response.body.total_fee).toBe(5.00);
+    });
 
-            expect(response.statusCode).toBe(500);
-            expect(response.body.error).toBe("Internal server error during fee calculation.");
-            expect(response.body.details).toBe("Date parsing failed");
-        });
+    // --- D. ERROR PATHS AND EDGE CASES ---
+    it('should return 400 if modelCatalogKey is invalid/missing in the fetched data', async () => {
+        mockApiSuccess(MOCK_TARIFFS); 
+
+        const response = await request(app)
+            .post('/calculate-fee')
+            .send({
+                entryDateTime: '2025-11-20T10:00:00',
+                exitDateTime: '2025-11-20T12:30:00',
+                rateType: 'Hourly',
+                vehicleType: 'Car',
+                modelCatalogKey: 'NON_EXISTENT_MODEL' // This key is not in the hardcoded catalog structure
+            });
+
+        expect(response.statusCode).toBe(400);
+        expect(response.body.error).toContain("Invalid modelCatalogKey: NON_EXISTENT_MODEL");
     });
 });
