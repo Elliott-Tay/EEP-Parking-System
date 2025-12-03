@@ -130,7 +130,8 @@ router.get("/admin", async (req, res) => {
         parking_charges,
         paid_amount,
         card_number,
-        vehicle_number
+        vehicle_number,
+        paymentTransactionTime
       FROM MovementTrans
       ${whereClause}
       ORDER BY entry_datetime DESC

@@ -91,7 +91,7 @@ export default function MovementTransaction() {
       "Exit Station",
       "Exit Time",
       "Parking Charges",
-      "Paid Amount"
+      "Paid Amount",
     ];
 
     const csvRows = results.map(item => [
@@ -105,7 +105,7 @@ export default function MovementTransaction() {
       item.exitStationId || "-",
       item.exitDatetime || "-",
       item.parkingCharges || 0,
-      item.paidAmount || 0
+      item.paidAmount || 0,
     ]);
 
     const csvContent = [headers, ...csvRows]

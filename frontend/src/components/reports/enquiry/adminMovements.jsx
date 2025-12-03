@@ -104,7 +104,8 @@ const AdminMovements = () => {
       "Entry Time",
       "Exit Time",
       "Parking Charges",
-      "Paid Amount"
+      "Paid Amount",
+      "Payment Transaction Time"
     ];
 
     // Convert rows to CSV lines
@@ -116,7 +117,8 @@ const AdminMovements = () => {
       formatDateTime(row.entry_datetime),
       formatDateTime(row.exit_datetime),
       row.parking_charges ?? "-",
-      row.paid_amount ?? "-"
+      row.paid_amount ?? "-",
+      row.payment_transaction_time ?? "-"
     ]);
 
     // Build CSV text with escaping
@@ -385,6 +387,9 @@ const AdminMovements = () => {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Paid Amount
                     </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Payment Transaction Time
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -436,6 +441,11 @@ const AdminMovements = () => {
                           <DollarSign className="w-4 h-4 text-green-500" />
                           <span className="text-green-700 font-medium">{formatCurrency(row.paid_amount)}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-gray-700 text-sm">
+                          {formatDateTime(row.paymentTransactionTime)} {/* NEW */}
+                        </span>
                       </td>
                     </tr>
                   ))}
