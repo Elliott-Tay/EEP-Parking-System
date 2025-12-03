@@ -155,13 +155,10 @@ router.get("/admin", async (req, res) => {
 // Unauthorised route for call-centre which do not require login
 router.get("/call-center-movement", async (req, res) => {
   try {
-    let pool = await sql.connect(config);
+    const pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetMovementTrans");
-
-    // Map the recordset to DTOs
-    const response = result.recordset.map(row => new MovementDTO(row));
-
-    res.json(response);
+    
+    res.json(result.recordset); // return raw SQL rows directly
   } catch (err) {
     console.error("SQL error", err);
     res.status(500).send("Database error: " + err.message);
@@ -196,27 +193,30 @@ router.get("/call-center-movement", async (req, res) => {
  *         description: Error
  */
 router.post("/entry-movements", async (req, res) => {
-  try {
-    const data = req.body;
+    try {
+        const data = req.body;
 
-    const pool = await sql.connect(config);
+        const pool = await sql.connect(config);
 
-    // Call the stored procedure with OBU_number
-    await pool.request()
-      .input("vehicle_number", sql.NVarChar, data.VehicleNo)
-      .input("entry_station_id", sql.NVarChar, data.Station)
-      .input("entry_datetime", sql.DateTime, data.Time)
-      .input("entry_datetime_detect", sql.DateTime, new Date()) // detection time = now
-      .input("entry_trans_type", sql.NVarChar, data.Status) // or map OK/ERROR to a type
-      .input("OBU_number", sql.NVarChar, data.OBU_number) // new OBU input
-      .execute("sp_InsertEntryMovement"); // <-- call the stored procedure
+        // Call the stored procedure with ALL necessary inputs
+        await pool.request()
+          .input("vehicle_number", sql.NVarChar, data.VehicleNo)
+          .input("entry_station_id", sql.NVarChar, data.Station)
+          .input("entry_datetime", sql.DateTime, data.Time)
+          .input("entry_datetime_detect", sql.DateTime, new Date())
+          .input("entry_trans_type", sql.NVarChar, data.Status || "OK") // Use default
+          .input("OBU_number", sql.NVarChar, data.OBU_number)
+          .input("VCC", sql.NVarChar, data.VCC)
+          .input("cardNumber", sql.NVarChar, data.CardNumber)
+          .input("DSRC", sql.NVarChar, data.DSRC)
+          .execute("sp_InsertEntryMovement"); 
 
-    res.json({ success: true, ack: "ACK", data });
+        res.json({ success: true, ack: "ACK", data });
 
-  } catch (error) {
-    console.error("Error in POST /entry-movement:", error);
-    res.status(500).json({ success: false, ack: "NACK", error: error.message });
-  }
+    } catch (error) {
+        console.error("Error in POST /entry-movement:", error);
+        res.status(500).json({ success: false, ack: "NACK", error: error.message });
+    }
 });
 
 /**
@@ -255,7 +255,7 @@ router.post("/entry-movements", async (req, res) => {
 
 router.post("/exit-movements", async (req, res) => {
   try {
-    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance, OBU_number } = req.body;
+    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance, OBU_number, VCC, DSRC, DeductedAmount, PaymentTransactionTime, TypeOfPayment, EntryTime, ExitTime } = req.body;
 
     if (!Station || !Time || !VehicleNo) {
       return res.status(400).json({
@@ -267,16 +267,38 @@ router.post("/exit-movements", async (req, res) => {
 
     const pool = await sql.connect(config);
 
-    // Call stored procedure with OBU_number
+    // Build payload matching DB fields
+    const payload = {
+      Station: Station,    
+      ObuNo: OBU_number || null,
+      VehicleNo,
+      VCC: VCC || null,
+      PaymentCardNo: PaymentCardNo || null,
+      DSRC: DSRC || null,
+      DeductedAmount: DeductedAmount || 0,
+      PaymentTransactionTime: PaymentTransactionTime || null,
+      TypeOfPayment: TypeOfPayment || null,
+      EntryTime: EntryTime || Time,
+      ExitTime: ExitTime || Time
+    };
+
+    // Call stored procedure
     await pool.request()
-      .input("VehicleNo", sql.NVarChar, VehicleNo)
+      .input("VehicleNo", sql.NVarChar, payload.VehicleNo)
       .input("Station", sql.NVarChar, Station)
       .input("Time", sql.DateTime, Time)
-      .input("PaymentCardNo", sql.NVarChar, PaymentCardNo || null)
+      .input("PaymentCardNo", sql.NVarChar, payload.PaymentCardNo)
       .input("Fee", sql.Decimal(10, 2), Fee || 0)
       .input("Balance", sql.Decimal(10, 2), Balance || 0)
-      .input("OBU_number", sql.NVarChar, OBU_number || null) // <-- added OBU_number
-      .execute("sp_UpdateExitMovement"); 
+      .input("OBU_number", sql.NVarChar, payload.ObuNo)
+      .input("VCC", sql.NVarChar, payload.VCC)
+      .input("DSRC", sql.NVarChar, payload.DSRC)
+      .input("DeductedAmount", sql.Decimal(10, 2), payload.DeductedAmount)
+      .input("PaymentTransactionTime", sql.DateTime, payload.PaymentTransactionTime)
+      .input("TypeOfPayment", sql.NVarChar, payload.TypeOfPayment)
+      .input("EntryTime", sql.DateTime, req.body.EntryTime || null)
+      .input("ExitTime", sql.DateTime, payload.ExitTime)
+      .execute("sp_UpdateExitMovement");
 
     res.json({
       success: true,
@@ -293,6 +315,7 @@ router.post("/exit-movements", async (req, res) => {
     });
   }
 });
+
 
 /**
  * @swagger
@@ -1264,7 +1287,10 @@ router.post("/entry-station", async (req, res) => {
       Station: data.Station,
       Time: data.Time,
       Status: data.Status || "OK",
-      ObuNo: data.OBU_number || null
+      ObuNo: data.OBU_number,
+      VCC: data.VCC,
+      CardNumber: data.CardNumber,
+      DSRC: data.DSRC,
     };
 
     broadcastEntry(payload); // send mapped payload
@@ -1314,14 +1340,17 @@ router.post("/exit-station", async (req, res) => {
 
     // Map keys to match frontend
     const payload = {
-      VehicleNo: data.VehicleNo,
-      Station: data.Station,
-      Time: data.Time,
-      Status: data.Status || "OK",
-      ObuNo: data.OBU_number || null,
-      PaymentCardNo: data.PaymentCardNo || null,
-      Fee: data.Fee || 0,
-      Balance: data.Balance || 0
+      Station: data.Station || "Unknown",
+      ObuNo: data.OBU_number || null,                 // 1. OBU ID
+      VehicleNo: data.VehicleNo,                      // 2. Vehicle LP
+      VCC: data.VCC || null,                          // 3. VCC
+      PaymentCardNo: data.PaymentCardNo || null,      // 4. Card CAN ID (Blank)
+      DSRC: data.DSRC || null, // 5. EEP DSRC Device ID
+      DeductedAmount: data.DeductedAmount || 0,       // 6. Deducted amount (0)
+      PaymentTransactionTime: data.PaymentTransactionTime || null, // 7. Payment Transaction Time (Blank)
+      TypeOfPayment: data.TypeOfPayment || null,      // 8. Type of Payment (Blank)
+      EntryTime: data.EntryTime || null,               // 9. Entry Time
+      ExitTime: data.ExitTime || null                 // 10. Exit Time
     };
 
     broadcastExit(payload);
@@ -1340,6 +1369,7 @@ router.post("/exit-station", async (req, res) => {
     res.status(500).json({ success: false, ack: "NACK", error: error.message });
   }
 });
+
 /**
  * Helper function to update lot status for entry or exit
  */

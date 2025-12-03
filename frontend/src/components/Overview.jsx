@@ -47,16 +47,19 @@ export default function OverviewTab() {
 
         // Send to backend for entry
         const response = await fetch(`${backend_API_URL}/api/movements/entry-movements`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            VehicleNo: data.VehicleNo,
-            Station: data.Station,
-            Time: data.Time,
-            Status: data.Status || "OK",
-            OBU_number: data.OBU_number || null
-          })
-        });
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            VehicleNo: data.VehicleNo,
+            Station: data.Station,
+            Time: data.Time,
+            Status: data.Status || "OK",
+            OBU_number: data.OBU_number || null, // Included OBU_number
+            VCC: data.VCC || null,             
+            CardNumber: data.CardNumber || null, 
+            DSRC: data.DSRC || null,          
+          })
+        });
 
         if (!response.ok) {
           console.error("Failed to post new entry", await response.text());
@@ -127,8 +130,8 @@ export default function OverviewTab() {
 
 function StationCard({ title, icon, rows, error, isEntry = true }) {
   const headers = isEntry
-    ? ["Station", "Time", "Vehicle No", "Obu No", "Status"]
-    : ["Station", "Time", "Vehicle No", "Obu No", "Payment Card No", "Fee", "Balance", "Status"];
+    ? ["Station", "Entry Time", "Vehicle No", "Obu No", "Status", "VCC", "Card Number", "DSRC"]
+    : ["Station", "Vehicle No", "Obu No", "Payment Card No", "DSRC", "Deducted Amount", "Payment Time", "Type of Payment", "Entry time", "Exit time"];
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -172,17 +175,22 @@ function StationCard({ title, icon, rows, error, isEntry = true }) {
                         <td className="px-4 py-2 text-blue-700">{row.VehicleNo || row.vehicle}</td>
                         <td className="px-4 py-2 text-blue-700">{row.ObuNo || row.Obu}</td>
                         <td className="px-4 py-2 text-blue-700">{row.Status || row.status}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.VCC || row.VCC}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.CardNumber || row.CardNumber}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.DSRC || row.DSRC}</td>
                       </>
                     ) : (
                       <>
                         <td className="px-4 py-2 text-blue-700">{row.Station || row.name}</td>
-                        <td className="px-4 py-2 text-blue-700">{row.Time || row.time}</td>
                         <td className="px-4 py-2 text-blue-700">{row.VehicleNo || row.vehicle}</td>
                         <td className="px-4 py-2 text-blue-700">{row.ObuNo || row.Obu}</td>
                         <td className="px-4 py-2 text-blue-700">{row.PaymentCardNo || row.card}</td>
-                        <td className="px-4 py-2 text-blue-700">{row.Fee || row.fee}</td>
-                        <td className="px-4 py-2 text-blue-700">{row.Balance || row.balance}</td>
-                        <td className="px-4 py-2 text-blue-700">{row.Status || row.status}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.DSRC || row.DSRC}</td>
+                        <td className="px-4 py-2 text-blue-700">${row.DeductedAmount || row.DeductedAmount}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.PaymentTransactionTime || row.PaymentTransactionTime}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.TypeOfPayment|| row.TypeOfPayment}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.EntryTime|| null}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.ExitTime|| row.ExitTime}</td>
                       </>
                     )}
                   </tr>

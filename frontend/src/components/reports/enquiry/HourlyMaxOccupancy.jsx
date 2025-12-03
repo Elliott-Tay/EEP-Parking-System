@@ -395,7 +395,7 @@ export default function HourlyMaxOccupancyReport() {
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Zone
-                    </th>
+                    </th> 
                     <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Occupancy
                     </th>
