@@ -89,12 +89,12 @@ export default function OverviewTab() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             Station: data.Station,
+            Status: data.Status || "OK",
             Time: data.Time,
             VehicleNo: data.VehicleNo,
             PaymentCardNo: data.PaymentCardNo,
             Fee: data.Fee,
             Balance: data.Balance,
-            Status: data.Status || "OK",
             OBU_number: data.OBU_number || null
           })
         });
@@ -131,7 +131,7 @@ export default function OverviewTab() {
 function StationCard({ title, icon, rows, error, isEntry = true }) {
   const headers = isEntry
     ? ["Station", "Entry Time", "Vehicle No", "Obu No", "Status", "VCC", "Card Number", "DSRC"]
-    : ["Station", "Vehicle No", "Obu No", "Payment Card No", "DSRC", "Deducted Amount", "Payment Time", "Type of Payment", "Entry time", "Exit time"];
+    : ["Station", "Status", "Vehicle No", "Obu No", "Payment Card No", "DSRC", "Deducted Amount", "Payment Time", "Type of Payment", "Entry time", "Exit time"];
 
   return (
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
@@ -182,6 +182,7 @@ function StationCard({ title, icon, rows, error, isEntry = true }) {
                     ) : (
                       <>
                         <td className="px-4 py-2 text-blue-700">{row.Station || row.name}</td>
+                        <td className="px-4 py-2 text-blue-700">{row.Status || row.status}</td>
                         <td className="px-4 py-2 text-blue-700">{row.VehicleNo || row.vehicle}</td>
                         <td className="px-4 py-2 text-blue-700">{row.ObuNo || row.Obu}</td>
                         <td className="px-4 py-2 text-blue-700">{row.PaymentCardNo || row.card}</td>

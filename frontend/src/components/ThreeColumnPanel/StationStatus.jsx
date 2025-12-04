@@ -14,11 +14,24 @@ const StationStatus = ({ env_backend }) => {
           fetch(`${env_backend}/api/movements/entry-station`),
           fetch(`${env_backend}/api/movements/exit-station`)
         ]);
+
         const [entryData, exitData] = await Promise.all([entryRes.json(), exitRes.json()]);
 
         setStation({
-          entrances: (entryData?.entrances || []).map(e => ({ ...e, lastUpdate: new Date() })),
-          exits: (exitData?.exits || []).map(x => ({ ...x, lastUpdate: new Date() })),
+          entrances: (entryData?.entrances || []).map(e => ({
+            ...e,
+            id: e.id || e.Station,
+            status: (e.Status || "ok").toLowerCase(),
+            errors: e.errors || [],
+            lastUpdate: new Date()
+          })),
+          exits: (exitData?.exits || []).map(x => ({
+            ...x,
+            id: x.id || x.Station,
+            status: (x.Status || "ok").toLowerCase(),
+            errors: x.errors || [],
+            lastUpdate: new Date()
+          }))
         });
       } catch (err) {
         console.error("Failed to fetch station status:", err);
@@ -31,33 +44,29 @@ const StationStatus = ({ env_backend }) => {
     fetchStationStatus();
   }, [env_backend]);
 
-  // SSE subscription
+  // SSE subscription for live updates
   useEffect(() => {
     const entrySource = new EventSource(`${env_backend}/api/movements/stream/entries`);
     const exitSource = new EventSource(`${env_backend}/api/movements/stream/exits`);
 
-    console.log('entrySource', entrySource);
-    console.log('exitSource', exitSource);
+    const normalizeData = (data) => ({
+      ...data,
+      id: data.id || data.Station,
+      status: (data.Status || data.status || "ok").toLowerCase(),
+      errors: Array.isArray(data.errors) ? data.errors : [],
+      lastUpdate: new Date()
+    });
+
     const updateStation = (type, data) => {
+      const normalized = normalizeData(data);
       setStation(prev => {
-        const key = data.Station || data.id;
         const updated = [...prev[type]];
-        const index = updated.findIndex(item => (item.id || item.Station) === key);
-
-        // normalize the fields
-        const normalized = {
-          ...data,
-          status: (data.Status || "ok").toLowerCase(), // map "Status" -> "status"
-          errors: data.errors || [],
-          lastUpdate: new Date()
-        };
-
+        const index = updated.findIndex(item => item.id === normalized.id);
         if (index >= 0) {
           updated[index] = { ...updated[index], ...normalized };
         } else {
           updated.unshift(normalized);
         }
-
         return { ...prev, [type]: updated };
       });
     };
@@ -100,15 +109,15 @@ const StationStatus = ({ env_backend }) => {
     setStation(prev => ({
       ...prev,
       [type]: prev[type].map(item =>
-        (item.id || item.Station) === id
-          ? { 
-              ...item, 
-              lastUpdate: new Date(), 
-              errors: item.errors?.length ? [] : ["Simulated error"], 
-              status: item.status === "ok" ? "error" : "ok" // toggle status
+        item.id === id
+          ? {
+              ...item,
+              lastUpdate: new Date(),
+              errors: item.errors?.length ? [] : ["Simulated error"],
+              status: item.status === "ok" ? "error" : "ok"
             }
           : item
-      ),
+      )
     }));
   };
 
@@ -120,7 +129,7 @@ const StationStatus = ({ env_backend }) => {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-      hour12: false,
+      hour12: false
     });
 
   const getStatusIcon = status => (status === "ok" ? CheckCircle : XCircle);
@@ -158,24 +167,23 @@ const StationStatus = ({ env_backend }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
                   {station[type].map(item => {
-                    // Determine error from `status` first, fallback to `errors`
-                    const hasError = item.status && (item.status !== "ok" || (item.errors?.length > 0));
+                    const hasError = item.status === "error" || (item.errors?.length > 0);
                     const StatusIcon = getStatusIcon(hasError ? "error" : "ok");
 
                     return (
                       <div
-                        key={item.id || item.Station}
+                        key={item.id}
                         className={`p-3 rounded-lg cursor-pointer transition-all duration-200 border-2 ${
                           hasError
                             ? "bg-red-50 border-red-200 hover:bg-red-100 animate-pulse"
                             : "bg-green-50 border-green-200 hover:bg-green-100"
                         }`}
-                        onClick={() => toggleStationStatus(type, item.id || item.Station)}
+                        onClick={() => toggleStationStatus(type, item.id)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <StatusIcon className={`h-4 w-4 ${hasError ? "text-red-600" : "text-green-600"}`} />
-                            <span className="text-sm font-medium">{item.name || item.id || item.Station}</span>
+                            <span className="text-sm font-medium">{item.name || item.id}</span>
                           </div>
                           <span
                             className={`text-xs px-2 py-1 rounded-full ${
@@ -186,7 +194,7 @@ const StationStatus = ({ env_backend }) => {
                           </span>
                         </div>
 
-                        {hasError && item.errors && (
+                        {hasError && item.errors?.length > 0 && (
                           <ul className="mt-1 space-y-1 text-xs text-red-600 list-disc list-inside">
                             {item.errors.map((err, idx) => (
                               <li key={idx}>{err}</li>

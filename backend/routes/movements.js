@@ -1342,6 +1342,7 @@ router.post("/exit-station", async (req, res) => {
     // Map keys to match frontend
     const payload = {
       Station: data.Station || "Unknown",
+      Status: data.Status || "OK",
       ObuNo: data.OBU_number || null,                 // 1. OBU ID
       VehicleNo: data.VehicleNo,                      // 2. Vehicle LP
       VCC: data.VCC || null,                          // 3. VCC
