@@ -48,7 +48,7 @@ npm start
 ``` 
 
 ## Overview of backend
-The backend comprises of the database that is using MySQL and three backend modules that is movement_transactions, config and season parking. This is for us to track car movements through our carparks, to CRUD any details in our carpark and to check seasonality parking or CRUD it as well. 
+The backend comprises of the database that is using MSSQL and three backend modules that is movement_transactions, config and season parking. This is for us to track car movements through our carparks, to CRUD any details in our carpark and to check seasonality parking or CRUD it as well. 
 
 ## Overview of frontend
 It is a dashboard to see the status of the carpark to see what is going on in the carpark and for the call centre to see the status of the carpark like lot status, entry and exit movement transactions and season holders.  
@@ -104,4 +104,8 @@ Put this inside the package.json file or whatever private key is given after the
 To debug issues, see if there is an issue with the backend or server error when you are doing things. If so, it is most likely you also encrypted the frontend and backend urls and you need to write the backend and frontend in plaintext and not in an encrypted format as somehow it cannot read encrypted frontend and backend urls. 
 
 If there are any issues, you can slowly debug it by console logging to see where the issue lies.
+
+## Anticapted future improvements
+
+We are anticipating adding logging system and redis caching with various caching strategies to improve the performance of the system. This would also help us to quickly debug issues if anything arises and to alert us of issues that we might not have anticipated naturally, potentially because of edge cases that we might have missed. 
 
