@@ -39,7 +39,6 @@ function DailySettlementReport() {
 
   const handleDownload = (record) => {
     // Placeholder: implement CSV/Excel download here
-    console.log("Downloading settlement file for:", record.date);
     toast.success(`Downloading settlement file for ${record.date}`);
   };
 

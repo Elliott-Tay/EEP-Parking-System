@@ -110,7 +110,6 @@ async function fetchTariffRates() {
         }
 
         try {
-            console.log(`Attempting to fetch tariff data (Attempt ${i + 1}/${maxRetries}) from: ${TARIFF_API_URL}`);
             
             const response = await fetch(TARIFF_API_URL, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
 
@@ -127,14 +126,12 @@ async function fetchTariffRates() {
             
             // FIX: Unwrap API Response if it's an object (e.g., { data: [...] })
             if (rawTariffs && typeof rawTariffs === 'object' && !Array.isArray(rawTariffs) && rawTariffs.data) {
-                console.log("Response detected as wrapped object. Extracting tariffs from 'data' property.");
                 rawTariffs = rawTariffs.data;
             }
 
             // Build the FeeModelCatalog from the raw data, which now includes time cleaning
             const fullFeeCatalog = buildFeeModelCatalog(rawTariffs);
             
-            console.log("Tariff data successfully fetched, parsed, grouped, and time formats cleaned.");
             return fullFeeCatalog;
 
         } catch (error) {
@@ -185,8 +182,6 @@ function createFeeCalculator(entryDateTime, exitDateTime, rateType, vehicleType,
         const filteredFeeModels = selectedFeeModels.filter(
             tariff => tariff.rate_type === requestedRateType && tariff.vehicle_type === vehicleType
         );
-
-        console.log(`Diagnostic: Found ${filteredFeeModels.length} specific tariffs for rateType: ${requestedRateType} in model: ${modelCatalogKey}`);
         
         // Log the tariffs being passed with the *cleaned* time format
         if (filteredFeeModels.length > 0) {

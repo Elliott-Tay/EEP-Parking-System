@@ -51,14 +51,12 @@ export default function ExitValidTransaction() {
         }
       );
 
-      console.log('response', response);
 
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('data', data);
       setResults(data);
       
       if (data.length > 0) {

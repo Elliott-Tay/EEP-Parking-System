@@ -60,12 +60,10 @@ export default function DailyCashcardCollection() {
   );
 
   const handleDownload = (record) => {
-    console.log("Downloading Daily Cashcard Collection for:", record.date);
     toast.success(`Downloading cashcard collection for ${record.date}`);
   };
 
   const handlePreview = (record) => {
-    console.log("Previewing Daily Cashcard Collection for:", record.date);
     toast.info(`Previewing cashcard collection for ${record.date}`);
   };
 

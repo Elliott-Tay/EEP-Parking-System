@@ -1209,12 +1209,10 @@ router.get("/stream/exits", (req, res) => {
 
 // Broadcast helpers
 function broadcastEntry(data) {
-  console.log("Broadcasting entry:", data);
   entryClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 
 function broadcastExit(data) {
-  console.log("Broadcasting exit:", data);
   exitClients.forEach(c => c.write(`data: ${JSON.stringify(data)}\n\n`));
 }
 

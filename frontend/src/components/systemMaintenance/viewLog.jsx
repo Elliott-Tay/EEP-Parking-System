@@ -13,7 +13,6 @@ function ViewLogLogin() {
     }
 
     // TODO: Call API to verify credentials
-    console.log({ userId, password });
     alert(`Logging in as: ${userId}`);
   };
 

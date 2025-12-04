@@ -10,7 +10,6 @@ async function getPool() {
   if (!pool) {
     try {
       pool = await sql.connect(config);
-      console.log("Connected to SQL Server");
     } catch (err) {
       console.error("SQL Connection Error:", err);
       throw err;

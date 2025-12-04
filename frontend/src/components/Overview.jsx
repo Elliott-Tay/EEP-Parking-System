@@ -1,20 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 
-const USE_MOCK = false; // toggle mock mode
-const backend_API_URL =
-  process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
-
-// Mock data
-const entryMock = [
-  { Station: "E1", Time: "10:05:23", VehicleNo: "UI123", Status: "OK" },
-  { Station: "E2", Time: "10:06:11", VehicleNo: "UI124", Status: "OK" },
-];
-
-const exitMock = [
-  { Station: "X1", Time: "10:07:02", VehicleNo: "UI200", PaymentCard: "PC001", Fee: "$2.50", Balance: "$50.00", Status: "OK" },
-  { Station: "X2", Time: "10:08:45", VehicleNo: "UI201", PaymentCard: "PC002", Fee: "$3.00", Balance: "$45.50", Status: "OK" },
-];
+const backend_API_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
 
 export default function OverviewTab() {
   const [entrances, setEntrances] = useState(USE_MOCK ? entryMock : []);
@@ -23,7 +10,6 @@ export default function OverviewTab() {
   const [exitError, setExitError] = useState(null);
 
   useEffect(() => {
-    if (USE_MOCK) return;
 
     const updateOrInsert = (prev, newData, key = "Station") => {
       const index = prev.findIndex(item => item[key] === newData[key]);

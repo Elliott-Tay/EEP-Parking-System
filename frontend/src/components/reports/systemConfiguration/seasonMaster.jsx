@@ -63,7 +63,6 @@ function SeasonHolderMaster() {
     };
 
     try {
-      console.log('payload', payload);
       const res = await fetch(`${process.env.REACT_APP_BACKEND_API_URL}/api/seasons/season-holder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
