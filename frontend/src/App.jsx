@@ -30,6 +30,7 @@ function App() {
   const ToBeExpiredSeason = lazy(() => import('./components/reports/seasonMaster/ToBeExpiredSeason'));
   const RemoteControlHistory = lazy(() => import('./components/reports/History/RemoteControlHistory'));
   const StationErrorHistory = lazy(() => import('./components/reports/History/StationErrorHistory'));
+  const ParkingChargeErrorHistory = lazy(() => import('./components/reports/History/ParkingChargeError'));
   const LotStatusHistory = lazy(() => import('./components/reports/History/LotStatusHistory'));
   const TicketComplimentary = lazy(() => import('./components/reports/Miscellaneous/TicketComplimentary'));
   const NetsCollectionComparison = lazy(() => import('./components/reports/Miscellaneous/NetsCollectionComparison'));
@@ -130,6 +131,7 @@ function App() {
     { path: "/reports/remote-control-history", element: <RemoteControlHistory />, requiredRole: "admin" },
     { path: "/reports/lot-status-history", element: <LotStatusHistory />, requiredRole: "admin" },
     { path: "/reports/station-errors", element: <StationErrorHistory /> },
+    { path: "/reports/parking-charges-error", element: <ParkingChargeErrorHistory /> },
     { path: "/reports/ticket-complimentary", element: <TicketComplimentary /> },
     { path: "/reports/nets-comparison", element: <NetsCollectionComparison /> },
     { path: "/config/holiday-setup", element: <PublicHolidaySetup /> },

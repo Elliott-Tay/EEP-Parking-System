@@ -331,4 +331,46 @@ router.get("/stations", authenticateJWT, async (req, res) => {
   }
 });
 
+// Get parking charge error logs
+router.get("/parking-charge-errors", async (req, res) => {
+    try {
+        // Ensure the connection pool is established
+        const pool = await sql.connect(config);
+
+        const query = `
+            SELECT 
+                ErrorID,
+                LogTimestamp,
+                SourceSystem,
+                ErrorCode,
+                ErrorMessage,
+                EntryDateTime,
+                ExitDateTime,
+                DurationMinutes,
+                FeeModelUsed,
+                CalculatedFee,
+                ExpectedFee,
+                RawInputData
+            FROM ParkingChargesErrorLog
+            ORDER BY LogTimestamp DESC
+        `;
+
+        // Execute the query against the database
+        const result = await pool.request().query(query);
+
+        // Send the query results (recordset) back as JSON
+        res.json(result.recordset);
+
+    } catch (err) {
+        // Log the detailed error to the server console
+        console.error("Error fetching parking charge errors:", err);
+        
+        // Respond with a 500 status and an error message
+        res.status(500).json({ 
+            error: "Internal server error", 
+            details: err.message 
+        });
+    }
+});
+
 module.exports = router;

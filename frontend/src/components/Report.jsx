@@ -194,7 +194,8 @@ export default function ReportPage() {
       reports: [
         { id: 10, name: "Remote Control Logs", description: "System control operation logs", icon: History, route: "/reports/remote-control-history" },
         { id: 11, name: "Station Error Logs", description: "Equipment error and maintenance logs", icon: AlertTriangle, route: "/reports/station-errors" },
-        { id: 12, name: "Lot Status History", description: "Parking lot status change history", icon: ExternalLink, route: "/reports/lot-status-history" }
+        { id: 12, name: "Lot Status History", description: "Parking lot status change history", icon: ExternalLink, route: "/reports/lot-status-history" },
+        { id: 13, name: "Parking Charges Error", description: "Parking lot status change history", icon: AlertTriangle, route: "/reports/parking-charges-error" }
       ]
     },
     {
@@ -204,9 +205,9 @@ export default function ReportPage() {
       color: "bg-orange-100 text-orange-600 border-orange-200",
       description: "Season parking management reports",
       reports: [
-        { id: 13, name: "Season Card Database", description: "Season card holder database", icon: CreditCard, route: "/reports/season-master" },
-        { id: 14, name: "Season Transactions", description: "Season parking transaction logs", icon: FileText, route: "/reports/season-transactions" },
-        { id: 15, name: "Expiring Seasons", description: "Expiring season card alerts", icon: Calendar, route: "/reports/expiring-season" }
+        { id: 14, name: "Season Card Database", description: "Season card holder database", icon: CreditCard, route: "/reports/season-master" },
+        { id: 15, name: "Season Transactions", description: "Season parking transaction logs", icon: FileText, route: "/reports/season-transactions" },
+        { id: 16, name: "Expiring Seasons", description: "Expiring season card alerts", icon: Calendar, route: "/reports/expiring-season" }
       ]
     },
     {
@@ -216,8 +217,8 @@ export default function ReportPage() {
       color: "bg-gray-100 text-gray-600 border-gray-200",
       description: "Additional system reports",
       reports: [
-        { id: 15, name: "Complimentary Tickets", description: "Complimentary ticket usage report", icon: FileText, route: "/reports/ticket-complimentary" },
-        { id: 16, name: "NETS Comparison", description: "NETS payment comparison analysis", icon: BarChart3, route: "/reports/nets-comparison" }
+        { id: 17, name: "Complimentary Tickets", description: "Complimentary ticket usage report", icon: FileText, route: "/reports/ticket-complimentary" },
+        { id: 18, name: "NETS Comparison", description: "NETS payment comparison analysis", icon: BarChart3, route: "/reports/nets-comparison" }
       ]
     }
   ];
