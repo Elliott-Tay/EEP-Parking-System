@@ -183,13 +183,6 @@ function createFeeCalculator(entryDateTime, exitDateTime, rateType, vehicleType,
             tariff => tariff.rate_type === requestedRateType && tariff.vehicle_type === vehicleType
         );
         
-        // Log the tariffs being passed with the *cleaned* time format
-        if (filteredFeeModels.length > 0) {
-            console.log(`Debug: Tariffs passed to ParkingFeeComputer (First 2): ${JSON.stringify(filteredFeeModels.slice(0, 2), null, 2)}`);
-        } else {
-            console.log("Debug: No specific tariffs were found to pass to ParkingFeeComputer.");
-        }
-
         return new ParkingFeeComputer(
             entryDateTime, 
             exitDateTime, 

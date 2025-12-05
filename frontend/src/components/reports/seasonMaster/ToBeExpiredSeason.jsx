@@ -73,10 +73,7 @@ export default function ToBeExpiredSeason() {
       card.cardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       card.holderName.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const handleNotify = (card) => console.log("Notify holder:", card);
-  const handleRenew = (card) => console.log("Renew card:", card);
-
+  
   // Calculate statistics
   const totalCards = filteredCards.length;
   const criticalCards = filteredCards.filter(card => card.daysLeft <= 7).length;

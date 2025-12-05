@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Search,
@@ -23,7 +22,6 @@ export default function OperationsPage() {
   const [seasons, setSeasons] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
   const backend_API_URL = process.env.REACT_APP_BACKEND_API_URL || "http://localhost:5000";
  
   // Fetch Transactions
