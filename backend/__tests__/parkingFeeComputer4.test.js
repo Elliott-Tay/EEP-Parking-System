@@ -207,4 +207,27 @@ describe('Class 1 Rate Logic (60m Grace, $0.02/min Linear Billing)', () => {
         const computer = createComputer(exit);
         expect(computer.computeParkingFee()).toBeCloseTo(RPM * 43141, 2); // $862.82
     });
+
+    // 22. Just Under 30-min Block: Duration 89 minutes. Chargeable: 29 mins. Fee: 29 * $0.02 = $0.58
+    test('22. Stay of 89 minutes should cost $0.58 (just under 30-min block over grace)', () => {
+        const exit = `${testDate}T11:29:00Z`;
+        const computer = createComputer(exit);
+        expect(computer.computeParkingFee()).toBeCloseTo(RPM * 29, 2);
+    });
+
+    // 23. Fractional Billing - Round Down: Duration 61 minutes 5 seconds. Chargeable: 1.0833... mins. Fee: $0.0216... -> $0.02
+    test('23. Stay of 61m 5s should cost $0.02 (fractional minute, rounds down)', () => {
+        const exit = `${testDate}T11:01:05Z`;
+        const computer = createComputer(exit);
+        // Chargeable minutes = 1 + (5 / 60) ≈ 1.0833 minutes. Fee = 1.0833 * 0.02 ≈ 0.02166 -> 0.02
+        expect(computer.computeParkingFee()).toBeCloseTo(0.02, 2);
+    });
+
+    // 24. Fractional Billing - Round Up Threshold: Duration 61 minutes 30 seconds. Chargeable: 1.5 mins. Fee: 1.5 * $0.02 = $0.03
+    test('24. Stay of 61m 30s should cost $0.03 (fractional minute, exact mid-point calculation)', () => {
+        const exit = `${testDate}T11:01:30Z`;
+        const computer = createComputer(exit);
+        // Chargeable minutes = 1.5 minutes. Fee = 1.5 * 0.02 = 0.03
+        expect(computer.computeParkingFee()).toBeCloseTo(0.03, 2);
+    });
 })

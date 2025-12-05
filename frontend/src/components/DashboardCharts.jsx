@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
   BarChart,
@@ -18,7 +17,6 @@ import {
   Activity,
   ArrowUpCircle,
   ArrowDownCircle,
-  Home,
   AlertCircle
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -27,8 +25,6 @@ export default function MovementChart() {
   const [movementData, setMovementData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  const navigate = useNavigate();
 
   // Fetch movement data
   const fetchMovements = async () => {

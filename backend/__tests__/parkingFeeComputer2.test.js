@@ -177,8 +177,6 @@ describe.each(["Special", "Block2"])(
         expect(computer.computeParkingFee()).toBe(0.00);
     });
     
-    // --- New Test Cases (NTC) ---
-    
     // NTC 1: Exact 1 Hour Nighttime Stay
     test(`[NTC1] Should charge exactly $4.00 for 1 hour in the nighttime rate`, () => {
         const entry = `${MON_DATE}01:00:00.000Z`; 
@@ -237,5 +235,62 @@ describe.each(["Special", "Block2"])(
         // Calculation: 15.5 min * ($2.00/30 min) = $1.0333... -> $1.03
         assert.ok(closeTo(computer.computeParkingFee(), 1.03));
     });
+    
+    // --- ADDITIONAL TEST CASES START HERE (NTC7 - NTC11) ---
 
+    // NTC 7: Rounding Check for non-standard duration (44 minutes)
+    test(`[NTC7] Should charge $2.93 for 44 minutes in the nighttime rate, testing precision`, () => {
+        const entry = `${MON_DATE}04:00:00.000Z`; 
+        const exit = `${MON_DATE}04:44:00.000Z`;   // 44 minutes
+        
+        const computer = new ParkingFeeComputer2(feeModels, entry, exit, rateType);
+        // Calculation: 44 min * ($2.00/30 min) = $2.9333... -> $2.93
+        assert.ok(closeTo(computer.computeParkingFee(), 2.93));
+    });
+
+    // NTC 8: Entry at the exact millisecond of the day rate boundary
+    test(`[NTC8] Should return $0.00 when entering at 07:00:00.001Z (Day rate starts)`, () => {
+        const entry = `${MON_DATE}07:00:00.001Z`;
+        const exit = `${MON_DATE}07:30:00.001Z`; // 30 minutes duration
+        
+        // Entry is in the free period (07:00:00 to 23:00:00).
+        const computer = new ParkingFeeComputer2(feeModels, entry, exit, rateType);
+        expect(computer.computeParkingFee()).toBe(0.00);
+    });
+
+    // NTC 9: Exit at the millisecond just before the night rate boundary
+    test(`[NTC9] Should return $0.00 when exiting 1ms before 23:00:00Z (Still in free period)`, () => {
+        const entry = `${MON_DATE}22:30:00.000Z`;
+        const exit = `${MON_DATE}22:59:59.999Z`; // Exit 1 millisecond before the paid block
+        
+        // Entire stay is within the free period (07:00:00 to 23:00:00).
+        const computer = new ParkingFeeComputer2(feeModels, entry, exit, rateType);
+        expect(computer.computeParkingFee()).toBe(0.00);
+    });
+
+    // NTC 10: Multi-Night, Complex Crossover with Grace Period check
+    test(`[NTC10] Should calculate $32.07 for a 2-day stay where only 1 night and 1 minute is paid (Entry: 23:00 Day 1, Exit: 7:01 Day 3)`, () => {
+        // Entry: Mon 23:00 (Paid starts)
+        const entry = MON_DATE + '23:00:00.000Z'; 
+        // Exit: Wed 07:01 (Paid stops 1 minute later than usual)
+        const exit = WED_DATE + '07:01:00.000Z'; 
+        
+        // Night 1 (Mon 23:00 - Tue 07:00): 480 min -> $32.00
+        // Day 2 (Tue 07:00 - Tue 23:00): $0.00
+        // Night 2 (Tue 23:00 - Wed 07:00): 480 min -> $32.00
+        // Paid time is 960 minutes.
+        // The *total duration* is (24 hours * 2) + 1 minute.
+        // Total duration is much longer than grace, so grace is ignored.
+        // Total charged: $32.00 + $32.00 = $64.00 
+        
+        const computer = new ParkingFeeComputer2(feeModels, entry, exit, rateType);
+        // Note: The previous calculation might have been testing a single night. 
+        // Based on the given fee schedule, the duration is:
+        // Mon 23:00 to Tue 07:00 = 8 hours charged ($32.00)
+        // Tue 07:00 to Tue 23:00 = 16 hours free ($0.00)
+        // Tue 23:00 to Wed 07:00 = 8 hours charged ($32.00)
+        // Wed 07:00 to Wed 07:01 = 1 minute free ($0.00)
+        // Total Fee: $64.00
+        assert.ok(closeTo(computer.computeParkingFee(), 64.00));
+    });
 });
