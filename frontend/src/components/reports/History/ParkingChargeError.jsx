@@ -71,6 +71,7 @@ const ErrorTable = ({ logs }) => {
         );
     }
 
+
     return (
         <div className="overflow-x-auto rounded-2xl shadow-lg border-2 border-gray-200 bg-white/80 backdrop-blur-xl">
             <table className="min-w-full divide-y divide-gray-200">
@@ -188,6 +189,57 @@ export function ParkingChargingError() {
 
     const navigate = useNavigate();
 
+    const downloadCSV = () => {
+        if (!logs || logs.length === 0) {
+            toast.error("No data available to export");
+            return;
+        }
+
+        const headers = [
+            "ErrorID", "LogTimestamp", "SourceSystem", "ErrorCode",
+            "FeeModelUsed", "CalculatedFee", "ExpectedFee", "Difference",
+            "EntryDateTime", "ExitDateTime", "DurationMinutes",
+            "ErrorMessage", "RawInputData"
+        ];
+
+        const escapeCSV = (value) => {
+            if (value === null || value === undefined) return "";
+            const str = String(value);
+            if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
+        const rows = logs.map(log => [
+            log.ErrorID,
+            formatDate(log.LogTimestamp),
+            log.SourceSystem,
+            log.ErrorCode,
+            log.FeeModelUsed,
+            log.CalculatedFee,
+            log.ExpectedFee,
+            log.ExpectedFee - log.CalculatedFee,
+            formatDate(log.EntryDateTime),
+            formatDate(log.ExitDateTime),
+            log.DurationMinutes,
+            log.ErrorMessage,
+            log.RawInputData || ""
+        ].map(escapeCSV).join(","));
+
+        const csvContent = [headers.join(","), ...rows].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.setAttribute("download", `parking_charge_errors_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const fetchErrors = async () => {
         setLoading(true);
         setError(null);
@@ -264,6 +316,15 @@ export function ParkingChargingError() {
                             >
                                 <Home className="h-4 w-4" />
                                 <span className="hidden sm:inline">Home</span>
+                            </button>
+                            <button
+                                onClick={downloadCSV}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all duration-200 shadow-sm"
+                            >
+                                <FileText className="h-4 w-4 text-green-700" />
+                                <span className="hidden sm:inline text-gray-700 font-medium">
+                                    Export CSV
+                                </span>
                             </button>
                         </div>
                     </div>
