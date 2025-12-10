@@ -9,6 +9,7 @@ import ReportPage from './components/Report';
 import Login from './components/auth/Login';
 import { lazy, Suspense } from 'react';
 import Skeleton from './components/Skeleton';
+import { ThemeProvider } from "./ThemeContext";
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import VCCList from './components/reports/VCC/VCCConfig';
@@ -213,44 +214,46 @@ function App() {
   ];
 
   return (
-    <Router>
-      <ErrorBoundary>
-        <Suspense
-          fallback={
-            <div className="p-4 space-y-4">
-              <Skeleton height="40px" width="60%" />
-              <Skeleton height="30px" width="80%" />
-              <Skeleton height="200px" width="100%" />
-            </div>
-          }
-        >
-        <div className="flex flex-col min-h-screen">
-          <NavBar />
-          <main className="flex-grow">
-            <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
+    <ThemeProvider>
+      <Router>
+        <ErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="p-4 space-y-4">
+                <Skeleton height="40px" width="60%" />
+                <Skeleton height="30px" width="80%" />
+                <Skeleton height="200px" width="100%" />
+              </div>
+            }
+          >
+          <div className="flex flex-col min-h-screen">
+            <NavBar />
+            <main className="flex-grow">
+              <Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
 
-              {/* Protected routes */}
-              {protectedRoutes.map(({ path, element, requiredRole }) => (
-                <Route
-                  key={path}
-                  path={path}
-                  element={<PrivateRoute requiredRole={requiredRole}>{element}</PrivateRoute>}
-                />
-              ))}
+                {/* Protected routes */}
+                {protectedRoutes.map(({ path, element, requiredRole }) => (
+                  <Route
+                    key={path}
+                    path={path}
+                    element={<PrivateRoute requiredRole={requiredRole}>{element}</PrivateRoute>}
+                  />
+                ))}
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
+                {/* Catch-all */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </main>
 
-          <Footer />
-        </div>
-        </Suspense>
-      </ErrorBoundary>
-    </Router>
+            <Footer />
+          </div>
+          </Suspense>
+        </ErrorBoundary>
+      </Router>
+    </ThemeProvider>
   );
 }
 
