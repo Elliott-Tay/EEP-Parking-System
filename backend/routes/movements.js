@@ -327,19 +327,19 @@ router.post("/exit-movements", async (req, res) => {
  *       500:
  *         description: Database error
  */
-
 router.get("/transaction-checker", async (req, res) => {
   try {
     let pool = await sql.connect(config);
     const result = await pool.request().execute("dbo.uspGetTransactionChecker");
 
-    //Map the recordset to DTOs
-    const response = result.recordset.map(row => new TransactionCheckerDTO(row));
-
-    res.json(response);
+    // Return the raw recordset directly
+    res.json(result.recordset);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Database error and we cannot fetch transaction_tracker table: ", error});
+    res.status(500).json({
+      error: "Database error and we cannot fetch transaction_tracker table: ",
+      details: error
+    });
   }
 });
 
