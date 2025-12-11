@@ -31,7 +31,7 @@ cd backend
 cd frontend
 ```
 
-then on the backend run
+then on the backend run for local development
 
 ```
 nodemon server.js
@@ -41,6 +41,14 @@ if nodemon is installed or if it is not installed,
 ``` 
 node server.js
 ```
+
+For production cases or for setting up the new carpark
+
+```
+node monitor-server.js
+```
+
+This script will force node to restart and reboot itself every 24 hours for practical purposes to clear memory.
 
 For the frontend, you can run 
 ```
