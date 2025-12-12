@@ -10,7 +10,7 @@ const config = {
   user: process.env.MSSQL_USER,
   password: process.env.MSSQL_PASSWORD,
   server: process.env.MSSQL_SERVER, 
-  database: process.env.MSSQL_DATABASE,
+  database: process.env.MSSQL_DATABASE, 
   options: {
     encrypt: false, // use true if your SQL Server requires SSL
     enableArithAbort: true
@@ -19,8 +19,8 @@ const config = {
 // ----------------------
 // TEST PARAMETERS
 // ----------------------
-const totalRequests = 50000;      // Total read/write operations
-const concurrency = 1000;         // Number of simultaneous operations
+const totalRequests = 75000;      // Total read/write operations
+const concurrency = 1500;         // Number of simultaneous operations
 const stations = ["X1", "X2", "X3"]; // Example stations
 
 // ----------------------

@@ -327,6 +327,7 @@ router.post("/exit-movements", async (req, res) => {
  *       500:
  *         description: Database error
  */
+
 router.get("/transaction-checker", async (req, res) => {
   try {
     let pool = await sql.connect(config);
