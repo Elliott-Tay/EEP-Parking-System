@@ -19,7 +19,7 @@ import {
   ArrowDownCircle,
   AlertCircle
 } from "lucide-react";
-import { toast } from "react-toastify";
+
 
 export default function MovementChart() {
   const [movementData, setMovementData] = useState([]);
@@ -41,11 +41,10 @@ export default function MovementChart() {
         exits: item.exits,
       }));
       setMovementData(chartData);
-      toast.success(`Loaded data for ${chartData.length} time period(s)`);
+      
     } catch (err) {
       console.error("Failed to fetch movements:", err);
       setError("Failed to load movement data");
-      toast.error("Failed to load movement data");
     } finally {
       setLoading(false);
     }
@@ -128,7 +127,6 @@ export default function MovementChart() {
               <button
                 onClick={() => {
                   fetchMovements();
-                  toast.info('Refreshing movement data...');
                 }}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border-2 border-gray-200 hover:border-red-300 hover:bg-red-50 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
