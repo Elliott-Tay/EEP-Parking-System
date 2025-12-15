@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Search,
   Calendar,
-  Bell,
-  RefreshCw,
   Home,
   Info,
   CreditCard,
