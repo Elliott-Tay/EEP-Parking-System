@@ -117,3 +117,16 @@ If there are any issues, you can slowly debug it by console logging to see where
 
 We are anticipating adding logging system and redis caching with various caching strategies to improve the performance of the system. This would also help us to quickly debug issues if anything arises and to alert us of issues that we might not have anticipated naturally, potentially because of edge cases that we might have missed. 
 
+## SFTP Connection
+
+To connect to the system, we use SFTP connection.
+
+Here is how to connect
+
+```
+sftp pcsc@10.2.127.179
+```
+
+It will prompt you for the password and reach out to the necessary people to get the password to access the system. 
+
+From there you should be able to access the necessary files with regards to EEP DSCRC. This would allow you to update or download any files from the EEP PMS.
