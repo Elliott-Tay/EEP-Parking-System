@@ -1,55 +1,103 @@
 import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
 
-let serverProcess;
+// =========================
+// Configuration
+// =========================
+const SERVER_COMMAND = "node";
+const SERVER_ARGS = ["server.js"];
 
+const REBOOT_INTERVAL_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+const REBOOT_FILE = path.resolve("./last_reboot.txt");
+
+// =========================
+// State
+// =========================
+let serverProcess = null;
+let rebootTimer = null;
+
+// =========================
+// Utilities
+// =========================
+function log(message) {
+  console.log(`[${new Date().toISOString()}] ${message}`);
+}
+
+function saveRebootTime() {
+  fs.writeFileSync(REBOOT_FILE, Date.now().toString(), "utf8");
+}
+
+function getLastRebootTime() {
+  if (!fs.existsSync(REBOOT_FILE)) {
+    saveRebootTime();
+  }
+  return Number(fs.readFileSync(REBOOT_FILE, "utf8"));
+}
+
+// =========================
+// Server lifecycle
+// =========================
 function startServer() {
-  console.log(`[${new Date().toISOString()}] Starting server...`);
+  log("Starting server...");
+  saveRebootTime();
 
-  serverProcess = spawn("node", ["server.js"], { stdio: "inherit" });
+  serverProcess = spawn(SERVER_COMMAND, SERVER_ARGS, {
+    stdio: "inherit",
+  });
 
-  // If server crashes, restart immediately
   serverProcess.on("exit", (code, signal) => {
     if (signal) {
-      console.log(`[${new Date().toISOString()}] Server killed with signal: ${signal}`);
-    } else if (code !== 0) {
-      console.log(`[${new Date().toISOString()}] Server exited with code ${code}. Restarting...`);
-      startServer();
+      log(`Server terminated by signal: ${signal}`);
+    } else {
+      log(`Server exited with code: ${code}`);
     }
+
+    // Restart immediately on crash or unexpected exit
+    log("Restarting server...");
+    startServer();
   });
+
+  scheduleNextReboot();
 }
 
-// Schedule daily restart at 3 AM
-function scheduleDailyRestartAt3AM() {
-  const now = new Date();
-  const next3AM = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    3, 0, 0, 0
-  );
-
-  // If 3 AM already passed today, schedule for tomorrow
-  if (now >= next3AM) {
-    next3AM.setDate(next3AM.getDate() + 1);
+// =========================
+// Reboot scheduler
+// =========================
+function scheduleNextReboot() {
+  if (rebootTimer) {
+    clearTimeout(rebootTimer);
   }
 
-  const delay = next3AM - now; // milliseconds until next 3 AM
+  const lastReboot = getLastRebootTime();
+  const nextReboot = lastReboot + REBOOT_INTERVAL_MS;
+  const delay = nextReboot - Date.now();
 
-  setTimeout(() => {
-    console.log(`[${new Date().toISOString()}] Restart at 3 AM triggered...`);
+  const hours = Math.max(delay, 0) / (1000 * 60 * 60);
+  log(`Next reboot scheduled in ${hours.toFixed(2)} hours`);
+
+  rebootTimer = setTimeout(() => {
+    log("14-day reboot triggered");
     serverProcess.kill();
-    startServer();
-
-    // Schedule subsequent restarts every 24 hours
-    setInterval(() => {
-      console.log(`[${new Date().toISOString()}] Restart at 3 AM triggered...`);
-      serverProcess.kill();
-      startServer();
-    }, 24 * 60 * 60 * 1000);
-
-  }, delay);
+    // startServer() will be called automatically by exit handler
+  }, Math.max(delay, 0));
 }
 
-// Initialize
+// =========================
+// Graceful shutdown (optional but recommended)
+// =========================
+function shutdown() {
+  log("Manager shutting down...");
+  if (serverProcess) {
+    serverProcess.kill();
+  }
+  process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
+// =========================
+// Init
+// =========================
 startServer();
-scheduleDailyRestartAt3AM();
