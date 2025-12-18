@@ -146,3 +146,12 @@ sftp pcsc@10.2.127.179
 It will prompt you for the password and reach out to the necessary people to get the password to access the system. 
 
 From there you should be able to access the necessary files with regards to EEP DSCRC. This would allow you to update or download any files from the EEP PMS.
+
+Furthermore, the PMS will connect to the LTA server to download the reports from there so it would look something like this in the diagram.
+
+TS -> OPC -> LTA server
+TS <- OPC <- LTA server 
+
+This is the rough workflow for settlement files that we need to do daily. 
+
+
