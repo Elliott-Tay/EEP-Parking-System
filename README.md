@@ -111,7 +111,7 @@ Put this inside the package.json file or whatever private key is given after the
 ```
 To debug issues, see if there is an issue with the backend or server error when you are doing things. If so, it is most likely you also encrypted the frontend and backend urls and you need to write the backend and frontend in plaintext and not in an encrypted format as somehow it cannot read encrypted frontend and backend urls. 
 
-If there are any issues, you can slowly debug it by console logging to see where the issue lies.
+If there are any issues, you can slowly debug it by console logging to see where the issu     e lies.
 
 ## Anticipated future improvements
 
