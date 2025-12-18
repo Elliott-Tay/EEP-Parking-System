@@ -113,6 +113,22 @@ To debug issues, see if there is an issue with the backend or server error when 
 
 If there are any issues, you can slowly debug it by console logging to see where the issu     e lies.
 
+## Stress test
+
+To stress test the system, here were some of the test cases that I did
+
+1. Load an api endpoint with 150,000 total requests and running 1500 concurrently and it can handle the load well with not much spikes. This is extreme overkill for a carpark system as it would only need about 10-30 requests per second and this is more than 50 times of the expected heavier request per second. 
+
+2. Tested on the MSSQL database with 75,000 total requests and running 1500 requests concurrently to write to the database and no issues that were thrown up during the insert procedure. 
+
+3. Created a reset after 24 hours at 3am to reboot the system by itself so as to clear the system of memory
+
+4. Ran concurrency test with 75,000 requests in total and simulated over 10 entrances and 10 exits. We assume at the highest rate it would be about 20 operations per second but we are doing 667 operations per second which is 16 times more than the anticipated 20 operations per second. This should sufficiently cover the request per second
+
+5. Try to break the front end by randomly pressing things but it's designed to be in a more minimalist style so that even if you press it 10 times, things would not break. 
+
+6. Allowing other people to test and use the system to see if there are any user issues that will present itself that we can fix it. 
+
 ## Anticipated future improvements
 
 We are anticipating adding logging system and redis caching with various caching strategies to improve the performance of the system. This would also help us to quickly debug issues if anything arises and to alert us of issues that we might not have anticipated naturally, potentially because of edge cases that we might have missed. 
