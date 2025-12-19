@@ -123,7 +123,7 @@ To stress test the system, here were some of the test cases that I did
 
 3. Created a reset after 24 hours at 3am to reboot the system by itself so as to clear the system of memory
 
-4. Ran concurrency test with 75,000 requests in total and simulated over 10 entrances and 10 exits. We assume at the highest rate it would be about 20 operations per second but we are doing 667 operations per second which is 16 times more than the anticipated 20 operations per second. This should sufficiently cover the request per second
+4. Ran concurrency test with 100,000 requests in total and simulated over 10 entrances and 10 exits. We assume at the highest rate it would be about 20 operations per second but we are doing 667 operations per second which is 16 times more than the anticipated 20 operations per second. This should be more than sufficientl to cover the request per second of a normal carpark or a larger carpark with more concurrent transactions going on. 
 
 5. Try to break the front end by randomly pressing things but it's designed to be in a more minimalist style so that even if you press it 10 times, things would not break. 
 
@@ -132,6 +132,8 @@ To stress test the system, here were some of the test cases that I did
 ## Anticipated future improvements
 
 We are anticipating adding logging system and redis caching with various caching strategies to improve the performance of the system. This would also help us to quickly debug issues if anything arises and to alert us of issues that we might not have anticipated naturally, potentially because of edge cases that we might have missed. 
+
+We can potentially explore Sentry, Grafana and ELK to ensure that when we face any issues on our own systems. It will quickly inform us of bugs, API requests that might give us hints as to what the problem is and a Grafana dashboard to let us see if there are any resources that might be consumed too much. 
 
 ## SFTP Connection
 
