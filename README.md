@@ -152,6 +152,7 @@ From there you should be able to access the necessary files with regards to EEP 
 Furthermore, the PMS will connect to the LTA server to download the reports from there so it would look something like this in the diagram.
 
 TS -> OPC -> LTA server
+
 TS <- OPC <- LTA server 
 
 This is the rough workflow for settlement files that we need to do daily. 
