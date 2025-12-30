@@ -175,10 +175,6 @@ function Login() {
             </div>
           </div>
         </div>
-
-        {/* Decorative Elements */}
-        <div className="absolute -top-4 -left-4 w-24 h-24 bg-gradient-to-br from-red-400/20 to-red-600/20 rounded-full blur-xl"></div>
-        <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-gradient-to-br from-red-500/15 to-red-700/15 rounded-full blur-xl"></div>
       </div>
     </div>
   );
