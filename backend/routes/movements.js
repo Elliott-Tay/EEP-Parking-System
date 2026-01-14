@@ -1347,7 +1347,7 @@ router.post("/exit-station", async (req, res) => {
       DSRC: data.DSRC || null, // 5. EEP DSRC Device ID
       DeductedAmount: data.DeductedAmount || 0,       // 6. Deducted amount (0)
       PaymentTransactionTime: data.PaymentTransactionTime || null, // 7. Payment Transaction Time (Blank)
-      TypeOfPayment: data.TypeOfPayment || null,      // 8. Type of Payment (Blank)
+      TypeOfPayment: data.TypeOfPayment|| null,      // 8. Type of Payment (Blank)
       EntryTime: data.EntryTime || null,               // 9. Entry Time
       ExitTime: data.ExitTime || null                 // 10. Exit Time
     };
