@@ -9,9 +9,16 @@ The purpose of this project is to be the software side that manages the carpark 
 
 - Backend: Node.js as it is easier for I/O threading, easy to scaffold and maintain compared to Django as Django comes with "battery packs" like authentication and an admin panel which we will not need. 
 
-- Devops: Circle CI for CI/CD and Docker if there is a need for package management. 
+- Devops: Circle CI for CI/CD and Docker if there is a need for package management for deploying the application to a PMS. 
 
-This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system or the central database for shared information. 
+This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system or the central database for shared information. Ideally it will be hosted on AWS EC2 and a cloud SQL when we have a centralised parking management system. 
+
+
+## Why this tech stack and design considerations
+
+Node.js is good for lightweight applications and for this as it is going to be individual repos being deployed at different carparks. We don't need a heavy application like Django or Spring Boot as they can be very heavy and not easily deployable for this use case. React.js is ideal for the frontend as more people are familiar with it, easy to maintain and hand over and pairs well with Node.js. 
+
+As our data is quite rigid and structured, SQL would be better over No SQL as we are dealing with transactions and movement records.
 
 ## Setup of repo
 
@@ -48,7 +55,7 @@ For production cases or for setting up the new carpark
 node monitor-server.js
 ```
 
-This script will force node to restart and reboot itself every 24 hours for practical purposes to clear memory.
+This script will force node to restart and reboot itself every 2 weeks for practical purposes to clear memory.
 
 For the frontend, you can run 
 ```
@@ -111,7 +118,7 @@ Put this inside the package.json file or whatever private key is given after the
 ```
 To debug issues, see if there is an issue with the backend or server error when you are doing things. If so, it is most likely you also encrypted the frontend and backend urls and you need to write the backend and frontend in plaintext and not in an encrypted format as somehow it cannot read encrypted frontend and backend urls. 
 
-If there are any issues, you can slowly debug it by console logging to see where the issu     e lies.
+If there are any issues, you can slowly debug it by console logging to see where the issue lies.
 
 ## Stress test
 
@@ -121,7 +128,7 @@ To stress test the system, here were some of the test cases that I did
 
 2. Tested on the MSSQL database with 75,000 total requests and running 1500 requests concurrently to write to the database and no issues that were thrown up during the insert procedure. 
 
-3. Created a reset after 24 hours at 3am to reboot the system by itself so as to clear the system of memory
+3. Created a reset after 2 weeks at 3am to reboot the system by itself so as to clear the system of memory
 
 4. Ran concurrency test with 100,000 requests in total and simulated over 10 entrances and 10 exits. We assume at the highest rate it would be about 20 operations per second but we are doing 667 operations per second which is 16 times more than the anticipated 20 operations per second. This should be more than sufficientl to cover the request per second of a normal carpark or a larger carpark with more concurrent transactions going on. 
 
