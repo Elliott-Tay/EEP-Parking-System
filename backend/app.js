@@ -14,6 +14,7 @@ const imageRouter = require("./routes/image");
 const vccRouter = require("./routes/vcc");
 const authorisedCarsRouter = require("./routes/authorisedCars");
 const parkingFeeRouter = require("./routes/feeComputation");
+const SettlementFile = require("./routes/settlementFile");
 const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
@@ -81,6 +82,9 @@ app.use("/api/authorized-cars", authorisedCarsRouter);
 
 // Calculate parking fee route
 app.use("/api/fee-computation", parkingFeeRouter);
+
+// Settlement file route
+app.use("/api/settlement", SettlementFile);
 
 // 404 handler for undefined routes
 app.use((req, res) => {
