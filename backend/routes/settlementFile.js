@@ -47,5 +47,70 @@ router.post("/cscr-files/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+// Get all CSCR files (metadata only)
+router.get("/cscr-files/get", async (req, res) => {
+  try {
+    const pool = await sql.connect(config);
+
+    const result = await pool.request().query(`
+      SELECT
+        FileID,
+        FileName,
+        UploadedBy,
+        UploadedAt,
+        FileType,
+        Status,
+        Notes
+      FROM CSCR_Files
+      ORDER BY UploadedAt DESC
+    `);
+
+    res.status(200).json({
+      message: "CSCR files fetched successfully",
+      files: result.recordset
+    });
+
+  } catch (err) {
+    console.error("Error fetching CSCR files:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Get a specific CSCR file (metadata only)
+router.get("/cscr-files/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const pool = await sql.connect(config);
+
+    const result = await pool.request()
+      .input("FileID", sql.Int, id)
+      .query(`
+        SELECT
+          FileID,
+          FileName,
+          UploadedBy,
+          UploadedAt,
+          FileType,
+          Status,
+          Notes
+        FROM CSCR_Files
+        WHERE FileID = @FileID
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    res.status(200).json({
+      message: "CSCR file fetched successfully",
+      file: result.recordset[0]
+    });
+
+  } catch (err) {
+    console.error("Error fetching CSCR file:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 module.exports = router;
