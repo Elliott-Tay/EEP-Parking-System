@@ -90,12 +90,25 @@ router.post("/cscr-files/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// Get all CSCR files (metadata only)
+// Get all CSCR files (metadata only) with optional date filters
 router.get("/cscr-files/get", async (req, res) => {
   try {
-    const pool = await sql.connect(config);
+    const { startDate, endDate } = req.query; // optional query params
 
-    const result = await pool.request().query(`
+    const pool = await sql.connect(config);
+    const request = pool.request();
+
+    let whereClause = "";
+    if (startDate) {
+      request.input("startDate", sql.DateTime2, new Date(startDate));
+      whereClause += " WHERE SendDateTime >= @startDate";
+    }
+    if (endDate) {
+      request.input("endDate", sql.DateTime2, new Date(endDate));
+      whereClause += startDate ? " AND SendDateTime <= @endDate" : " WHERE SendDateTime <= @endDate";
+    }
+
+    const query = `
       SELECT
         FileID,
         SendDateTime,
@@ -107,8 +120,11 @@ router.get("/cscr-files/get", async (req, res) => {
         OkTransNo,
         OkTransAmount
       FROM CSCR_Files
+      ${whereClause}
       ORDER BY SendDateTime DESC
-    `);
+    `;
+
+    const result = await request.query(query);
 
     res.status(200).json({
       message: "CSCR files fetched successfully",
