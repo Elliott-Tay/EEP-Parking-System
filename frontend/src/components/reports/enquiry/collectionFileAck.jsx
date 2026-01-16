@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -41,60 +41,129 @@ export default function CepasAckResultAnalysis() {
   const mockData = [
     {
       id: 1,
-      fileType: "Acknowledge",
       fileName: "ACK_20231201_001.dat",
-      transactionCount: 1245,
-      totalAmount: 15678.50,
-      processedDate: "2023-12-01 14:30:22",
-      status: "Success",
-      recordsMatched: 1245,
-      recordsMismatched: 0
+      statusACK: "Success",
+      statusSummary: "Complete",
+      noOfTransTotal: 1245,
+      noOfTransReject: 5,
+      noOfTransMissing: 0,
+      noOfTransOk: 1240,
+      amountOfTransTotal: 15678.50,
+      amountOfTransReject: 125.50,
+      amountOfTransMissing: 0,
+      amountOfTransOK: 15553.00,
+      receivedTime: "2023-12-01 14:30:22"
     },
     {
       id: 2,
-      fileType: "Result",
       fileName: "RST_20231201_001.dat",
-      transactionCount: 1243,
-      totalAmount: 15650.00,
-      processedDate: "2023-12-01 14:32:15",
-      status: "Warning",
-      recordsMatched: 1241,
-      recordsMismatched: 2
+      statusACK: "Success",
+      statusSummary: "Warning",
+      noOfTransTotal: 1243,
+      noOfTransReject: 8,
+      noOfTransMissing: 2,
+      noOfTransOk: 1233,
+      amountOfTransTotal: 15650.00,
+      amountOfTransReject: 185.75,
+      amountOfTransMissing: 45.00,
+      amountOfTransOK: 15419.25,
+      receivedTime: "2023-12-01 14:32:15"
     },
     {
       id: 3,
-      fileType: "Acknowledge",
       fileName: "ACK_20231202_001.dat",
-      transactionCount: 2156,
-      totalAmount: 27843.75,
-      processedDate: "2023-12-02 14:28:10",
-      status: "Success",
-      recordsMatched: 2156,
-      recordsMismatched: 0
+      statusACK: "Success",
+      statusSummary: "Complete",
+      noOfTransTotal: 2156,
+      noOfTransReject: 3,
+      noOfTransMissing: 0,
+      noOfTransOk: 2153,
+      amountOfTransTotal: 27843.75,
+      amountOfTransReject: 75.25,
+      amountOfTransMissing: 0,
+      amountOfTransOK: 27768.50,
+      receivedTime: "2023-12-02 14:28:10"
     },
     {
       id: 4,
-      fileType: "Result",
       fileName: "RST_20231202_001.dat",
-      transactionCount: 2150,
-      totalAmount: 27750.25,
-      processedDate: "2023-12-02 14:35:45",
-      status: "Error",
-      recordsMatched: 2145,
-      recordsMismatched: 5
+      statusACK: "Failed",
+      statusSummary: "Error",
+      noOfTransTotal: 2150,
+      noOfTransReject: 15,
+      noOfTransMissing: 5,
+      noOfTransOk: 2130,
+      amountOfTransTotal: 27750.25,
+      amountOfTransReject: 325.50,
+      amountOfTransMissing: 112.75,
+      amountOfTransOK: 27312.00,
+      receivedTime: "2023-12-02 14:35:45"
     },
     {
       id: 5,
-      fileType: "Acknowledge",
       fileName: "ACK_20231203_001.dat",
-      transactionCount: 1876,
-      totalAmount: 19234.00,
-      processedDate: "2023-12-03 14:29:33",
-      status: "Success",
-      recordsMatched: 1876,
-      recordsMismatched: 0
+      statusACK: "Success",
+      statusSummary: "Complete",
+      noOfTransTotal: 1876,
+      noOfTransReject: 2,
+      noOfTransMissing: 0,
+      noOfTransOk: 1874,
+      amountOfTransTotal: 19234.00,
+      amountOfTransReject: 48.50,
+      amountOfTransMissing: 0,
+      amountOfTransOK: 19185.50,
+      receivedTime: "2023-12-03 14:29:33"
     }
   ];
+
+  // Initialize with current month's date range
+  useEffect(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    const formatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    setStartDate(formatDate(firstDay));
+    setEndDate(formatDate(lastDay));
+    
+    // Automatically fetch data for current month
+    handleInitialSearch(formatDate(firstDay), formatDate(lastDay));
+  }, []);
+
+  const handleInitialSearch = async (start, end) => {
+    try {
+      setLoading(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In production, replace with actual API call
+      // const response = await fetch(
+      //   `${process.env.REACT_APP_BACKEND_API_URL}/api/cepas-analysis?startDate=${start}&endDate=${end}`,
+      //   {
+      //     headers: {
+      //       "Authorization": `Bearer ${localStorage.getItem("token")}`
+      //     }
+      //   }
+      // );
+      // const data = await response.json();
+      
+      setAnalysisData(mockData);
+      setCurrentPage(1);
+      toast.success(`Current month data loaded: ${mockData.length} file(s) found`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch CEPAS analysis data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!reportDate && (!startDate || !endDate)) {
@@ -152,26 +221,34 @@ export default function CepasAckResultAnalysis() {
 
     try {
       const csvHeaders = [
-        "File Type",
         "File Name",
-        "Transaction Count",
-        "Total Amount",
-        "Processed Date",
-        "Status",
-        "Records Matched",
-        "Records Mismatched"
+        "Status ACK",
+        "Status Summary",
+        "No. of Trans Total",
+        "No. of Trans Reject",
+        "No. of Trans Missing",
+        "No. of Trans Ok",
+        "Amount of Trans Total",
+        "Amount of Trans Reject",
+        "Amount of Trans Missing",
+        "Amount of Trans OK",
+        "Received Time"
       ].join(",");
 
       const csvRows = analysisData.map(row =>
         [
-          row.fileType,
           row.fileName,
-          row.transactionCount,
-          row.totalAmount.toFixed(2),
-          row.processedDate,
-          row.status,
-          row.recordsMatched,
-          row.recordsMismatched
+          row.statusACK,
+          row.statusSummary,
+          row.noOfTransTotal,
+          row.noOfTransReject,
+          row.noOfTransMissing,
+          row.noOfTransOk,
+          row.amountOfTransTotal.toFixed(2),
+          row.amountOfTransReject.toFixed(2),
+          row.amountOfTransMissing.toFixed(2),
+          row.amountOfTransOK.toFixed(2),
+          row.receivedTime
         ].join(",")
       );
 
@@ -200,6 +277,12 @@ export default function CepasAckResultAnalysis() {
         border: "border-green-200",
         icon: CheckCircle
       },
+      Complete: {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        border: "border-green-200",
+        icon: CheckCircle
+      },
       Warning: {
         bg: "bg-yellow-100",
         text: "text-yellow-700",
@@ -207,6 +290,12 @@ export default function CepasAckResultAnalysis() {
         icon: AlertCircle
       },
       Error: {
+        bg: "bg-red-100",
+        text: "text-red-700",
+        border: "border-red-200",
+        icon: XCircle
+      },
+      Failed: {
         bg: "bg-red-100",
         text: "text-red-700",
         border: "border-red-200",
@@ -240,12 +329,17 @@ export default function CepasAckResultAnalysis() {
   const handleLastPage = () => setCurrentPage(totalPages);
 
   // Calculate statistics
-  const totalTransactions = analysisData.reduce((sum, item) => sum + item.transactionCount, 0);
-  const totalAmount = analysisData.reduce((sum, item) => sum + item.totalAmount, 0);
-  const totalMatched = analysisData.reduce((sum, item) => sum + item.recordsMatched, 0);
-  const totalMismatched = analysisData.reduce((sum, item) => sum + item.recordsMismatched, 0);
-  const successCount = analysisData.filter(item => item.status === "Success").length;
-  const errorCount = analysisData.filter(item => item.status === "Error").length;
+  const totalTransTotal = analysisData.reduce((sum, item) => sum + item.noOfTransTotal, 0);
+  const totalTransReject = analysisData.reduce((sum, item) => sum + item.noOfTransReject, 0);
+  const totalTransMissing = analysisData.reduce((sum, item) => sum + item.noOfTransMissing, 0);
+  const totalTransOk = analysisData.reduce((sum, item) => sum + item.noOfTransOk, 0);
+  const totalAmountTotal = analysisData.reduce((sum, item) => sum + item.amountOfTransTotal, 0);
+  const totalAmountReject = analysisData.reduce((sum, item) => sum + item.amountOfTransReject, 0);
+  const totalAmountMissing = analysisData.reduce((sum, item) => sum + item.amountOfTransMissing, 0);
+  const totalAmountOK = analysisData.reduce((sum, item) => sum + item.amountOfTransOK, 0);
+  const successCount = analysisData.filter(item => item.statusSummary === "Complete").length;
+  const errorCount = analysisData.filter(item => item.statusSummary === "Error").length;
+  const successRate = totalTransTotal > 0 ? ((totalTransOk / totalTransTotal) * 100).toFixed(1) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50/30 to-rose-50/20">
@@ -294,7 +388,7 @@ export default function CepasAckResultAnalysis() {
                 <p className="text-2xl font-bold text-red-900">{analysisData.length}</p>
                 <div className="mt-2 flex items-center gap-1 text-xs text-red-600">
                   <CheckCircle className="h-3 w-3" />
-                  <span>{successCount} Success</span>
+                  <span>{successCount} Complete</span>
                   {errorCount > 0 && (
                     <>
                       <span className="mx-1">•</span>
@@ -315,10 +409,13 @@ export default function CepasAckResultAnalysis() {
                   </div>
                   <span className="text-xs font-semibold text-blue-700">Total Transactions</span>
                 </div>
-                <p className="text-2xl font-bold text-blue-900">{totalTransactions.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-blue-900">{totalTransTotal.toLocaleString()}</p>
                 <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
-                  <TrendingUp className="h-3 w-3" />
-                  <span>Processed</span>
+                  <CheckCircle className="h-3 w-3" />
+                  <span>{totalTransOk.toLocaleString()} OK</span>
+                  <span className="mx-1">•</span>
+                  <XCircle className="h-3 w-3 text-red-500" />
+                  <span>{totalTransReject.toLocaleString()} Reject</span>
                 </div>
               </div>
             </div>
@@ -333,37 +430,36 @@ export default function CepasAckResultAnalysis() {
                   </div>
                   <span className="text-xs font-semibold text-green-700">Total Amount</span>
                 </div>
-                <p className="text-2xl font-bold text-green-900">${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-2xl font-bold text-green-900">${totalAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
                   <CheckCircle className="h-3 w-3" />
-                  <span>Collected</span>
+                  <span>${totalAmountOK.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} OK</span>
                 </div>
               </div>
             </div>
 
-            {/* Match Status */}
+            {/* Success Rate */}
             <div className="relative overflow-hidden rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-violet-100 p-5 shadow-lg hover:shadow-xl transition-shadow duration-300">
               <div className="absolute top-0 right-0 w-20 h-20 bg-purple-200/30 rounded-full -mr-10 -mt-10" />
               <div className="relative">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="p-2 rounded-lg bg-purple-500 shadow-md">
-                    <FileCheck className="h-4 w-4 text-white" />
+                    <TrendingUp className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-xs font-semibold text-purple-700">Match Status</span>
+                  <span className="text-xs font-semibold text-purple-700">Success Rate</span>
                 </div>
-                <p className="text-2xl font-bold text-purple-900">
-                  {totalMismatched === 0 ? "100%" : `${((totalMatched / (totalMatched + totalMismatched)) * 100).toFixed(1)}%`}
-                </p>
+                <p className="text-2xl font-bold text-purple-900">{successRate}%</p>
                 <div className="mt-2 flex items-center gap-1 text-xs text-purple-600">
-                  {totalMismatched === 0 ? (
-                    <>
-                      <CheckCircle className="h-3 w-3" />
-                      <span>Perfect Match</span>
-                    </>
-                  ) : (
+                  {totalTransMissing > 0 && (
                     <>
                       <AlertCircle className="h-3 w-3" />
-                      <span>{totalMismatched} Mismatched</span>
+                      <span>{totalTransMissing} Missing</span>
+                    </>
+                  )}
+                  {totalTransMissing === 0 && (
+                    <>
+                      <CheckCircle className="h-3 w-3" />
+                      <span>No Missing Trans</span>
                     </>
                   )}
                 </div>
@@ -492,28 +588,40 @@ export default function CepasAckResultAnalysis() {
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-gray-200">
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      File Type
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       File Name
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Transactions
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Status ACK
+                    </th>
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Status Summary
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Amount
+                      Trans Total
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Trans Reject
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Trans Missing
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Trans OK
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Amount Total
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Amount Reject
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Amount Missing
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Amount OK
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Processed Date
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Matched
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Mismatched
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Status
+                      Received Time
                     </th>
                   </tr>
                 </thead>
@@ -523,61 +631,121 @@ export default function CepasAckResultAnalysis() {
                       key={item.id}
                       className="hover:bg-red-50/50 transition-colors duration-150"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {item.fileType === "Acknowledge" ? (
-                            <FileCheck className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <FileText className="h-4 w-4 text-blue-500" />
-                          )}
-                          <span className="text-sm font-medium text-gray-900">
-                            {item.fileType}
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-gray-900 font-mono">
+                            {item.fileName}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-gray-700 font-mono">
-                          {item.fileName}
+                      <td className="px-6 py-4 text-center">
+                        {getStatusBadge(item.statusACK)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {getStatusBadge(item.statusSummary)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-semibold text-gray-900">
+                          {item.noOfTransTotal.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-semibold ${item.noOfTransReject > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          {item.noOfTransReject.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-semibold ${item.noOfTransMissing > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                          {item.noOfTransMissing.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-semibold text-green-600">
+                          {item.noOfTransOk.toLocaleString()}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <span className="text-sm font-semibold text-gray-900">
-                          {item.transactionCount.toLocaleString()}
+                          ${item.amountOfTransTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <span className="text-sm font-semibold text-green-700">
-                          ${item.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span className={`text-sm font-semibold ${item.amountOfTransReject > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                          ${item.amountOfTransReject.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`text-sm font-semibold ${item.amountOfTransMissing > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                          ${item.amountOfTransMissing.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className="text-sm font-semibold text-green-600">
+                          ${item.amountOfTransOK.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-sm text-gray-600">
                           <Clock className="h-3.5 w-3.5 text-gray-400" />
-                          {item.processedDate}
+                          {item.receivedTime}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 text-green-700 text-xs font-semibold">
-                          <CheckCircle className="h-3 w-3" />
-                          {item.recordsMatched}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {item.recordsMismatched > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-semibold">
-                            <XCircle className="h-3 w-3" />
-                            {item.recordsMismatched}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        {getStatusBadge(item.status)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
+                {/* Summary Footer */}
+                {analysisData.length > 0 && (
+                  <tfoot className="bg-gradient-to-r from-gray-100 to-gray-50 border-t-2 border-gray-300">
+                    <tr className="font-bold">
+                      <td colSpan={3} className="px-6 py-4 text-sm text-gray-800">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-red-500" />
+                          <span className="text-base">TOTAL SUMMARY</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right">
+                        {totalTransTotal.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-red-600">
+                          {totalTransReject.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-orange-600">
+                          {totalTransMissing.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-green-600">
+                          {totalTransOk.toLocaleString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 text-right">
+                        ${totalAmountTotal.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-red-600">
+                          ${totalAmountReject.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-orange-600">
+                          ${totalAmountMissing.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                        <span className="text-green-600">
+                          ${totalAmountOK.toFixed(2)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                        —
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
 
