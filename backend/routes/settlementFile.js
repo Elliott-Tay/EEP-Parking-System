@@ -12,38 +12,81 @@ const upload = multer({ storage });
 // --- POST /cscr-files/upload ---
 router.post("/cscr-files/upload", upload.single("file"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded." });
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-    const { originalname, buffer } = req.file; // Multer buffer
-    const { UploadedBy, FileType, Notes } = req.body;
+    const { originalname, buffer } = req.file;
 
-    // Connect to MSSQL
+    const {
+      SendDateTime,
+      TotalTransNo,
+      TotalTransAmount,
+      FailTransNo,
+      FailTransAmount,
+      OkTransNo,
+      OkTransAmount
+    } = req.body;
+
+    // Basic validation
+    if (
+      !SendDateTime ||
+      TotalTransNo == null ||
+      TotalTransAmount == null ||
+      FailTransNo == null ||
+      FailTransAmount == null ||
+      OkTransNo == null ||
+      OkTransAmount == null
+    ) {
+      return res.status(400).json({
+        message: "Missing required settlement fields"
+      });
+    }
+
     const pool = await sql.connect(config);
-    const request = pool.request();
 
-    request.input("FileName", sql.NVarChar, originalname);
-    request.input("FileData", sql.VarBinary(sql.MAX), buffer); // Store file binary in FilePath (or change column name if needed)
-    request.input("UploadedBy", sql.NVarChar, UploadedBy || null);
-    request.input("Status", sql.NVarChar, "Uploaded");
-    request.input("FileType", sql.NVarChar, FileType || null);
-    request.input("Notes", sql.NVarChar, Notes || null);
-
-    const query = `
-      INSERT INTO CSCR_Files (FileName, FileData, UploadedBy, UploadedAt, FileType, Status, Notes)
-      VALUES (@FileName, @FileData, @UploadedBy, GETDATE(), @FileType, @Status, @Notes);
-      SELECT SCOPE_IDENTITY() AS FileID;
-    `;
-
-    const result = await request.query(query);
+    await pool.request()
+    .input("SendDateTime", sql.DateTime2, SendDateTime)
+    .input("FileName", sql.NVarChar(255), originalname)
+    .input("TotalTransNo", sql.Int, TotalTransNo)
+    .input("TotalTransAmount", sql.Decimal(18, 2), TotalTransAmount)
+    .input("FailTransNo", sql.Int, FailTransNo)
+    .input("FailTransAmount", sql.Decimal(18, 2), FailTransAmount)
+    .input("OkTransNo", sql.Int, OkTransNo)
+    .input("OkTransAmount", sql.Decimal(18, 2), OkTransAmount)
+    .query(`
+      INSERT INTO CSCR_Files (
+        SendDateTime,
+        FileName,
+        TotalTransNo,
+        TotalTransAmount,
+        FailTransNo,
+        FailTransAmount,
+        OkTransNo,
+        OkTransAmount
+      )
+      VALUES (
+        @SendDateTime,
+        @FileName,
+        @TotalTransNo,
+        @TotalTransAmount,
+        @FailTransNo,
+        @FailTransAmount,
+        @OkTransNo,
+        @OkTransAmount
+      )
+    `);
 
     res.status(201).json({
-      message: "File uploaded and saved to database successfully",
-      FileID: result.recordset[0].FileID
+      message: "CSCR file and settlement data saved successfully"
     });
 
   } catch (err) {
     console.error("Error uploading CSCR file:", err);
-    res.status(500).json({ message: "Error uploading file", error: err.message });
+    res.status(500).json({
+      message: "Error uploading CSCR file",
+      error: err.message
+    });
   }
 });
 
@@ -55,14 +98,16 @@ router.get("/cscr-files/get", async (req, res) => {
     const result = await pool.request().query(`
       SELECT
         FileID,
+        SendDateTime,
         FileName,
-        UploadedBy,
-        UploadedAt,
-        FileType,
-        Status,
-        Notes
+        TotalTransNo,
+        TotalTransAmount,
+        FailTransNo,
+        FailTransAmount,
+        OkTransNo,
+        OkTransAmount
       FROM CSCR_Files
-      ORDER BY UploadedAt DESC
+      ORDER BY SendDateTime DESC
     `);
 
     res.status(200).json({
@@ -80,7 +125,6 @@ router.get("/cscr-files/get", async (req, res) => {
 router.get("/cscr-files/:id", async (req, res) => {
   try {
     const { id } = req.params;
-
     const pool = await sql.connect(config);
 
     const result = await pool.request()
@@ -88,12 +132,14 @@ router.get("/cscr-files/:id", async (req, res) => {
       .query(`
         SELECT
           FileID,
+          SendDateTime,
           FileName,
-          UploadedBy,
-          UploadedAt,
-          FileType,
-          Status,
-          Notes
+          TotalTransNo,
+          TotalTransAmount,
+          FailTransNo,
+          FailTransAmount,
+          OkTransNo,
+          OkTransAmount
         FROM CSCR_Files
         WHERE FileID = @FileID
       `);
