@@ -13,10 +13,9 @@ The purpose of this project is to be the software side that manages the carpark 
 
 This application will hosted locally on a PC as this will be distributed to the various carparks in Singapore. We will explore a method where all the PCs will be connected centrally to a central operating system where we can change all the functions in the various PMS like holidays by configuring it in the central operating system or the central database for shared information. Ideally it will be hosted on AWS EC2 and a cloud SQL when we have a centralised parking management system. 
 
-
 ## Why this tech stack and design considerations
 
-Node.js is good for lightweight applications and for this as it is going to be individual repos being deployed at different carparks. We don't need a heavy application like Django or Spring Boot as they can be very heavy and not easily deployable for this use case. React.js is ideal for the frontend as more people are familiar with it, easy to maintain and hand over and pairs well with Node.js. 
+Node.js is good for lightweight applications and for this as it is going to be individual repos being deployed at different carparks. We don't need a heavy application like Django or Spring Boot as they can be very heavy and not easily deployable for this use case while requiring a lot of configuration as they have a lot of batteries included for their framework. React.js is ideal for the frontend as more people are familiar with it, easy to maintain and hand over and pairs well with Node.js. 
 
 As our data is quite rigid and structured, SQL would be better over No SQL as we are dealing with transactions and movement records.
 
