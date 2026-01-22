@@ -15,9 +15,9 @@ This application will hosted locally on a PC as this will be distributed to the 
 
 ## Why this tech stack and design considerations
 
-Node.js is good for lightweight applications and for this as it is going to be individual repos being deployed at different carparks. We don't need a heavy application like Django or Spring Boot as they can be very heavy and not easily deployable for this use case while requiring a lot of configuration as they have a lot of batteries included for their framework. React.js is ideal for the frontend as more people are familiar with it, easy to maintain and hand over and pairs well with Node.js. 
+Node.js is good for lightweight applications and for this as it is going to be individual repos being deployed at different carparks. We don't need a heavy application like Django or Spring Boot as they can be very heavy and not easily deployable for this use case while requiring a lot of configuration as they have a lot of batteries included for their framework which we would have to slowly remove. React.js is ideal for the frontend as more people are familiar with it, easy to maintain and hand over and pairs well with Node.js. 
 
-As our data is quite rigid and structured, SQL would be better over No SQL as we are dealing with transactions and movement records.
+As our data is quite rigid and structured, SQL would be better over No SQL as we are dealing with transactions, movement records and potentially require the use of foreign keys. 
 
 ## Setup of repo
 

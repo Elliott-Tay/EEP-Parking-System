@@ -735,113 +735,162 @@ router.get("/station-error-history", async (req, res) => {
   }
 });
 
-// --- POST create or update entry transaction with upserts --- 
+// --- POST create entry transaction with Lot Status Update --- 
 router.post("/entry-transaction", async (req, res) => {
   const {
     transaction_id,
     vehicle_id,
-    vehicle_number,
+    vehicle_number, 
+    obu_label,      
+    vcc,            
     card_number,
     entry_station_id,
     entry_datetime,
     parking_charges,
     paid_amount,
-    receipt_bit
+    receipt_bit,
+    zone,           // NEW: e.g., 'main'
+    lot_type        // NEW: e.g., 'hourly'
   } = req.body;
 
-  // Validate required fields
-  if (!transaction_id || !vehicle_id || !entry_station_id || !entry_datetime) {
+  // Added zone and lot_type to validation
+  if (!transaction_id || !vehicle_id || !entry_station_id || !entry_datetime || !zone || !lot_type) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  try {
-    const pool = await sql.connect(config);
-    const request = pool.request();
+  const pool = await sql.connect(config);
+  const transaction = new sql.Transaction(pool);
 
-    const result = await request
+  try {
+    await transaction.begin();
+    const request = new sql.Request(transaction);
+
+    // 1. Log the Entry Movement
+    request
       .input("transaction_id", sql.Int, transaction_id)
       .input("vehicle_id", sql.Int, vehicle_id)
       .input("vehicle_number", sql.NVarChar, vehicle_number || null)
+      .input("obu_label", sql.NVarChar, obu_label || null)
+      .input("vcc", sql.NVarChar, vcc || null)
       .input("card_number", sql.NVarChar, card_number || null)
       .input("entry_station_id", sql.NVarChar, entry_station_id)
       .input("entry_datetime", sql.DateTime, entry_datetime)
-      .input("parking_charges", sql.Decimal(10,2), parking_charges || 0)
-      .input("paid_amount", sql.Decimal(10,2), paid_amount || 0)
+      .input("parking_charges", sql.Decimal(10, 2), parking_charges || 0)
+      .input("paid_amount", sql.Decimal(10, 2), paid_amount || 0)
       .input("receipt_bit", sql.Bit, receipt_bit || 0)
-      .query(`
-        INSERT INTO SuccessfulTransactions
-        (transaction_id, vehicle_id, vehicle_number, card_number, entry_station_id, entry_datetime, parking_charges, paid_amount, receipt_bit)
-        VALUES
-        (@transaction_id, @vehicle_id, @vehicle_number, @card_number, @entry_station_id, @entry_datetime, @parking_charges, @paid_amount, @receipt_bit);
+      .input("zone", sql.NVarChar, zone)      // Store for exit reference
+      .input("lot_type", sql.NVarChar, lot_type);
 
-        SELECT SCOPE_IDENTITY() AS id;
-      `);
+    const result = await request.query(`
+      INSERT INTO SuccessfulTransactions
+      (
+        transaction_id, vehicle_id, vehicle_number, obu_label, vcc, 
+        card_number, entry_station_id, entry_datetime, parking_charges, 
+        paid_amount, receipt_bit, zone, lot_type, created_at
+      )
+      VALUES
+      (
+        @transaction_id, @vehicle_id, @vehicle_number, @obu_label, @vcc, 
+        @card_number, @entry_station_id, @entry_datetime, @parking_charges, 
+        @paid_amount, @receipt_bit, @zone, @lot_type, GETDATE()
+      );
+      SELECT SCOPE_IDENTITY() AS id;
+    `);
+
+    // 2. Update ParkingLotStatus (Available Y -> Y-1)
+    await request.query(`
+      UPDATE ParkingLotStatus 
+      SET occupied = occupied + 1  -- Only update occupied; available updates itself
+      WHERE zone = @zone 
+        AND type = @lot_type
+        AND (allocated - occupied) > 0; -- Ensure there is space
+    `);
+
+    await transaction.commit();
 
     res.status(201).json({
-      message: "Entry transaction logged successfully",
+      message: "Entry logged and lot occupied successfully",
       id: result.recordset[0].id
     });
 
   } catch (error) {
+    if (transaction) await transaction.rollback();
     console.error(error);
     res.status(500).json({ error: "Database error", details: error.message });
   }
 });
 
-// --- POST update exit transaction with upserts ---
+// --- POST update exit transaction (FEP/ERP2 COMPLIANT) ---
 router.post("/exit-transaction", async (req, res) => {
   const {
-    vehicle_id,
-    exit_station_id,
-    exit_datetime,
-    parking_charges,
-    paid_amount,
-    receipt_bit
+    vehicle_id,       
+    exit_station_id,  
+    exit_datetime,    
+    paid_amount,      
+    obu_label,        
+    vcc,              
+    card_can_id       
   } = req.body;
 
-  if (!vehicle_id || !exit_station_id || !exit_datetime) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
+  const pool = await sql.connect(config);
+  const transaction = new sql.Transaction(pool);
 
   try {
-    const pool = await sql.connect(config);
-    const request = pool.request();
+    await transaction.begin();
+    const request = new sql.Request(transaction);
 
-    request
+    // 1. UPDATE TRANSACTION (Procedure 5 & 15)
+    const result = await request
       .input("vehicle_id", sql.Int, vehicle_id)
       .input("exit_station_id", sql.NVarChar, exit_station_id)
       .input("exit_datetime", sql.DateTime, exit_datetime)
-      .input("parking_charges", sql.Decimal(10,2), parking_charges || null)
-      .input("paid_amount", sql.Decimal(10,2), paid_amount || null)
-      .input("receipt_bit", sql.Bit, receipt_bit !== undefined ? receipt_bit : 0);
+      .input("paid_amount", sql.Decimal(10, 2), paid_amount)
+      .input("obu_label", sql.NVarChar, obu_label)
+      .input("vcc", sql.NVarChar, vcc)
+      .input("card_can_id", sql.NVarChar, card_can_id)
+      .query(`
+        UPDATE SuccessfulTransactions
+        SET 
+          exit_station_id = @exit_station_id,
+          exit_datetime = @exit_datetime,
+          paid_amount = @paid_amount,
+          obu_label = @obu_label,
+          vcc = @vcc,
+          card_number = @card_can_id,
+          payment_type = 'FEP', 
+          receipt_bit = 1       
+        OUTPUT inserted.zone, inserted.lot_type 
+        WHERE id = (
+          SELECT TOP 1 id FROM SuccessfulTransactions
+          WHERE vehicle_id = @vehicle_id AND exit_datetime IS NULL
+          ORDER BY entry_datetime DESC
+        );
+      `);
 
-    // Update the latest open entry for this vehicle
-    const result = await request.query(`
-      UPDATE SuccessfulTransactions
-      SET 
-        exit_station_id = @exit_station_id,
-        exit_datetime = @exit_datetime,
-        parking_charges = @parking_charges,
-        paid_amount = @paid_amount,
-        receipt_bit = @receipt_bit
-      WHERE id = (
-        SELECT TOP 1 id
-        FROM SuccessfulTransactions
-        WHERE vehicle_id = @vehicle_id
-          AND exit_datetime IS NULL
-        ORDER BY entry_datetime DESC
-      );
-
-      SELECT @@ROWCOUNT AS updatedRows;
-    `);
-
-    if (result.recordset[0].updatedRows === 0) {
-      return res.status(404).json({ error: "No matching open entry transaction found" });
+    if (result.recordset.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({ error: "Search Entrytransaction: Not Found" });
     }
 
-    res.status(200).json({ message: "Exit transaction logged successfully" });
+    const { zone, lot_type } = result.recordset[0];
+
+    // 2. UPDATE AVAILABILITY (Procedure 16 & 17: Y + 1)
+    // REMOVED: available = available + 1 (as it is a computed column)
+    await request
+      .input("zone", sql.NVarChar, zone)
+      .input("type", sql.NVarChar, lot_type)
+      .query(`
+        UPDATE ParkingLotStatus 
+        SET occupied = occupied - 1
+        WHERE zone = @zone AND type = @type;
+      `);
+
+    await transaction.commit();
+
+    res.status(200).json({ message: "Deduction success (FE-Pay)", status: "01h" });
 
   } catch (error) {
+    if (transaction) await transaction.rollback();
     console.error(error);
     res.status(500).json({ error: "Database error", details: error.message });
   }
