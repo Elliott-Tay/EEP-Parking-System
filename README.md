@@ -163,4 +163,32 @@ TS <- OPC <- LTA server
 
 This is the rough workflow for settlement files that we need to do daily. 
 
+# SSH Connection
 
+You can now ssh into the OPC but first you need to have the station, entry and exit antenna private and public keys. 
+
+For the stations, you need to get the private and public keys from each antenna or it would be provided to you. 
+
+Store the private key as a file in the server and client folder like this
+
+```
+entry
+entry.pub
+```
+in the authorized file in the .ssh folder put in all your public keys so that it can authenticate
+
+To ssh into the server, you can use this command with your own public key with user and the ip address that you need to edit
+
+```
+ssh -i ~/.ssh/linux_server_key gtech@10.2.127.179
+```
+
+From there, you should be able to ssh without a password. If there is a password required, it means that there must be something wrong with the keys or the way it has been setup. Most commonly it is 
+                                                                    
+1. Wrong folder structure
+2. Wrong key
+3. Wrong format
+
+so you can double check from there when we are doing any form of deployment for various carparks.
+
+It should be relatively straightforward when you understand the rough process.
