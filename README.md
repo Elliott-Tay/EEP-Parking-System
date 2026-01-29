@@ -1,7 +1,7 @@
-# EEP-OS-Parking-System
+# EEP-PMS-Parking-System
 
 ## Description
-The purpose of this project is to be the software side that manages the carpark system in the parking booth and it is meant to be a local repo that runs at each carpark from handling deduction to be the dashboard that will check what things are going on. We will think of adding a cloud version hosted on something like AWS to probably deal and manage all of the computers remotely.
+The purpose of this project is to be the software side that manages the carpark system in the parking booth and it is meant to be a local repo that runs at each carpark from handling deduction to be the dashboard that will check what things are going on. We will think of adding a cloud version hosted on something like AWS to probably deal and manage all of the computers remotely. Basically it is a Parking Management System in a modern tech stack. 
 
 ## Tech Stack
 
@@ -189,6 +189,7 @@ From there, you should be able to ssh without a password. If there is a password
 2. Wrong key
 3. Wrong format
 
-so you can double check from there when we are doing any form of deployment for various carparks.
+so you can double check from there when we are doing any form of deployment for various carparks as the failure would indicate that you need to ssh into the system with a password which indicates that the key is not working and you need to make quite a lot of changes.
 
 It should be relatively straightforward when you understand the rough process.
+                    
