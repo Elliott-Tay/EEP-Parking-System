@@ -72,6 +72,18 @@ There are also reports for us to track movements and to see what is going on in 
 ## Database
 Database is hosted on MSSQL and on the cloud so you need the credentials to login which will be given to you when required for cybersecurity purposes if you need it for maintenance or altering some stored procedures in there for instance. Generally it should be able to connect to the database pretty fast, however if there are any issues with connecting with the database, it is possible to check the logs as to what the issue was or check the credentials to see if it was typed wrongly. 
 
+## Modules
+
+There are some backend modules here that are good to know like
+
+1. Movement module (Dealing with movement transactions, entry and exit transactions and displaying the movement on the dashboard)
+
+2. Season module (Operation of Season parking such as CRUD of season list)
+
+3. Parking Tariff module (Calculation of parking tariff and other operations associated with parking tariffs)
+
+4. System Configuration module (Monitoring and logging of data and system issues)
+
 ## API-docs
 To access the swagger api documentation, you can use this url link
 
