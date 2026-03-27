@@ -1,4 +1,4 @@
-# EEP-PMS-Parking-System
+# EEP-OPC-Parking-System
 
 ## Description
 The purpose of this project is to be the software side that manages the carpark system in the parking booth and it is meant to be a local repo that runs at each carpark from handling deduction to be the dashboard that will check what things are going on. We will think of adding a cloud version hosted on something like AWS to probably deal and manage all of the computers remotely. Basically it is a Parking Management System in a modern tech stack. 
@@ -120,6 +120,7 @@ npx dotenvx encrypt
 ```
 
 Put this inside the package.json file or whatever private key is given after the encryption
+
 ```
 {
   "scripts": {
