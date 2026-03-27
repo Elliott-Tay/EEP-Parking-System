@@ -195,20 +195,53 @@ router.post("/entry-movements", async (req, res) => {
     try {
         const data = req.body;
 
+        // 1. Generate Singapore Time (UTC+8)
+        const now = new Date();
+        const sgTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); 
+
         const pool = await sql.connect(config);
 
-        // Call the stored procedure with ALL necessary inputs
+        // 2. Modified SQL: Replaced GETDATE() with a parameter @sg_now
+        const query = `
+            INSERT INTO MovementTrans
+            (
+                vehicle_number, 
+                entry_station_id, 
+                entry_datetime, 
+                entry_datetime_detect, 
+                entry_trans_type, 
+                OBU_number, 
+                VCC,
+                card_number, 
+                DSRC, 
+                update_datetime
+            )
+            VALUES
+            (
+                @vehicle_number, 
+                @entry_station_id, 
+                @entry_datetime, 
+                @sg_now,           -- Detection time in SG
+                @entry_trans_type, 
+                @OBU_number, 
+                @VCC, 
+                @cardNumber, 
+                @DSRC, 
+                @sg_now            -- Update time in SG
+            )
+        `;
+
         await pool.request()
-          .input("vehicle_number", sql.NVarChar, data.VehicleNo)
-          .input("entry_station_id", sql.NVarChar, data.Station)
-          .input("entry_datetime", sql.DateTime, data.Time)
-          .input("entry_datetime_detect", sql.DateTime, new Date())
-          .input("entry_trans_type", sql.NVarChar, data.Status || "OK") // Use default
-          .input("OBU_number", sql.NVarChar, data.OBU_number)
-          .input("VCC", sql.NVarChar, data.VCC)
-          .input("cardNumber", sql.NVarChar, data.CardNumber)
-          .input("DSRC", sql.NVarChar, data.DSRC)
-          .execute("sp_InsertEntryMovement"); 
+            .input("vehicle_number", sql.NVarChar, data.VehicleNo)
+            .input("entry_station_id", sql.NVarChar, data.Station)
+            .input("entry_datetime", sql.DateTime, data.Time) // Ensure data.Time is also SG time
+            .input("sg_now", sql.DateTime, sgTime) 
+            .input("entry_trans_type", sql.NVarChar, data.Status || "OK")
+            .input("OBU_number", sql.NVarChar, data.OBU_number)
+            .input("VCC", sql.NVarChar, data.VCC)
+            .input("cardNumber", sql.NVarChar, data.CardNumber)
+            .input("DSRC", sql.NVarChar, data.DSRC)
+            .query(query);
 
         res.json({ success: true, ack: "ACK", data });
 
@@ -217,7 +250,6 @@ router.post("/entry-movements", async (req, res) => {
         res.status(500).json({ success: false, ack: "NACK", error: error.message });
     }
 });
-
 /**
  * @swagger
  * /exit-movements:
@@ -254,67 +286,158 @@ router.post("/entry-movements", async (req, res) => {
 
 router.post("/exit-movements", async (req, res) => {
   try {
-    const { Station, Time, VehicleNo, PaymentCardNo, Fee, Balance, OBU_number, VCC, DSRC, DeductedAmount, PaymentTransactionTime, TypeOfPayment, EntryTime, ExitTime } = req.body;
+    // 1. Destructure all possible fields from the request body
+    const { 
+      VehicleNo, 
+      Station, 
+      Time, 
+      PaymentCardNo, 
+      Fee, 
+      Balance, 
+      OBU_number, 
+      VCC, 
+      DSRC, 
+      DeductedAmount, 
+      PaymentTransactionTime, 
+      TypeOfPayment, 
+      EntryTime, 
+      ExitTime 
+    } = req.body;
 
-    if (!Station || !Time || !VehicleNo) {
+    // 2. Immediate validation for ERP 2.0 critical fields
+    if (!VehicleNo || !Station || !Time) {
       return res.status(400).json({
         success: false,
         ack: "NACK",
-        error: "Missing required fields: Station, Time, VehicleNo"
+        error: "Missing required fields: VehicleNo, Station, or Time"
       });
     }
 
     const pool = await sql.connect(config);
 
-    // Build payload matching DB fields
-    const payload = {
-      Station: Station,    
-      ObuNo: OBU_number || null,
-      VehicleNo,
-      VCC: VCC || null,
-      PaymentCardNo: PaymentCardNo || null,
-      DSRC: DSRC || null,
-      DeductedAmount: DeductedAmount || 0,
-      PaymentTransactionTime: PaymentTransactionTime || null,
-      TypeOfPayment: TypeOfPayment || null,
-      EntryTime: EntryTime || Time,
-      ExitTime: ExitTime || Time
-    };
+    // 3. The SQL Batch Query
+    const query = `
+      DECLARE @LatestEntryId INT;
 
-    // Call stored procedure
-    await pool.request()
-      .input("VehicleNo", sql.NVarChar, payload.VehicleNo)
+      -- Find the latest entry that doesn't have an exit yet
+      SELECT TOP 1 @LatestEntryId = log_id
+      FROM MovementTrans
+      WHERE vehicle_number = @VehicleNo
+        AND exit_datetime IS NULL
+      ORDER BY entry_datetime DESC;
+
+      IF @LatestEntryId IS NOT NULL
+      BEGIN
+          -- Perform the update with all provided fields
+          UPDATE MovementTrans
+          SET exit_station_id = @Station,
+              exit_datetime = ISNULL(@ExitTime, @Time),
+              exit_datetime_detect = GETDATE(),
+              card_number = @PaymentCardNo,
+              card_type = @TypeOfPayment,
+              parking_charges = @Fee,
+              paid_amount = @Balance,
+              OBU_number = @OBU_number,
+              VCC = @VCC,
+              DSRC = @DSRC,
+              DeductedAmount = @DeductedAmount,
+              PaymentTransactionTime = @PaymentTransactionTime,
+              -- Update entry_datetime only if explicitly provided in the request
+              entry_datetime = ISNULL(@EntryTime, entry_datetime),
+              update_datetime = GETDATE()
+          WHERE log_id = @LatestEntryId;
+
+          SELECT 'SUCCESS' AS Status;
+      END
+      ELSE
+      BEGIN
+          -- Flag to handle in Node.js logic
+          SELECT 'NO_ENTRY_RECORD' AS Status;
+      END
+    `;
+
+    // 4. Map the inputs precisely to the SQL parameters
+    const result = await pool.request()
+      .input("VehicleNo", sql.NVarChar, VehicleNo)
       .input("Station", sql.NVarChar, Station)
       .input("Time", sql.DateTime, Time)
-      .input("PaymentCardNo", sql.NVarChar, payload.PaymentCardNo)
+      .input("PaymentCardNo", sql.NVarChar, PaymentCardNo || null)
       .input("Fee", sql.Decimal(10, 2), Fee || 0)
       .input("Balance", sql.Decimal(10, 2), Balance || 0)
-      .input("OBU_number", sql.NVarChar, payload.ObuNo)
-      .input("VCC", sql.NVarChar, payload.VCC)
-      .input("DSRC", sql.NVarChar, payload.DSRC)
-      .input("DeductedAmount", sql.Decimal(10, 2), payload.DeductedAmount)
-      .input("PaymentTransactionTime", sql.DateTime, payload.PaymentTransactionTime)
-      .input("TypeOfPayment", sql.NVarChar, payload.TypeOfPayment)
-      .input("EntryTime", sql.DateTime, req.body.EntryTime || null)
-      .input("ExitTime", sql.DateTime, payload.ExitTime)
-      .execute("sp_UpdateExitMovement");
+      .input("OBU_number", sql.NVarChar, OBU_number || null)
+      .input("VCC", sql.NVarChar, VCC || null)
+      .input("DSRC", sql.NVarChar, DSRC || null)
+      .input("DeductedAmount", sql.Decimal(10, 2), DeductedAmount || 0)
+      .input("PaymentTransactionTime", sql.DateTime, PaymentTransactionTime || null)
+      .input("TypeOfPayment", sql.NVarChar, TypeOfPayment || null)
+      .input("EntryTime", sql.DateTime, EntryTime || null)
+      .input("ExitTime", sql.DateTime, ExitTime || null)
+      .query(query);
 
+    const dbStatus = result.recordset[0].Status;
+
+    // 5. Handle the result status
+    if (dbStatus === 'NO_ENTRY_RECORD') {
+      return res.status(404).json({
+        success: false,
+        ack: "NACK",
+        error: "No entry record found",
+        message: `Vehicle ${VehicleNo} cannot exit because no active entry was found in PMSV3.`
+      });
+    }
+
+    // Success response
     res.json({
       success: true,
       ack: "ACK",
-      message: "Exit info updated via stored procedure"
+      message: "Exit recorded successfully and record updated."
     });
 
   } catch (err) {
-    console.error("Error updating exit movement:", err);
-    res.status(500).json({
-      success: false,
-      ack: "NACK",
-      error: err.message
+    console.error("Database Error in /exit-movements:", err);
+    res.status(500).json({ 
+      success: false, 
+      ack: "NACK", 
+      error: err.message 
     });
   }
 });
 
+// Force insert exit movement if there are no matching entry record
+router.post("/force-exit-movement", async (req, res) => {
+  try {
+    const data = req.body;
+    const pool = await sql.connect(config);
+
+    // This creates a NEW record that is already "completed"
+    const query = `
+      INSERT INTO MovementTrans (
+        vehicle_number, entry_station_id, entry_datetime, 
+        exit_station_id, exit_datetime, exit_datetime_detect,
+        parking_charges, card_number, update_datetime
+      )
+      VALUES (
+        @VehicleNo, @EntryStation, @EntryTime, 
+        @ExitStation, @ExitTime, GETDATE(),
+        @Fee, @CardNo, GETDATE()
+      )
+    `;
+
+    await pool.request()
+      .input("VehicleNo", sql.NVarChar, data.VehicleNo)
+      .input("EntryStation", sql.NVarChar, data.EntryStation || 'MANUAL')
+      .input("EntryTime", sql.DateTime, data.EntryTime)
+      .input("ExitStation", sql.NVarChar, data.ExitStation)
+      .input("ExitTime", sql.DateTime, data.ExitTime)
+      .input("Fee", sql.Decimal(10, 2), data.Fee || 0)
+      .input("CardNo", sql.NVarChar, data.CardNo || 'CASH')
+      .query(query);
+
+    res.json({ success: true, message: "Manual exit record created." });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 /**
  * @swagger
